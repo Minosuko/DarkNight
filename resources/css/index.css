@@ -1,0 +1,18 @@
+.container{
+	margin: 40px auto;
+	width: 50%;
+}
+.content {
+	color: #ffffff;
+	padding: 30px;
+	background-color: #111111;
+	border: 0px solid;
+	border-radius: 0px 0px 30px 30px;
+}
+.tab{
+	border: 0px solid transparent;
+	border-radius: 30px 30px 0px 0px;
+}
+#userabout{
+	outline: none;
+}
