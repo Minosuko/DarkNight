@@ -1,0 +1,57 @@
+<?php 
+if (!isset($_COOKIE['token']))
+	header("location:index.php");
+require_once 'includes/functions.php';
+if (!_is_session_valid($_COOKIE['token']))
+	header("location:index.php");
+$data = _get_data_from_token($_COOKIE['token']);
+?>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Social Network</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" type="text/css" href="resources/css/main.css">
+		<link rel="stylesheet" type="text/css" href="resources/css/font-awesome/all.css">
+		<link rel="stylesheet" type="text/css" href="resources/css/highlight/highlight.css">
+		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
+	</head>
+	<body>
+		<div class="container">
+			<?php include 'includes/navbar.php'; ?>
+			<br>
+			<input type="hidden" id="page" value="0">
+			<div class="createpost_box">
+				<div>
+					<a href="/profile.php" title="Profiles">
+					<?php
+					$width = '40px';
+					$height = '40px';
+					
+					if($data['pfp_media_id'] > 0) {
+						$target = "data/images.php?t=profile&id={$data['pfp_media_id']}&h="._get_hash_from_media_id($data['pfp_media_id']);
+						echo '<img class="pfp" src="' . $target . '" width="' . $width . '" height="' . $height .'" id="pfp_box">'; 
+					} else {
+						if($data['user_gender'] == 'M')
+							echo '<img class="pfp" src="data/images.php?t=default_M" width="' . $width . '" height="' . $height .'" id="pfp_box">';
+						else if ($data['user_gender'] == 'F')
+							echo '<img class="pfp" src="data/images.php?t=default_F" width="' . $width . '" height="' . $height .'" id="pfp_box">';
+					}
+					?>
+					</a>
+					<div class="input_box" onclick="make_post()">
+						<a>Post something...</a>
+					</div>
+				</div>
+			</div>
+			<br>
+			<div id="feed">
+			</div>
+			<br><br><br>
+		</div>
+		<script>
+			fetch_post("fetch_post.php");
+		</script>
+	</body>
+</html>
