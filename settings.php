@@ -31,26 +31,31 @@ $data = _get_data_from_token($_COOKIE['token']);
 					<center>
 						<div class="setting_tab" id="setting-tab-account">
 							<div class="setting__box">
-								<div class="index_input_box xsetting">
-									<label for="usernickname">Username:</label>
+								<div class="index_input_box xsetting asetting">
+									<label for="usernickname">Username</label>
 									<br>
-									<input type="text" name="usernickname" id="usernickname" autocomplete="off">
+									<div class="psetting">
+										<input type="text" name="usernickname" id="usernickname" autocomplete="off" readonly>
+										<i class="fa-solid fa-angle-right"></i>
+									</div>
 								</div>
 							</div>
 							<div class="setting__box">
-								<div class="index_input_box xsetting">
-									<label for="email">Email:</label>
-									<input type="email" name="email" id="email" autocomplete="off">
+								<div class="index_input_box xsetting asetting">
+									<label for="email">Email</label>
+									<br>
+									<div class="psetting">
+										<input type="email" name="email" id="email" autocomplete="off" readonly>
+										<i class="fa-solid fa-angle-right"></i>
+									</div>
 								</div>
 							</div>
 							<div class="setting__box">
-								<div class="index_input_box name_input">
-									<label for="password">Password:</label>
-									<input type="password" name="password" id="password" autocomplete="off">
-								</div>
-								<div class="index_input_box name_input">
-									<label for="re-password">Repeat Password:</label>
-									<input type="password" name="re-password" id="re-password" autocomplete="off">
+								<div class="index_input_box xsetting asetting">
+									<label for="password">Password</label>
+									<div class="psetting">
+										<i class="fa-solid fa-angle-right"></i>
+									</div>
 								</div>
 							</div>
 							<div class="setting__box">
@@ -66,6 +71,10 @@ $data = _get_data_from_token($_COOKIE['token']);
 							<div style="height: 48px"></div>
 						</div>
 						<div class="setting_tab" id="setting-tab-profile">
+							<div class="setting__box_image">
+								<div class="setting_profile_cover" id="setting_profile_cover"></div>
+								<img width="168px" height="168px" src="data/blank.jpg" id="profile_picture" class="setting_profile_picture">
+							</div>
 							<div class="setting__box">
 								<div class="index_input_box name_input">
 									<label for="userfirstname">First name:</label>
@@ -79,7 +88,7 @@ $data = _get_data_from_token($_COOKIE['token']);
 							<div class="setting__box">
 								<div class="index_input_box xsetting">
 									<label>Birth Date</label>
-									<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>" autocomplete="off">
+									<input type="date" id="birthday" name="birthday" autocomplete="off">
 								</div>
 							</div>
 							<div class="setting__box">
