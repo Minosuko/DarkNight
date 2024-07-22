@@ -18,6 +18,9 @@ function compress_image($source, $quality = 90) {
 		case 'image/jpeg':
 			$image = imagecreatefromjpeg($source);
 			break;
+		case 'image/jpg':
+			$image = imagecreatefromjpeg($source);
+			break;
 		case 'image/gif':
 			$image = imagecreatefromgif($source);
 			break;
@@ -31,11 +34,18 @@ function compress_image($source, $quality = 90) {
 			$image = imagecreatefrombmp($source);
 			break;
 	}
-	ob_start();
-	imagejpeg($image, null, $quality);
-	$imagedata = ob_get_contents();
-	ob_end_clean();
-	imagedestroy($image);
+	if(isset($image)){
+		ob_start();
+		imagejpeg($image, null, $quality);
+		$imagedata = ob_get_contents();
+		ob_end_clean();
+		imagedestroy($image);
+	}else{
+		$o = fopen(__DIR__ . '/err.log','a+');
+		fwrite($o,"MIME TYPE {$info['mime']} NOT SUPPORTED\n");
+		fclose($o);
+		$imagedata = file_get_contents($source);
+	}
     return $imagedata;
 }
 function validateDate($date, $format = 'Y-m-d') { 
@@ -181,29 +191,29 @@ function is_liked($user_id, $post_id){
 function total_like($post_id){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM likes WHERE post_id = %d",
+		"SELECT COUNT(*) as count FROM likes WHERE post_id = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
-	return $query->num_rows;
+	return $query->fetch_assoc()['count'];
 }
 function total_share($post_id){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM posts WHERE is_share = %d",
+		"SELECT COUNT(*) as count FROM posts WHERE is_share = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
-	return $query->num_rows;
+	return $query->fetch_assoc()['count'];
 }
 function total_comment($post_id){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM comments WHERE post_id = %d",
+		"SELECT COUNT(*) as count FROM comments WHERE post_id = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
-	return $query->num_rows;
+	return $query->fetch_assoc()['count'];
 }
 function convertDate($datetime, $full = false) {
 	$now = new DateTime;

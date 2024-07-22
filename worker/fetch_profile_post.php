@@ -20,10 +20,10 @@ if(!is_user_exists($current_id)){
 }
 $postsql;
 if($flag == 0) { // Your Own Profile	   
-	$postsql = "SELECT posts.post_caption, posts.post_time, users.user_firstname, users.user_lastname, users.verified,
+	$postsql = "SELECT posts.post_caption, posts.post_time, users.user_firstname, users.user_lastname,
 						posts.post_public, users.user_id, users.user_gender, users.user_nickname,
 						users.user_birthdate, users.user_hometown, users.user_status, users.user_about, 
-						posts.post_id, users.pfp_media_id, users.user_nickname, posts.post_media, posts.is_share
+						posts.post_id, users.pfp_media_id, users.verified, posts.post_media, posts.is_share
 				FROM posts
 				JOIN users
 				ON users.user_id = posts.post_by
@@ -51,7 +51,7 @@ if($flag == 0) { // Your Own Profile
 			$postsql = "SELECT posts.post_caption, posts.post_time, users.user_firstname, users.user_lastname,
 								posts.post_public, users.user_id, users.user_gender, users.user_nickname,
 								users.user_birthdate, users.user_hometown, users.user_status, users.user_about, 
-								posts.post_id, users.pfp_media_id, users.user_nickname, posts.post_media, posts.is_share
+								posts.post_id, users.pfp_media_id, users.verified, posts.post_media, posts.is_share
 						FROM posts
 						JOIN users
 						ON users.user_id = posts.post_by
@@ -62,7 +62,7 @@ if($flag == 0) { // Your Own Profile
 			$postsql = "SELECT posts.post_caption, posts.post_time, users.user_firstname, users.user_lastname,
 								posts.post_public, users.user_id, users.user_gender, users.user_nickname,
 								users.user_birthdate, users.user_hometown, users.user_status, users.user_about, 
-								posts.post_id, users.pfp_media_id, users.user_nickname, posts.post_media, posts.is_share
+								posts.post_id, users.pfp_media_id, users.verified, posts.post_media, posts.is_share
 						FROM posts
 						JOIN users
 						ON users.user_id = posts.post_by
@@ -73,7 +73,7 @@ if($flag == 0) { // Your Own Profile
 		$postsql = "SELECT posts.post_caption, posts.post_time, users.user_firstname, users.user_lastname,
 							posts.post_public, users.user_id, users.user_gender, users.user_nickname,
 							users.user_birthdate, users.user_hometown, users.user_status, users.user_about, 
-							posts.post_id, users.pfp_media_id, users.user_nickname, posts.post_media, posts.is_share
+							posts.post_id, users.pfp_media_id, users.verified, posts.post_media, posts.is_share
 					FROM posts
 					JOIN users
 					ON users.user_id = posts.post_by
