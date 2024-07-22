@@ -5,11 +5,11 @@ $if_modified_since = isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? $_SERVER['HTTP_
 $if_none_match = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? $_SERVER['HTTP_IF_NONE_MATCH'] : false;
 if ((($if_none_match && $if_none_match == $md5) || (!$if_none_match)) && ($if_modified_since && $if_modified_since == $tsstring))
 {
-    header('HTTP/1.1 304 Not Modified');
+	header('HTTP/1.1 304 Not Modified');
 	die();
 }else{
 	header("Last-Modified: $tsstring");
-	header("ETag: \"{$md5}\"");
+	header("ETag: {$md5}");
 }
 header("content-type: application/json");
 $s = scandir(__DIR__ . '/../resources/js/highlight/');
