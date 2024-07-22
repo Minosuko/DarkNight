@@ -725,6 +725,17 @@ function timeConverter(UNIX_timestamp){
 	var time = date + '/' + month + '/' + year + ' ' + hour + ':' + min + ':' + sec ;
 	return time;
 }
+function birthdateConverter(UNIX_timestamp){
+	var a = new Date(UNIX_timestamp);
+	var year = a.getFullYear();
+	var month = a.getMonth() + 1;
+	if(month.toString().length == 1)
+		month = '0' + month;
+	var date = a.getDate();
+	var time = year + '-' + month + '-' + date;
+	console.log(time);
+	return time;
+}
 function timeSince(date) {
 	var seconds = Math.floor((new Date() - date) / 1000);
 	var interval = seconds / 31536000;
@@ -1241,8 +1252,8 @@ function fetch_friend_list(loc){
 				} else {
 					if(data[i]['user_gender'] == 'M')
 						frl_a += '<img class="pfp" src="data/images.php?t=default_M" width="168px" height="168px" id="pfp"/>';
-					else if (data['user_gender'] == 'F')
-						frl_a += '<img class="pfp" src="data/images.php?t=default_F" width="168px" height="168px"	id="pfp"/>';
+					else if (data[i]['user_gender'] == 'F')
+						frl_a += '<img class="pfp" src="data/images.php?t=default_F" width="168px" height="168px" id="pfp"/>';
 				}
 				frl_a += '<br>';
 				frl_a += '<a href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
@@ -1355,7 +1366,7 @@ function fetch_profile(loc){
 				pfp_a += 'Married';
 			pfp_a += '<br>';
 		}
-		pfp_a += data['user_birthdate'];
+		pfp_a += birthdateConverter(data['user_birthdate'] * 1000);
 		if(data['user_hometown'] == ''){
 			pfp_a += '<br>';
 			pfp_a += data['user_hometown'];
@@ -1654,12 +1665,28 @@ function _load_settings(){
 			var user_about = document.getElementById('userabout');
 			var verified = document.getElementById('verified');
 			var verified_text = document.getElementById('verified-text');
+			var birthday = document.getElementById('birthday');
+			var profile_picture = document.getElementById('profile_picture');
+			var setting_profile_cover = document.getElementById('setting_profile_cover');
+			var psrc = '';
 			user_about.value = res['user_about'];
 			user_hometown.value = res['user_hometown'];
 			usernickname.value = res['user_nickname'];
 			userfirstname.value = res['user_firstname'];
 			userlastname.value = res['user_lastname'];
 			email.value = res['user_email'];
+			if(res['cover_media_id'] > 0)
+				setting_profile_cover.style.backgroundImage = 'url("data/images.php?t=profile&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
+			if (res['pfp_media_id'] > 0) {
+				psrc = 'data/images.php?t=profile&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'];
+			} else {
+				if (res['user_gender'] == 'M')
+					psrc = 'data/images.php?t=default_M';
+				else if (res['user_gender'] == 'F')
+					psrc = 'data/images.php?t=default_F';
+			}
+			profile_picture.src = psrc;
+			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
 			if(res['user_gender'] == 'F')
 				femalegender.checked = true;
 			else
