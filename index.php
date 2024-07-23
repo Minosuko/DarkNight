@@ -102,100 +102,102 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	<body>
 		<h1>Freedom Social</h1>
 		<div class="container">
-			<div class="tab">
-				<button class="tablink active" onclick="openTab(event,'signin')" id="link1">Sign In</button>
-				<button class="tablink" onclick="openTab(event,'signup')" id="link2">Sign Up</button>
-			</div>
-			<div class="content">
-				<div class="tabcontent" id="signin">
-					<form method="post" onsubmit="return validateLogin()">
-						<div class="index_input_box">
-							<label>Login<span>*</span></label>
-							<div class="required"></div>
-							<br>
-							<input type="text" name="userlogin" id="loginuseremail">
-						</div>
-						<br>
-						<div class="index_input_box">
-							<label>Password<span>*</span></label>
-							<div class="required"></div>
-							<br>
-							<input type="password" name="userpass" id="loginuserpass">
-						</div>
-						<br>
-						<label>Remember Me? </label>
-						<input type="checkbox" name="remember_me" id="remember-me">
-						<br><br>
-						<input type="submit" value="Login" name="login">
-					</form>
+			<div class="transparent_block">
+				<div class="tab">
+					<button class="tablink active" onclick="openTab(event,'signin')" id="link1">Sign In</button>
+					<button class="tablink" onclick="openTab(event,'signup')" id="link2">Sign Up</button>
 				</div>
-				<div class="tabcontent" id="signup">
-					<form method="post" onsubmit="return validateRegister()">
-						<!--First Name-->
-						<div class="index_input_box name_input">
-							<label>First Name<span>*</span></label>
-							<div class="required"></div>
+				<div class="content">
+					<div class="tabcontent" id="signin">
+						<form method="post" onsubmit="return validateLogin()">
+							<div class="index_input_box">
+								<label>Login<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="text" name="userlogin" id="loginuseremail" placeholder="Username or email">
+							</div>
 							<br>
-							<input type="text" name="userfirstname" id="userfirstname">
-						</div>
-						<!--Last Name-->			
-						<div class="index_input_box name_input right_content_box">
-							<label>Last Name<span>*</span></label>
-							<div class="required"></div>
+							<div class="index_input_box">
+								<label>Password<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="password" name="userpass" id="loginuserpass" placeholder="********">
+							</div>
 							<br>
-							<input type="text" name="userlastname" id="userlastname">
-						</div>
-						<br>
-						<br>
-						<!--Nickname-->
-						<div class="index_input_box">
-							<label>Nickname<span>*</span></label>
-							<div class="required"></div>
+							<label>Remember Me? </label>
+							<input type="checkbox" name="remember_me" id="remember-me">
+							<br><br>
+							<input type="submit" value="Login" name="login">
+						</form>
+					</div>
+					<div class="tabcontent" id="signup">
+						<form method="post" onsubmit="return validateRegister()">
+							<!--First Name-->
+							<div class="index_input_box name_input">
+								<label>First Name<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="text" name="userfirstname" id="userfirstname">
+							</div>
+							<!--Last Name-->			
+							<div class="index_input_box name_input right_content_box">
+								<label>Last Name<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="text" name="userlastname" id="userlastname">
+							</div>
 							<br>
-							<input type="text" name="usernickname" id="usernickname" placeholder="@username">
-						</div>
-						<br>
-						<!--Password-->
-						<div class="index_input_box">
-							<label>Password<span>*</span></label>
-							<div class="required"></div>
 							<br>
-							<input type="password" name="userpass" id="userpass">
-						</div>
-						<br>
-						<!--Confirm Password-->
-						<div class="index_input_box">
-							<label>Confirm Password<span>*</span></label>
-							<div class="required"></div><br>
-							<input type="password" name="userpassconfirm" id="userpassconfirm">
-						</div>
-						<br>
-						<!--Email-->
-						<div class="index_input_box">
-							<label>Email<span>*</span></label>
-							<div class="required"></div>
+							<!--Nickname-->
+							<div class="index_input_box">
+								<label>Nickname<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="text" name="usernickname" id="usernickname" placeholder="@username">
+							</div>
 							<br>
-							<input type="text" name="useremail" id="useremail">
-						</div>
-						<br>
-						<!--Birth Date-->
-						<div class="index_input_box">
-							<div class="required"></div>
-							Birth Date<span>*</span><br>
-							<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
-						</div>
-						<br>
-						<!--Gender-->
-						<div class="index_input_box">
-							<div class="required"></div>
-							<input type="radio" name="usergender" value="M" id="malegender" class="usergender">
-							<label>Male</label>
-							<input type="radio" name="usergender" value="F" id="femalegender" class="usergender">
-							<label>Female</label>
-						</div>
-						<br><br>
-						<input type="submit" value="Create Account" name="register">
-					</form>
+							<!--Password-->
+							<div class="index_input_box">
+								<label>Password<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="password" name="userpass" id="userpass">
+							</div>
+							<br>
+							<!--Confirm Password-->
+							<div class="index_input_box">
+								<label>Confirm Password<span>*</span></label>
+								<div class="required"></div><br>
+								<input type="password" name="userpassconfirm" id="userpassconfirm">
+							</div>
+							<br>
+							<!--Email-->
+							<div class="index_input_box">
+								<label>Email<span>*</span></label>
+								<div class="required"></div>
+								<br>
+								<input type="text" name="useremail" id="useremail">
+							</div>
+							<br>
+							<!--Birth Date-->
+							<div class="index_input_box">
+								<div class="required"></div>
+								Birth Date<span>*</span><br>
+								<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
+							</div>
+							<br>
+							<!--Gender-->
+							<div class="index_input_box">
+								<div class="required"></div>
+								<input type="radio" name="usergender" value="M" id="malegender" class="usergender">
+								<label>Male</label>
+								<input type="radio" name="usergender" value="F" id="femalegender" class="usergender">
+								<label>Female</label>
+							</div>
+							<br><br>
+							<input type="submit" value="Create Account" name="register">
+						</form>
+					</div>
 				</div>
 			</div>
 		</div>

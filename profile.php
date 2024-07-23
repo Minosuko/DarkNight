@@ -70,8 +70,13 @@ $data = _get_data_from_token($_COOKIE['token']);
 			.about_me{
 				margin-left: calc(70%);
 				width: 400px;
-				border: 1px solid #262626;
-				border-radius: 15px;
+				border-top: 1px solid rgba(255, 255, 255, 0.34);
+				border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+				border-left: 60px solid transparent;
+				border-right: 60px solid transparent;
+				border-radius: 30px;
+				backdrop-filter: blur(3.7px);
+				-webkit-backdrop-filter: blur(3.7px);
 			}
 			#feed{
 				margin-top: -200px;

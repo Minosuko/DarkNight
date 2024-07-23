@@ -5,14 +5,67 @@
 .content {
 	color: #ffffff;
 	padding: 30px;
-	background-color: #111111;
 	border: 0px solid;
 	border-radius: 0px 0px 30px 30px;
 }
 .tab{
 	border: 0px solid transparent;
-	border-radius: 30px 30px 0px 0px;
+}
+
+div.tab {
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+}
+
+div.tab button {
+	border-radius: 30px;
+	background-color: transparent;
+	border: none;
+	outline: none;
+	color: white;
+	float: left;
+	padding: 10px;
+	cursor: pointer;
+	width: 50%;
+	border: 1px solid transparent;
+}
+
+div.tab button:hover:not([class*="active"]){
+	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
+	animation: hoverTab 0.5s 1;
+}
+
+div.tab button.active {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
+}
+
+@keyframes hoverTab {
+	0% {
+		border-bottom: 1px solid rgba(255, 255, 255, 0);
+	}
+	100% {
+		border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+	}
 }
 #userabout{
 	outline: none;
+}
+.transparent_block{
+	display: block;
+	margin-top: 15%;
+	position: realtive;
+	padding: 10px;
+	background: rgba(255, 255, 255, 0);
+	box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+	backdrop-filter: blur(3.7px);
+	-webkit-backdrop-filter: blur(3.7px);
+	border-top: 1px solid rgba(255, 255, 255, 0.34);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
 }
