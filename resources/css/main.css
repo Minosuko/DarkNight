@@ -406,14 +406,18 @@ input[type=checkbox] {
 	margin: 0px 5px;
 }
 .userquery {
-	background-color: #121212;
+	backdrop-filter: blur(3.7px);
+	-webkit-backdrop-filter: blur(3.7px);
+	border-top: 1px solid rgba(255, 255, 255, 0.34);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
 	margin: auto;
 	width: 320px;
 	padding: 20px 20px 0px 20px;
 	overflow: auto;
 	text-align: center;
-	border: 1px solid gray;
-	border-radius: 5px;
+	box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .userquery a {
@@ -831,6 +835,9 @@ a:visited{
 	width: 100%;
 	color: white;
 }
+button.s_button>i{
+	float:none;
+}
 button.s_button {
 	padding: 1em;
 	background: #323232;
@@ -842,7 +849,9 @@ button.s_button {
 	outline: none;
 	padding: 1em;
 	gap: 0.5em;
+	cursor: pointer;
 }
+
 .red_alert{
 	background: #ff3333 !important;
 }
