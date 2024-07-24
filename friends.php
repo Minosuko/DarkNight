@@ -18,7 +18,6 @@ $data = _get_data_from_token($_COOKIE['token']);
 		<style>
 		.frame a{
 			text-decoration: none;
-			color: #4267b2;
 		}
 		.frame a:hover{
 			text-decoration: underline;

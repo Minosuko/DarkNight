@@ -24,6 +24,7 @@ $data = _get_data_from_token($_COOKIE['token']);
 						<ul>
 							<li><a href="/settings.php?tab=account" id="tab-account"><i class="fa-solid fa-address-card"></i> Account</a></li>
 							<li><a href="/settings.php?tab=profile" id="tab-profile"><i class="fa-solid fa-user"></i> Profile</a></li>
+							<li><a href="/settings.php?tab=about" id="tab-about"><i class="fa-solid fa-circle-info"></i> About</a></li>
 						</ul>
 					</center>
 				</div>
@@ -110,6 +111,48 @@ $data = _get_data_from_token($_COOKIE['token']);
 								<div class="index_input_box xsetting">
 									<label for="userabout">About:</label>
 									<textarea name="userabout" id="userabout" autocomplete="off" class="text_area"></textarea>
+								</div>
+							</div>
+						</div>
+						<div class="setting_tab" id="setting-tab-about">
+							<div class="setting__box">
+								<div class="index_input_box xsetting asetting">
+									<a href="https://fb.com/MinoFoxc" target="_blank" linked="true">
+										<p>Facebook <i class="fa-brands fa-facebook"></i></p>
+										<div class="psetting">
+											<i class="fa-solid fa-angle-right"></i>
+										</div>
+									</a>
+								</div>
+							</div>
+							<div class="setting__box">
+								<div class="index_input_box xsetting asetting">
+									<a href="https://x.com/MinosukoUwU" target="_blank" linked="true">
+										<p>X <i class="fa-brands fa-x-twitter"></i> (Twitter <i class="fa-brands fa-twitter"></i>)</p>
+										<div class="psetting">
+											<i class="fa-solid fa-angle-right"></i>
+										</div>
+									</a>
+								</div>
+							</div>
+							<div class="setting__box">
+								<div class="index_input_box xsetting asetting">
+									<a href="https://github.com/Minosuko" target="_blank" linked="true">
+										<p>Github <i class="fa-brands fa-github"></i></p>
+										<div class="psetting">
+											<i class="fa-solid fa-angle-right"></i>
+										</div>
+									</a>
+								</div>
+							</div>
+							<div class="setting__box">
+								<div class="index_input_box xsetting asetting">
+									<a href="https://bsky.app/profile/minosuko.love" target="_blank" linked="true">
+										<p>BSky <i class="fa-solid fa-cloud"></i></p>
+										<div class="psetting">
+											<i class="fa-solid fa-angle-right"></i>
+										</div>
+									</a>
 								</div>
 							</div>
 						</div>
