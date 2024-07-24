@@ -7,7 +7,7 @@ if (!_is_session_valid($_COOKIE['token']))
     header("location:../index.php");
 header("content-type: application/json");
 $data = _get_data_from_token($_COOKIE['token']);
-$sql = "SELECT users.user_id, users.user_firstname, users.user_lastname, users.user_gender, users.pfp_media_id, users.user_nickname, users.verified
+$sql = "SELECT users.user_id, users.user_firstname, users.user_lastname, users.user_gender, users.pfp_media_id, users.user_nickname, users.verified, users.last_online
 		FROM users
 		JOIN (
 			SELECT friendship.user1_id AS user_id
@@ -30,12 +30,10 @@ $sql = "$sql$esql";
 $query = $conn->query($sql);
 $total_rows = $query->num_rows;
 if($total_rows == 0){
-	echo '{"success":' . (($off >= 30) ? '3' : 2) . '}';
+	echo '{"success":' . (($off >= 20) ? '3' : 2) . '}';
 }else{
-	$width = '40px'; // Profile Image Dimensions
-	$height = '40px';
-	$r = 30;
-	if($total_rows < 30)
+	$r = 20;
+	if($total_rows < 20)
 		$r = $total_rows;
 	$rows = $query->fetch_all(MYSQLI_ASSOC);
 	$row_d = [];
@@ -43,6 +41,7 @@ if($total_rows == 0){
 		$row_d[$i] = $rows[$i];
 		if($row_d[$i]['pfp_media_id'] > 0)
 			$row_d[$i]['pfp_media_hash'] = _get_hash_from_media_id($row_d[$i]['pfp_media_id']);
+		$row_d[$i]['is_online'] = (time() - $row_d[$i]['last_online'] <= 600) ? 1 : 0;
 	}
 	$row_d["success"] = 1;
 	echo json_encode($row_d);

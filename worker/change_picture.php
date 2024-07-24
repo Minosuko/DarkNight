@@ -1,5 +1,4 @@
 <?php
-// Check whether user is logged on or not
 if (!isset($_COOKIE['token']))
     header("location:../index.php");
 require_once '../includes/functions.php';
