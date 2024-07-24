@@ -11,7 +11,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$type = $_POST['type'];
 		$filename = basename($_FILES["fileUpload"]["name"]);
 		$filetype = pathinfo($filename, PATHINFO_EXTENSION);
-		$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "ICO"];
+		$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
 		if(in_array($type,['cover','profile'])){
 			if(in_array($filetype,$supported_image)){
 				if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
@@ -32,7 +32,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if($type == 'profile'){
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
-					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed profile picture.', 'Y', $timestamp, {$data['user_id']}, $media_id)",
+					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed profile picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
 						$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
 					);
 					$query5 = $conn->query($sql5);
@@ -43,7 +43,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if($type == 'cover'){
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
-					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed profile picture.', 'Y', $timestamp, {$data['user_id']}, $media_id)",
+					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed cover picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
 						$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
 					);
 					$query5 = $conn->query($sql5);
