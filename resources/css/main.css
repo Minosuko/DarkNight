@@ -13,6 +13,7 @@ body {
 	background-repeat: no-repeat;
 	background-attachment: fixed;
 	background-size: cover;
+	overflow-y: scroll;
 }
 
 ::-webkit-scrollbar {
@@ -396,11 +397,14 @@ input[type=checkbox] {
 .frame {
 	width: 200px;
 	display: inline-block;
-	background-color: #121212;
+	backdrop-filter: blur(3.7px);
+	-webkit-backdrop-filter: blur(3.7px);
+	border-top: 1px solid rgba(255, 255, 255, 0.34);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
 	padding: 10px;
 	margin: 5px;
-	border: 1px solid gray;
-	border-radius: 5px;
 }
 .frame>center>a>i{
 	margin: 0px 5px;
@@ -446,7 +450,10 @@ input:disabled {
 	text-decoration: underline;
 	color:#002d75;
 }
-
+.fr_button{
+	border-radius: 50px;
+	margin: 5px;
+}
 /**
  * @module		 Z Template
  * @author		 Daniel Sevcik <sevcik@webdevelopers.cz>
@@ -704,7 +711,7 @@ a:visited{
 }
 .caption_box{
 	height: 200px;
-	transition: 0.2s ease-out;
+	transition: 0.3s ease-out;
 	overflow: hidden;
 }
 .caption_box_shadow{
@@ -712,7 +719,7 @@ a:visited{
 	width: 650px;
 	margin-top: 140px;
 	height: 65px;
-	box-shadow: -15px -65px 35px -45px #121212 inset;
+	background: linear-gradient(to bottom, transparent 0%,rgba(0,0,0,0.5) 100%);
 	z-index:5;
 }
 .caption_box_shadow>p{
@@ -779,9 +786,10 @@ a:visited{
 	overflow: auto;
 	width: 100%;
 	height: 100%;
+	backdrop-filter: blur(64px);
 }
 .settings_nav{
-	backdrop-filter: blur(3.7px);
+	backdrop-filter: blur(3.7px) !important;
 	-webkit-backdrop-filter: blur(3.7px);
 	width: 100%;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
@@ -801,6 +809,7 @@ a:visited{
 	display: inline-block;
 	color: rgba(255,255,255,0.5);
 	padding: 10px 10px;
+	border-bottom: 2px solid transparent;
 }
 .settings_nav ul li a.active{
 	text-align: center;
@@ -828,6 +837,14 @@ a:visited{
 .setting__box .index_input_box label{
 	float: left;
 }
+.setting__box .index_input_box p{
+	margin: 0;
+	float: left;
+}
+.setting__box .index_input_box p>i{
+	margin: 0;
+	float: none;
+}
 .index_input_box input:not([type=radio]){
 	background-color: transparent;
 	border: none;
@@ -840,7 +857,7 @@ button.s_button>i{
 }
 button.s_button {
 	padding: 1em;
-	background: #323232;
+	background: #0073e6;
 	color: white;
 	border: none;
 	border-radius: 30px;
@@ -857,7 +874,7 @@ button.s_button {
 }
 input[type="submit"] {
 	padding: 1em;
-	background: #323232 !important;
+	background: #0073e6 !important;
 	color: white;
 	border: none;
 	border-radius: 30px;
@@ -865,7 +882,7 @@ input[type="submit"] {
 	width: 100%;
 }
 input[type="submit"]:hover {
-	background: #1A1A1A !important;
+	background: #0066cc !important;
 }
 input[type="checkbox"] {
 	appearance: none;
@@ -963,7 +980,8 @@ input:-webkit-autofill:active{
 	z-index: -2;
 }
 .setting__box_image{
-		height: 400px;
+	height: 400px;
+	mask-image: linear-gradient(to top, transparent 0, black 25%);
 }
 .red-dot-counter{
 	width: 12px;
@@ -976,6 +994,24 @@ input:-webkit-autofill:active{
 }
 .noft-align{
 	padding-right: 20px !important;
+}
+.status-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    bottom: 0;
+    right: 0;
+    position: absolute;
+}
+.online-status-circle {
+    background-color: green;
+}
+.offline-status-circle {
+    background-color: gray;
+}
+.pfp-box{
+	position: relative;
 }
 @keyframes rainbow {
 	0% {
