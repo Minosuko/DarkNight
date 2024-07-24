@@ -1,5 +1,4 @@
 <?php
-// Check whether user is logged on or not
 if (!isset($_COOKIE['token']))
     header("location:../index.php");
 require_once '../includes/functions.php';
@@ -28,17 +27,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$last_id = $conn->insert_id;
 				$filename = basename($_FILES["fileUpload"]["name"]);
 				$filetype = pathinfo($filename, PATHINFO_EXTENSION);
-				$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "ico"];
+				$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
 				if(in_array(strtolower($filetype),$supported_image)){
 					if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
 						$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
 						$filepath = __DIR__ . "/../data/images/image/$media_hash.bin";
 						$media_format = mime_content_type($_FILES["fileUpload"]["tmp_name"]);
-						$sql6 = "SELECT * FROM media WHERE media_hash = '$media_hash'";
-						$query6 = $conn->query($sql6);
-						if($query6->num_rows == 0){
-							$sql6 = "INSERT INTO media (media_format, media_hash, media_ext) VALUES ('$media_format','$media_hash', '$filetype')";
-							$query6 = $conn->query($sql6);
+						$sql = "SELECT * FROM media WHERE media_hash = '$media_hash'";
+						$query = $conn->query($sql);
+						if($query->num_rows == 0){
+							$sql = "INSERT INTO media (media_format, media_hash, media_ext) VALUES ('$media_format','$media_hash', '$filetype')";
+							$query = $conn->query($sql);
 							$media_id = $conn->insert_id;
 						}else{
 							$media_id = $query6->fetch_assoc()["media_id"];
