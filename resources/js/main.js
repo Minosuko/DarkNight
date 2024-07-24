@@ -733,7 +733,6 @@ function birthdateConverter(UNIX_timestamp){
 		month = '0' + month;
 	var date = a.getDate();
 	var time = year + '-' + month + '-' + date;
-	console.log(time);
 	return time;
 }
 function timeSince(date) {
