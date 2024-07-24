@@ -54,7 +54,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 			header("ETag: $md5");
 			readfile("images/F.jpg");
 		}else{
-			if(isset($_GET['id']) && isset($_GET['h']){
+			if(isset($_GET['id']) && isset($_GET['h'])){
 				if(is_numeric($_GET['id'])){
 					if(file_exists("images/image/$hash.bin") || file_exists("images/compressed/$hash.bin")){
 						$md5 = $_GET['h'];
