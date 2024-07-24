@@ -25,20 +25,7 @@ $data = _get_data_from_token($_COOKIE['token']);
 			<div class="createpost_box">
 				<div>
 					<a href="/profile.php" title="Profiles">
-					<?php
-					$width = '40px';
-					$height = '40px';
-					
-					if($data['pfp_media_id'] > 0) {
-						$target = "data/images.php?t=profile&id={$data['pfp_media_id']}&h="._get_hash_from_media_id($data['pfp_media_id']);
-						echo '<img class="pfp" src="' . $target . '" width="' . $width . '" height="' . $height .'" id="pfp_box">'; 
-					} else {
-						if($data['user_gender'] == 'M')
-							echo '<img class="pfp" src="data/images.php?t=default_M" width="' . $width . '" height="' . $height .'" id="pfp_box">';
-						else if ($data['user_gender'] == 'F')
-							echo '<img class="pfp" src="data/images.php?t=default_F" width="' . $width . '" height="' . $height .'" id="pfp_box">';
-					}
-					?>
+					<img class="pfp" src="data/blank.jpg" width="40px" height="40px" id="pfp_box">
 					</a>
 					<div class="input_box" onclick="make_post()">
 						<a>Post something...</a>
