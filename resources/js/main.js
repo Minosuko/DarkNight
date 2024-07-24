@@ -799,8 +799,23 @@ $(window).on("popstate", function (event, state) {
 	if(localStorage.getItem("cgurl") == 0)
 		changeUrl(urlPath);
 });
-
+function fetch_pfp_box(){
+	$.get("worker/profile_image.php", function(data) {
+		var pfp_box = document.getElementById('pfp_box');
+		if(pfp_box != null){
+			if (data['pfp_media_id'] > 0) {
+				pfp_box.src = 'data/images.php?t=profile&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'];
+			} else {
+				if (data['user_gender'] == 'M')
+					pfp_box.src = 'data/images.php?t=default_M';
+				else if (data['user_gender'] == 'F')
+					pfp_box.src = 'data/images.php?t=default_F';
+			}
+		}
+	});
+}
 function fetch_post(loc) {
+	fetch_pfp_box();
 	$.get("worker/" + loc, function(data) {
 		var post_feed = '';
 		var post_length = Object.keys(data).length;
