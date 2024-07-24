@@ -829,12 +829,16 @@ function fetch_post(loc) {
 				post_a += '</a>';
 				post_a += '<a class="public">';
 				post_a += '<span class="postedtime" title="' + timeConverter(post_adata['post_time'] * 1000) + '">';
-				if (post_adata['post_public'] == 2) {
-					post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
-				} else if (post_adata['post_public'] == 1) {
-					post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
-				} else {
-					post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+				switch(Number(post_adata['post_public'])){
+					case 2:
+						post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+						break;
+					case 1:
+						post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+						break;
+					default:
+						post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+						break;
 				}
 				post_a += " " + timeSince(post_adata['post_time'] * 1000) + '</span>';;
 				post_a += '</a>';
@@ -1022,12 +1026,12 @@ function get(name){
 }
 function processAjaxData(response, urlPath) {
 	var title = $(response).filter('title').text();
-	document.getElementsByTagName("html")[0].innerHTML = response;
 	document.title = title;
 	window.history.pushState({
 		"html": response,
 		"pageTitle": title
 	}, "", urlPath);
+	document.getElementsByTagName("html")[0].innerHTML = response;
 	if (urlPath.substring(0,13) === "/settings.php" || urlPath.substring(0,12) === "settings.php")
 		_load_settings();
 	if (urlPath === "/home.php" || urlPath === "home.php")
@@ -1107,7 +1111,7 @@ function _share(id) {
 		post_a += '				<option value="0">private</option>';
 		post_a += '			</select>';
 		post_a += '			</span>';
-		post_a += '			<img class="pfp" src="' + document.getElementById('pfp').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
+		post_a += '			<img class="pfp" src="' + document.getElementById('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
 		post_a += '			<span class="required" style="display:none;"> *You can\'t Leave the Caption Empty.</span><br>';
 		post_a += '			<textarea rows="6" name="caption" class="caption" placeholder="Write something..."></textarea>';
 		post_a += '			<center><img src="" id="preview" style="max-width:580px; display:none;"></center>';
@@ -1138,12 +1142,16 @@ function _share(id) {
 		post_a += '</a>';
 		post_a += '<a class="public">';
 		post_a += '<span class="postedtime" title="' + timeConverter(post_adata['post_time'] * 1000) + '">';
-		if (post_adata['post_public'] == 2) {
-			post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
-		} else if (post_adata['post_public'] == 1) {
-			post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
-		} else {
-			post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+		switch(Number(post_adata['post_public'])){
+			case 2:
+				post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+				break;
+			case 1:
+				post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+				break;
+			default:
+				post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+				break;
 		}
 		post_a += " " + timeSince(post_adata['post_time'] * 1000) + '</span>';;
 		post_a += '</a>';
@@ -1247,6 +1255,7 @@ function fetch_friend_list(loc){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				frl_a += '<div class="frame">';
 				frl_a += '<center>';
+				frl_a += '<div class="pfp-box">';
 				if(data[i]['pfp_media_id'] > 0) {
 					frl_a += '<img class="pfp" src="data/images.php?t=profile&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
 				} else {
@@ -1255,8 +1264,10 @@ function fetch_friend_list(loc){
 					else if (data[i]['user_gender'] == 'F')
 						frl_a += '<img class="pfp" src="data/images.php?t=default_F" width="168px" height="168px" id="pfp"/>';
 				}
+				frl_a += '<div class="status-circle ' + ( (data[i]['is_online']) ? 'online' : 'offline') + '-status-circle"></div>';
+				frl_a += '</div>';
 				frl_a += '<br>';
-				frl_a += '<a href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
+				frl_a += '<a class="flist_link" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
 					frl_a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="verified"></i>'; 
 				frl_a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
@@ -1358,12 +1369,24 @@ function fetch_profile(loc){
 			pfp_a += 'Female';
 		pfp_a += '<br>';
 		if(data['user_status'] != ''){
-			if(data['user_status'] == "S")
-				pfp_a += 'Single';
-			else if(data['user_status'] == "E")
-				pfp_a += 'Engaged';
-			else if(data['user_status'] == "M")
-				pfp_a += 'Married';
+			switch(data['user_status']){
+				case "S":
+					pfp_a += 'Single';
+					break;
+				case "E":
+					pfp_a += 'Engaged';
+					break;
+				case "M":
+					pfp_a += 'Married';
+					break;
+				case "L":
+					pfp_a += 'In Love';
+					break;
+				default:
+				case "U":
+					pfp_a += 'Unknown';
+					break;
+			}
 			pfp_a += '<br>';
 		}
 		pfp_a += birthdateConverter(data['user_birthdate'] * 1000);
@@ -1374,18 +1397,12 @@ function fetch_profile(loc){
 		if(data['flag'] == 1){
 			pfp_a += '<br>';
 			if(data['friendship_status'] != null) {
-				if(data['friendship_status'] == 1){
-					pfp_a += '<div>';
-					pfp_a += '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" style="border-radius: 0 0 15px 15px">';
-					pfp_a += '</div>';
-				} else if (data['friendship_status'] == 0){
-					pfp_a += '<div>';
-					pfp_a += '<input type="submit" onclick="_friend_toggle()" value="Request Pending" name="remove" id="special" style="border-radius: 0 0 15px 15px">';
-					pfp_a += '</div>';
-				}
+				pfp_a += '<div>';
+				pfp_a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="Request Pending" name="remove" id="special" class="fr_button">';
+				pfp_a += '</div>';
 			} else {
 				pfp_a += '<div>';
-				pfp_a += '<input type="submit" onclick="_friend_toggle()" value="Send Friend Request" name="request" id="special" style="border-radius: 0 0 15px 15px">';
+				pfp_a += '<input type="submit" onclick="_friend_toggle()" value="Send Friend Request" name="request" id="special" class="fr_button">';
 				pfp_a += '</div>';
 			}
 		}
@@ -1458,12 +1475,16 @@ function _load_post(id){
 		post_a += '</a>';
 		post_a += '<a class="public">';
 		post_a += '<span class="postedtime" title="' + timeConverter(data['post_time'] * 1000) + '">';
-		if (data['post_public'] == 2) {
-			post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
-		} else if (data['post_public'] == 1) {
-			post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
-		} else {
-			post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+		switch(Number(data['post_public'])){
+			case 2:
+				post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+				break;
+			case 1:
+				post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+				break;
+			default:
+				post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
+				break;
 		}
 		post_a += " " + timeSince(data['post_time'] * 1000) + '</span>';
 		post_a += '</a>';
