@@ -61,14 +61,14 @@ $data = _get_data_from_token($_COOKIE['token']);
 			}
 			.profile_head{
 				margin-top: 250px;
-				margin-left: 150px;
+				margin-left: 5%;
 				width: 100%;
 			}
 			#feed>.post{
 				margin-right: 20%;
 			}
 			.about_me{
-				margin-left: calc(70%);
+				margin-left: 5%;
 				width: 400px;
 				border-top: 1px solid rgba(255, 255, 255, 0.34);
 				border-bottom: 1px solid rgba(255, 255, 255, 0.34);
