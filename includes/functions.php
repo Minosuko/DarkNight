@@ -249,4 +249,9 @@ function _trim_hash($hash){
 	$invalidChar = str_split(str_replace($validChar,'',$hash));
 	return str_replace($invalidChar,'',$hash);
 }
+function exif_videotype($path){
+	$mime = mime_content_type($path);
+	$supported_mime = ['video/mp4','video/mpeg','video/webm'];
+	return in_array($supported_mime, $mime);
+}
 ?>
