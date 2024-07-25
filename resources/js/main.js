@@ -778,6 +778,7 @@ function _like(id) {
 }
 localStorage.setItem("cgurl",0);
 function changeUrl(url) {
+	window.scrollTo({top: 0, behavior: 'smooth'});
 	localStorage.setItem("cgurl",1);
 	$.ajax({
 		url: url,
@@ -1045,6 +1046,7 @@ function processAjaxData(response, urlPath) {
 		"html": response,
 		"pageTitle": title
 	}, "", urlPath);
+	setTimeout(null, 1000);
 	document.getElementsByTagName("html")[0].innerHTML = response;
 	if (urlPath.substring(0,13) === "/settings.php" || urlPath.substring(0,12) === "settings.php")
 		_load_settings();
