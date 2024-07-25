@@ -340,14 +340,13 @@ function get(name){
 		return decodeURIComponent(name[1]);
 }
 function processAjaxData(response, urlPath) {
+	document.getElementsByTagName("html")[0].innerHTML = response;
 	var title = $(response).filter('title').text();
 	document.title = title;
 	window.history.pushState({
 		"html": response,
 		"pageTitle": title
 	}, "", urlPath);
-	setTimeout(null, 1000);
-	document.getElementsByTagName("html")[0].innerHTML = response;
 	if (urlPath.substring(0,13) === "/settings.php" || urlPath.substring(0,12) === "settings.php")
 		_load_settings();
 	if (urlPath === "/home.php" || urlPath === "home.php")
