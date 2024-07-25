@@ -27,11 +27,18 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$last_id = $conn->insert_id;
 				$filename = basename($_FILES["fileUpload"]["name"]);
 				$filetype = pathinfo($filename, PATHINFO_EXTENSION);
-				$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
-				if(in_array(strtolower($filetype),$supported_image)){
+				$supported_ext = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "webm", "mp4", "mpeg"];
+				if(in_array(strtolower($filetype),$supported_ext)){
+					$upload_allowed = false;
 					if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
-						$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
 						$filepath = __DIR__ . "/../data/images/image/$media_hash.bin";
+						$upload_allowed = true;
+					}elseif(exif_videotype($_FILES["fileUpload"]["tmp_name"])){
+						$filepath = __DIR__ . "/../data/videos/video/$media_hash.bin";
+						$upload_allowed = true;
+					}
+					if($upload_allowed){
+						$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
 						$media_format = mime_content_type($_FILES["fileUpload"]["tmp_name"]);
 						$sql = "SELECT * FROM media WHERE media_hash = '$media_hash'";
 						$query = $conn->query($sql);
@@ -42,13 +49,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 						}else{
 							$media_id = $query6->fetch_assoc()["media_id"];
 						}
+						move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath);
 					}
 				}
 				if(isset($last_id) && isset($media_id)){
 					$sql = "UPDATE posts SET post_media = $media_id WHERE post_id = $last_id";
 					$query = $conn->query($sql);
 				}
-				move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath);
 			}
 			echo "success";
 		}
