@@ -244,6 +244,7 @@ function convertDate($datetime, $full = false) {
 	return $string ? implode(', ', $string) : 'just now';
 }
 function _trim_hash($hash){
+	$hash = strtolower($hash);
 	$validChar = ['a','b','c','d','e','f','0','1','2','3','4','5','6','7','8','9'];
 	$invalidChar = str_split(str_replace($validChar,'',$hash));
 	return str_replace($invalidChar,'',$hash);
