@@ -1,4 +1,5 @@
 <?php
+header("Connection: keep-alive");
 $md5 = md5_file($_SERVER["SCRIPT_FILENAME"]);
 $tsstring = gmdate('D, d M Y H:i:s ', filemtime($_SERVER["SCRIPT_FILENAME"])) . 'GMT';
 $if_modified_since = isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? $_SERVER['HTTP_IF_MODIFIED_SINCE'] : false;
