@@ -338,7 +338,7 @@ function fetch_post(loc) {
 			if(end_of_page)
 				 page.value = -1;
 			document.getElementById("feed").innerHTML += post_feed;
-			hljs.highlightAll();
+			HighLightHLJS();
 		}
 		if(isMobile()){
 			$(".post").each(function() {
@@ -914,7 +914,7 @@ function _load_post(id){
 				this.setAttribute("style", "height:525px;overflow-y:auto;");
 			}
 		});
-		hljs.highlightAll();
+		HighLightHLJS();
 		changeUrlWork();
 	});
 }
@@ -1181,8 +1181,9 @@ function validatePost(type){
 	modal_close();
 	return false;
 }
-window.onload = function() {
+function HighLightHLJS(){
 	_load_hljs();
+	hljs.highlightAll();
 }
 document.addEventListener('readystatechange', function(e){
 	if(document.readyState == "complete"){
