@@ -27,6 +27,9 @@ if(isset($_GET['id'])){
 		<link rel="stylesheet" type="text/css" href="resources/css/highlight/highlight.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
 		<style>
+			body{
+				overflow-y: hidden;
+			}
 			.caption_box_shadow{
 				width: 96.2%;
 			}
