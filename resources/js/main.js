@@ -2,11 +2,39 @@ function preview(input){
 	if (input.files && input.files[0]) {
 		var reader = new FileReader();
 		reader.onload = function (event){
-			$('#preview').attr('src', event.target.result);
-			$('#preview').css('display', 'initial');
+			var match = reader.result.match(/^data:([^/]+)\/([^;]+);/) || [];
+			var type = match[1];
+			var format = match[2];
+			$('#preview_' + type).css('display', 'initial');
+			if(type == 'video'){
+				var video = document.getElementById("preview_video");
+				var source = document.createElement('source');
+				source.setAttribute('src', event.target.result);
+				source.setAttribute('type', type + '/' + format);
+				video.appendChild(source);
+			}else{
+				$('#preview_' + type).attr('src', event.target.result);
+			}
 		}
 		reader.readAsDataURL(input.files[0]);
 	}
+}
+function showPath(){
+	var path = document.getElementById("selectedFile").value;
+	path = path.replace(/^.*\\/, "");
+	document.getElementById("path").innerHTML = path;
+}
+function validateNumber(){
+	var number = document.getElementById("phonenum").value;
+	var required = document.getElementsByClassName("required");
+	if(number == ""){
+		required[0].innerHTML = "You must type Your Number.";
+		return false;
+	} else if(isNaN(number)){
+		required[0].innerHTML = "Phone Number must contain digits only."
+		return false;
+	}
+	return true;
 }
 $("textarea").each(function() {
 	this.setAttribute("style", "height:" + (this.scrollHeight) + "px;overflow-y:hidden;");
@@ -168,7 +196,10 @@ function fetch_post(loc) {
 					}
 					post_a += '<pre class="caption">' + post_adata['post_caption'] + '</pre></div>';
 					post_a += '<center>';
-					post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
+					if(post_adata['is_video'])
+						post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
+					else
+						post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
 					post_a += '<br><br>';
 					post_a += '</center>';
 				} else {
@@ -238,7 +269,10 @@ function fetch_post(loc) {
 							post_a += '<pre class="caption">' + post_adata['share']['post_caption'] + '</pre></div>';
 
 							post_a += '<center>';
-							post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" style="max-width:100%;">';
+							if(post_adata['share']['is_video'])
+								post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" type="' + post_adata['share']['media_format'] +'"></video>';
+							else
+								post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" style="max-width:100%;">';
 							post_a += '<br><br>';
 							post_a += '</center>';
 						} else {
@@ -429,7 +463,7 @@ function _share(id) {
 		post_a += '			<img class="pfp" src="' + document.getElementById('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
 		post_a += '			<span class="required" style="display:none;"> *You can\'t Leave the Caption Empty.</span><br>';
 		post_a += '			<textarea rows="6" name="caption" class="caption" placeholder="Write something..."></textarea>';
-		post_a += '			<center><img src="" id="preview" style="max-width:580px; display:none;"></center>';
+		post_a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 		post_a += '			<div class="createpostbuttons">';
 		post_a += '				<label>';
 		post_a += '					<i class="fa-regular fa-image"></i>';
@@ -481,7 +515,10 @@ function _share(id) {
 			}
 			post_a += '<pre class="caption" style="font-size: 300%">' + post_adata['post_caption'] + '</pre></div>';
 			post_a += '<center>';
-			post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
+			if(post_adata['is_video'])
+				post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
+			else
+				post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
 			post_a += '<br><br>';
 			post_a += '</center>';
 		} else {
@@ -531,11 +568,11 @@ function make_post(){
 	post_a += '			<img class="pfp" src="' + document.getElementById('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
 	post_a += '			<span class="required" style="display:none;"> *You can\'t Leave the Caption Empty.</span><br>';
 	post_a += '			<textarea rows="6" name="caption" class="caption" placeholder="Write something..."></textarea>';
-	post_a += '			<center><img src="" id="preview" style="max-width:100%; display:none;"></center>';
+	post_a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 	post_a += '			<div class="createpostbuttons">';
 	post_a += '				<label>';
 	post_a += '					<i class="fa-regular fa-image"></i>';
-	post_a += '					<input type="file" name="fileUpload" id="imagefile">';
+	post_a += '					<input type="file" accept="image/*,video/*" name="fileUpload" id="imagefile">';
 	post_a += '				</label>';
 	post_a += '				<input type="button" value="Post" name="post" onclick="return validatePost(0)">';
 	post_a += '			</div>';
@@ -755,17 +792,39 @@ function _load_post(id){
 		var _content_left = document.getElementById("_content_left");
 		var _content_right = document.getElementById("_content_right");
 		var post_a = '';
+		post_a += '<div class="rcf_box"></div>';
 		post_a += '<div class="header" style="margin: 15px">';
 		document.getElementById("_content_left").style.height = ($(window).height() - 56) + "px";
 		_content_right.style.height = ($(window).height() - 56) + "px";
 		if(data['post_media'] > 0 || data['is_share'] > 0){
+
 			var picture = document.getElementById("picture");
+			var video = document.getElementById("video");
 			if(data['is_share'] > 0){
 				post_a += '<a style="text-align: center;" href="post.php?id='+data['is_share'] +'">View original post</a>';
 				post_a += '<hr>';
-				picture.src = "data/images.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash'];
-			}else
-				picture.src = "data/images.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash'];
+				if(data['is_video']){
+					var source = document.createElement('source');
+					source.setAttribute('src', "data/videos.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash']);
+					source.setAttribute('type', data['share']['media_format']);
+					video.appendChild(source);
+					picture.style.display = 'none';
+				}else{
+					picture.src = "data/images.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash'];
+					video.style.display = 'none';
+				}
+			}else{
+				if(data['is_video']){
+					var source = document.createElement('source');
+					source.setAttribute('src', "data/videos.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash']);
+					source.setAttribute('type', data['media_format']);
+					video.appendChild(source);
+					picture.style.display = 'none';
+				}else{
+					picture.src = "data/images.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash'];
+					video.style.display = 'none';
+				}
+			}
 		}else{
 			_content_left.style.display = 'none';
 			_content_right.style.float = 'unset';
