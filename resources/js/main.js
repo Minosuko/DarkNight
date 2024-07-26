@@ -794,16 +794,15 @@ function _load_post(id){
 		var post_a = '';
 		post_a += '<div class="rcf_box"></div>';
 		post_a += '<div class="header" style="margin: 15px">';
-		document.getElementById("_content_left").style.height = ($(window).height() - 56) + "px";
-		_content_right.style.height = ($(window).height() - 56) + "px";
+		document.getElementById("_content_left").style.height = ($(window).height() - 45) + "px";
+		_content_right.style.height = ($(window).height() - 45) + "px";
 		if(data['post_media'] > 0 || data['is_share'] > 0){
-
 			var picture = document.getElementById("picture");
 			var video = document.getElementById("video");
 			if(data['is_share'] > 0){
 				post_a += '<a style="text-align: center;" href="post.php?id='+data['is_share'] +'">View original post</a>';
 				post_a += '<hr>';
-				if(data['is_video']){
+				if(data['share']['is_video']){
 					var source = document.createElement('source');
 					source.setAttribute('src', "data/videos.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash']);
 					source.setAttribute('type', data['share']['media_format']);
