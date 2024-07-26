@@ -104,6 +104,26 @@ function _get_hash_from_media_id($id){
 	$fetch = $query->fetch_assoc();
 	return $fetch['media_hash'];
 }
+function _media_format($id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM media WHERE media_id = '%d'",
+		$conn->real_escape_string($id)
+	);
+	$query = $conn->query($sql);
+	$fetch = $query->fetch_assoc();
+	return $fetch['media_format'];
+}
+function _is_video($id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM media WHERE media_id = '%d'",
+		$conn->real_escape_string($id)
+	);
+	$query = $conn->query($sql);
+	$fetch = $query->fetch_assoc();
+	return (substr($fetch['media_format'],0,5) == 'video');
+}
 function _is_session_valid($token){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
@@ -252,6 +272,6 @@ function _trim_hash($hash){
 function exif_videotype($path){
 	$mime = mime_content_type($path);
 	$supported_mime = ['video/mp4','video/mpeg','video/webm'];
-	return in_array($supported_mime, $mime);
+	return in_array($mime,$supported_mime);
 }
 ?>
