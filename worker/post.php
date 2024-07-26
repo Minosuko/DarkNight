@@ -30,6 +30,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$supported_ext = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "webm", "mp4", "mpeg"];
 				if(in_array(strtolower($filetype),$supported_ext)){
 					$upload_allowed = false;
+					$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
+					$media_format = mime_content_type($_FILES["fileUpload"]["tmp_name"]);
 					if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
 						$filepath = __DIR__ . "/../data/images/image/$media_hash.bin";
 						$upload_allowed = true;
@@ -38,8 +40,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 						$upload_allowed = true;
 					}
 					if($upload_allowed){
-						$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
-						$media_format = mime_content_type($_FILES["fileUpload"]["tmp_name"]);
 						$sql = "SELECT * FROM media WHERE media_hash = '$media_hash'";
 						$query = $conn->query($sql);
 						if($query->num_rows == 0){

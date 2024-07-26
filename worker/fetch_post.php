@@ -45,8 +45,11 @@ if($total_rows == 0){
 		$row_d[$i]["total_comment"] = total_comment($row_d[$i]['post_id']);
 		$row_d[$i]["total_share"] = total_share($row_d[$i]['post_id']);
 		$row_d[$i]["post_caption"] = _caption_trim($row_d[$i]['post_caption']);
-		if($row_d[$i]['post_media'] != 0)
+		if($row_d[$i]['post_media'] != 0){
 			$row_d[$i]["media_hash"] = _get_hash_from_media_id($row_d[$i]['post_media']);
+			$row_d[$i]["is_video"] = _is_video($row_d[$i]['post_media']);
+			$row_d[$i]["media_format"] = _media_format($row_d[$i]['post_media']);
+		}
 		if($row_d[$i]['pfp_media_id'] != 0)
 			$row_d[$i]["pfp_media_hash"] = _get_hash_from_media_id($row_d[$i]['pfp_media_id']);
 		if($row_d[$i]['is_share'] != 0){
@@ -83,8 +86,11 @@ if($total_rows == 0){
 			$row_d[$i]['share']['post_caption'] = _caption_trim($post_data['post_caption']);
 			$row_d[$i]['share']['post_time'] = $post_data['post_time'];
 			$row_d[$i]['share']['post_media'] = $post_data['post_media'];
-			if($row_d[$i]['share']['post_media'] != 0)
+			if($row_d[$i]['share']['post_media'] != 0){
+				$row_d[$i]['share']["is_video"] = _is_video($post_data['post_media']);
 				$row_d[$i]['share']["media_hash"] = _get_hash_from_media_id($post_data['post_media']);
+				$row_d[$i]['share']["media_format"] = _media_format($post_data['post_media']);
+			}
 			if($row_d[$i]['share']['pfp_media_id'] != 0)
 				$row_d[$i]['share']["pfp_media_hash"] = _get_hash_from_media_id($row_d[$i]['share']['pfp_media_id']);
 		}
