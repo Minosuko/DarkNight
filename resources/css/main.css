@@ -688,13 +688,6 @@ a:visited{
 [custom-title] {
 		position: relative;
 }
-.rcf_box{
-	backdrop-filter: blur(15px);
-	width: 100%;
-	height: 100%;
-	position: absolute;
-	z-index: -1;
-}
 .right_content{
 	right: 0;
 	float: right;
@@ -704,8 +697,10 @@ a:visited{
 	overflow-y: auto;
 	overflow-x: hidden;
 	border: 1px solid #333333;
+	background: rgba(0,0,0,0.5);
 }
 .left_content{
+	backdrop-filter: blur(15px);
 	float: left;
 	height: 100%;
 	width: 69.9%;
