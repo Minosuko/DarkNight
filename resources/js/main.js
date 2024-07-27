@@ -408,6 +408,7 @@ function processAjaxData(response, urlPath) {
 }
 function modal_close() {
 	document.getElementById("modal").style.display = "none";
+	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
 }
 function _load_comment(id, page){
 	$.get("worker/fetch_comment.php?id=" + id + "&page=" + page, function(data) {
@@ -443,6 +444,7 @@ function _load_comment(id, page){
 	});
 }
 function _share(id) {
+	document.getElementsByTagName('body')[0].style.overflowY = "hidden";
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
 		document.getElementById("modal").style.display = "block";
 		var post_adata = data;
@@ -550,6 +552,7 @@ function _share(id) {
 	});
 }
 function make_post(){
+	document.getElementsByTagName('body')[0].style.overflowY = "hidden";
 	document.getElementById("modal").style.display = "block";
 	var post_a = "";
 	post_a += '	<div class="createpost_box">';
@@ -1136,6 +1139,7 @@ function _post_feed(){
 				fetch_post("fetch_post.php");
 		}
 	});
+	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
 }
 function _share_feed(){
 	var file_data = document.getElementById("imagefile");
@@ -1165,6 +1169,7 @@ function _share_feed(){
 			fetch_post("fetch_post.php");
 		}
 	});
+	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
 }
 
 function validatePost(type){
