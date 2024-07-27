@@ -311,16 +311,24 @@ img.pfp{
 	display: none;
 }
 
-.createpostbuttons input[type=submit] {
-	width: 86%;
+.createpostbuttons input[type=button] {
 	float: right;
-	background-color: #4267b2;
+	padding: 1em;
+	background: #0073e6 !important;
+	color: white;
+	border: none;
+	border-radius: 30px;
+	font-weight: 600;
+	width: 100%;
 }
 
-.createpostbuttons input[type=submit]:hover {
-	background-color: #23385f;
+.createpostbuttons input[type=button]:hover {
+	background: #0066cc !important;
 }
 
+.createpostbuttons>label>i{
+	font-size:200%;
+}
 a.public {
 	color: rgba(255,255,255,0.4);
 	float: left;
@@ -712,9 +720,9 @@ a:visited{
 	object-fit: contain;
 }
 .content-vid{
-	max-height: 100%;
-	height: 100%;
-	object-fit: contain;
+    height: 100%;
+    max-width: 100%;
+    object-fit: contain;
 }
 .caption_box{
 	height: 200px;
