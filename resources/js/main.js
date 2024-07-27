@@ -197,7 +197,7 @@ function fetch_post(loc) {
 					post_a += '<pre class="caption">' + post_adata['post_caption'] + '</pre></div>';
 					post_a += '<center>';
 					if(post_adata['is_video'])
-						post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
+						post_a += '<video style="max-height:500px; max-width: 100%" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
 					else
 						post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
 					post_a += '<br><br>';
@@ -270,7 +270,7 @@ function fetch_post(loc) {
 
 							post_a += '<center>';
 							if(post_adata['share']['is_video'])
-								post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" type="' + post_adata['share']['media_format'] +'"></video>';
+								post_a += '<video style="max-height:500px; max-width: 100%"controls><source src="' + "data/videos.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" type="' + post_adata['share']['media_format'] +'"></video>';
 							else
 								post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" style="max-width:100%;">';
 							post_a += '<br><br>';
@@ -516,7 +516,7 @@ function _share(id) {
 			post_a += '<pre class="caption" style="font-size: 300%">' + post_adata['post_caption'] + '</pre></div>';
 			post_a += '<center>';
 			if(post_adata['is_video'])
-				post_a += '<video style="max-height:500px" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
+				post_a += '<video style="max-height:500px; max-width: 100%"controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
 			else
 				post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
 			post_a += '<br><br>';
