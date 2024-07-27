@@ -49,6 +49,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 						header("Last-Modified: $tsstring");
 						header("ETag: $md5");
 						if(substr($fetch['media_format'],0,5)=='video'){
+							ob_end_flush();
 							if($compressed && file_exists("videos/compressed/$hash.bin"))
 								readfile("images/compressed/$md5.bin");
 							else
