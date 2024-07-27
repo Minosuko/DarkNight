@@ -97,7 +97,7 @@ ul a {
 	backdrop-filter: blur(3.7px);
 	-webkit-backdrop-filter: blur(3.7px);
 	overflow: auto;
-	z-index: 15;
+	z-index: 6;
 }
 
 .usernav ul {
@@ -174,9 +174,9 @@ ul a {
 }
 textarea.caption{
 	border: none;
-		background-color: transparent;
-		resize: none;
-		outline: none;
+	background-color: transparent;
+	resize: none;
+	outline: none;
 }
 /* General Layout of Post */
 pre.caption{
@@ -694,7 +694,7 @@ a:visited{
 	visibility: hidden;
 }
 [custom-title] {
-		position: relative;
+	position: relative;
 }
 .right_content{
 	right: 0;
@@ -720,9 +720,9 @@ a:visited{
 	object-fit: contain;
 }
 .content-vid{
-    height: 100%;
-    max-width: 100%;
-    object-fit: contain;
+	height: 100%;
+	max-width: 100%;
+	object-fit: contain;
 }
 .caption_box{
 	height: 200px;
