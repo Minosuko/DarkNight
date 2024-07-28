@@ -11,9 +11,11 @@ if(isset($_GET['id']) && isset($_GET['h'])){
 		if(file_exists("images/compressed/$hash.bin") && $compressed){
 			$fdate = filemtime("images/compressed/$hash.bin");
 			$etag = md5_file("images/compressed/$hash.bin");
+			$fsize = filesize("images/compressed/$hash.bin");
 		}else{
 			$fdate = filemtime("images/image/$hash.bin");
 			$etag = md5_file("images/image/$hash.bin");
+			$fsize = filesize("images/image/$hash.bin");
 		}
 	}else{
 		$fdate = time();
@@ -23,10 +25,12 @@ if(isset($_GET['id']) && isset($_GET['h'])){
 	if($type == "default_M"){
 		$etag = md5_file("images/M.jpg");
 		$fdate = filemtime("images/M.jpg");
+		$fsize = filesize("images/M.jpg");
 	}
 	if($type == "default_F"){
 		$etag = md5_file("images/F.jpg");
 		$fdate = filemtime("images/F.jpg");
+		$fsize = filesize("images/F.jpg");
 	}
 }
 $tsstring = gmdate('D, d M Y H:i:s ', $fdate) . 'GMT';
@@ -45,6 +49,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 			header("Content-Type: image/jpeg");
 			header("Last-Modified: $tsstring");
 			header("ETag: $md5");
+			header("Content-Length: $fsize");
 			readfile("images/M.jpg");
 		}elseif($type == "default_F"){
 			$md5 = md5_file("images/F.jpg");
@@ -52,6 +57,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 			header("Content-Type: image/jpeg");
 			header("Last-Modified: $tsstring");
 			header("ETag: $md5");
+			header("Content-Length: $fsize");
 			readfile("images/F.jpg");
 		}else{
 			if(isset($_GET['id']) && isset($_GET['h'])){
@@ -75,10 +81,13 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 							header("Content-Type: {$fetch['media_format']}");
 							header("Last-Modified: $tsstring");
 							header("ETag: $md5");
-							if($compressed)
-								readfile("images/compressed/$md5.bin");
-							else
-								readfile("images/image/$md5.bin");
+							header("Content-Length: $fsize");
+							if(substr($fetch['media_format'],0,5)!='video'){
+								if($compressed)
+									readfile("images/compressed/$md5.bin");
+								else
+									readfile("images/image/$md5.bin");
+							}
 						}
 					}
 				}

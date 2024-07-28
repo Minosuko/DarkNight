@@ -9,9 +9,11 @@ if(isset($_GET['id']) && isset($_GET['h'])){
 		if(file_exists("videos/compressed/$hash.bin") && $compressed){
 			$fdate = filemtime("videos/compressed/$hash.bin");
 			$etag = md5_file("videos/compressed/$hash.bin");
+			$fsize = filesize("videos/compressed/$hash.bin");
 		}else{
 			$fdate = filemtime("videos/video/$hash.bin");
 			$etag = md5_file("videos/video/$hash.bin");
+			$fsize = filesize("videos/video/$hash.bin");
 		}
 	}else{
 		$fdate = time();
@@ -48,6 +50,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 						header("Content-Type: {$fetch['media_format']}");
 						header("Last-Modified: $tsstring");
 						header("ETag: $md5");
+						header("Content-Length: $fsize");
 						if(substr($fetch['media_format'],0,5)=='video'){
 							ob_end_flush();
 							if($compressed && file_exists("videos/compressed/$hash.bin"))
