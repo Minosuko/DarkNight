@@ -42,10 +42,6 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 					);
 					if($query->num_rows > 0){
 						$fetch = $query->fetch_assoc();
-						if($compressed && substr($fetch['media_format'],0,5) != 'video'){
-							$fetch['media_ext'] = "jpg";
-							$fetch['media_format'] = "image/jpeg";
-						}
 						header('Content-Disposition: filename="'.$md5.'.'.$fetch['media_ext'].'"');
 						header("Content-Type: {$fetch['media_format']}");
 						header("Content-Encoding: identity");
