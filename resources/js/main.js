@@ -8,16 +8,48 @@ function preview(input){
 			$('#preview_' + type).css('display', 'initial');
 			if(type == 'video'){
 				var video = document.getElementById("preview_video");
-				var source = document.createElement('source');
-				source.setAttribute('src', event.target.result);
-				source.setAttribute('type', type + '/' + format);
-				video.appendChild(source);
+				video.setAttribute('src', event.target.result);
+				video.setAttribute('type', type + '/' + format);
 			}else{
 				$('#preview_' + type).attr('src', event.target.result);
 			}
 		}
 		reader.readAsDataURL(input.files[0]);
 	}
+}
+function make_blob_url(content, format){
+	var blob = new Blob([content], { type: format });
+	var blobUrl = URL.createObjectURL(blob);
+	return blobUrl;
+}
+function load_video(i, h, f, e){
+	var url = 'data/videos.php?t=media&id=' + i + '&h=' + h;
+	console.log("Saved url=" + url + " format=" + f);
+	$.ajax({
+		type: "HEAD",
+		async: true,
+		url: url,
+    }).done(function(message,text,jqXHR){
+		var ContentSize = Number(jqXHR.getResponseHeader('Content-Length'));
+		if(ContentSize > 33554432){
+			e.setAttribute("src",url);
+		}else{
+			$.ajax({
+				xhr: function(){
+					var xhr = new XMLHttpRequest();
+					xhr.responseType = 'blob';
+					return xhr;
+				},
+				url: url,
+				type: 'GET',
+				async: true,
+				success: function(res) {
+					var blobUrl = make_blob_url(res, f);
+					e.setAttribute("src",blobUrl);
+				}
+			});
+		}
+    });
 }
 function showPath(){
 	var path = document.getElementById("selectedFile").value;
@@ -160,7 +192,7 @@ function fetch_post(loc) {
 				var share_id = 0;
 				var share_able = true;
 				var post_a = "";
-				post_a += '<div class="post">';
+				post_a += '<div class="post" id="post_id-' + post_adata['post_id'] + '">';
 				post_a += '<div class="header">';
 				if (post_adata['pfp_media_id'] > 0) {
 					post_a += '<img class="pfp" src="' + "data/images.php?t=profile&id=" + post_adata['pfp_media_id'] + "&h=" + post_adata['pfp_media_hash'] + '" width="40px" height="40px">';
@@ -202,7 +234,7 @@ function fetch_post(loc) {
 					post_a += '<pre class="caption">' + post_adata['post_caption'] + '</pre></div>';
 					post_a += '<center>';
 					if(post_adata['is_video'])
-						post_a += '<video style="max-height:500px; max-width: 100%" controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
+						post_a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + post_adata['post_id'] + '" controls></video>';
 					else
 						post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
 					post_a += '<br><br>';
@@ -233,7 +265,7 @@ function fetch_post(loc) {
 				if (post_adata['is_share'] != 0) {
 					var pflag = false;
 					pflag = post_adata['share']["pflag"];
-					post_a += '<div class="share-post">';
+					post_a += '<div class="share-post" id="post_id-' + post_adata['share']['post_id'] + '">';
 					if (pflag) {
 						post_a += '<div class="header">';
 
@@ -275,7 +307,7 @@ function fetch_post(loc) {
 
 							post_a += '<center>';
 							if(post_adata['share']['is_video'])
-								post_a += '<video style="max-height:500px; max-width: 100%"controls><source src="' + "data/videos.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" type="' + post_adata['share']['media_format'] +'"></video>';
+								post_a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + post_adata['share']['post_id'] + 's" controls></video>';
 							else
 								post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['share']['post_media'] + "&h=" + post_adata['share']['media_hash'] + '" style="max-width:100%;">';
 							post_a += '<br><br>';
@@ -343,6 +375,16 @@ function fetch_post(loc) {
 			if(end_of_page)
 				 page.value = -1;
 			document.getElementById("feed").innerHTML += post_feed;
+			
+			for (let i = 0; i < (post_length - 1); i++) {
+				var post_adata = data[i];
+				var _pvideo = document.getElementById("video_pid-" + post_adata['post_id']);
+				var _psvideo = document.getElementById("video_pid-" + post_adata['post_id'] + 's');
+				if(_pvideo != null)
+					load_video(post_adata['post_media'], post_adata['media_hash'], post_adata['media_format'], _pvideo);
+				if(_psvideo != null)
+					load_video(post_adata['share']['post_media'], post_adata['share']['media_hash'], post_adata['share']['media_format'], _psvideo);
+			}
 			HighLightHLJS();
 		}
 		if(isMobile()){
@@ -500,67 +542,10 @@ function _share(id) {
 		post_a += '			</div>';
 		post_a += '		</div>';
 		post_a += '		<br>';
-	
-		post_a += '<div class="post">';
-		post_a += '<div class="header">';
-		if (post_adata['pfp_media_id'] > 0) {
-			post_a += '<img class="pfp" src="' + "data/images.php?t=profile&id=" + post_adata['pfp_media_id'] + "&h=" + post_adata['pfp_media_hash'] + '" width="40px" height="40px">';
-		} else {
-			if (post_adata['user_gender'] == 'M')
-				post_a += '<img class="pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
-			else if (post_adata['user_gender'] == 'F')
-				post_a += '<img class="pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
-		}
-		post_a += '<a class="fname profilelink" href="profile.php?id=' + post_adata['user_id'] + '">' + post_adata['user_firstname'] + ' ' + post_adata['user_lastname'];
-		if(post_adata['verified'] > 0)
-			post_a += '<i class="fa-solid fa-badge-check verified_color_' + post_adata['verified'] + '" title="verified"></i>';
-		post_a += '<span class="nickname">@' + post_adata['user_nickname'] + '</span>';
-		post_a += '</a>';
-		post_a += '<a class="public">';
-		post_a += '<span class="postedtime" title="' + timeConverter(post_adata['post_time'] * 1000) + '">';
-		switch(Number(post_adata['post_public'])){
-			case 2:
-				post_a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
-				break;
-			case 1:
-				post_a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
-				break;
-			default:
-				post_a += '<i class="fa-solid fa-lock" title="Private"></i>';
-				break;
-		}
-		post_a += " " + timeSince(post_adata['post_time'] * 1000) + '</span>';;
-		post_a += '</a>';
-		post_a += '</div>';
-		post_a += '<br>';
-		if (post_adata['post_media'] != 0) {
-			if(post_adata['post_caption'].split(/\r\n|\r|\n/).length > 13 || post_adata['post_caption'].length > 1196){
-				post_a += '<div class="caption_box" id="caption_box-'+post_adata['post_id']+'">';
-				post_a += '<div class="caption_box_shadow" id="caption_box_shadow-'+post_adata['post_id']+'"><p onclick="showMore(\''+post_adata['post_id']+'\')">Show more</p></div>';
-			}else{
-				post_a += '<div class="caption_box" style="height: 100%">';
-			}
-			post_a += '<pre class="caption" style="font-size: 300%">' + post_adata['post_caption'] + '</pre></div>';
-			post_a += '<center>';
-			if(post_adata['is_video'])
-				post_a += '<video style="max-height:500px; max-width: 100%"controls><source src="' + "data/videos.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" type="' + post_adata['media_format'] + '"></video>';
-			else
-				post_a += '<img src="' + "data/images.php?t=media&id=" + post_adata['post_media'] + "&h=" + post_adata['media_hash'] + '" style="max-width:100%;">';
-			post_a += '<br><br>';
-			post_a += '</center>';
-		} else {
-			post_a += '<center>';
-			if(post_adata['post_caption'].split(/\r\n|\r|\n/).length > 3 || post_adata['post_caption'].length > 60){
-				post_a += '<div class="caption_box" id="caption_box-'+post_adata['post_id']+'">';
-				post_a += '<div class="caption_box_shadow" id="caption_box_shadow-'+post_adata['post_id']+'"><p onclick="showMore(\''+post_adata['post_id']+'\')">Show more</p></div>';
-			}else{
-				post_a += '<div class="caption_box" style="height: 100%">';
-			}
-			post_a += '<pre class="caption" style="font-size: 300%">' + post_adata['post_caption'] + '</pre></div>';
-			post_a += '</center>';
-		}
 		
-		post_a += '	</div>';
+		post_a += '<div class="post">';
+		post_a += document.getElementById("post_id-" + id).innerHTML;
+		post_a += '</div>';
 		
 		document.getElementById("modal_content").innerHTML = post_a;
 		
@@ -831,10 +816,10 @@ function _load_post(id){
 				post_a += '<a style="text-align: center;" href="post.php?id='+data['is_share'] +'">View original post</a>';
 				post_a += '<hr>';
 				if(data['share']['is_video']){
-					var source = document.createElement('source');
-					source.setAttribute('src', "data/videos.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash']);
-					source.setAttribute('type', data['share']['media_format']);
-					video.appendChild(source);
+					video.setAttribute('src', "data/empty.mp4");
+					video.setAttribute('type', "video/mp4");
+					video.setAttribute('id', data['share']['media_hash']);
+					load_video(data['share']['post_media'],data['share']['media_hash'],data['share']['media_format'],document.getElementById(data['media_hash']));
 					picture.style.display = 'none';
 				}else{
 					picture.src = "data/images.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash'];
@@ -842,10 +827,10 @@ function _load_post(id){
 				}
 			}else{
 				if(data['is_video']){
-					var source = document.createElement('source');
-					source.setAttribute('src', "data/videos.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash']);
-					source.setAttribute('type', data['media_format']);
-					video.appendChild(source);
+					video.setAttribute('src', "data/empty.mp4");
+					video.setAttribute('type', "video/mp4");
+					video.setAttribute('id', data['media_hash']);
+					load_video(data['post_media'],data['media_hash'],data['media_format'],document.getElementById(data['media_hash']));
 					picture.style.display = 'none';
 				}else{
 					picture.src = "data/images.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash'];
