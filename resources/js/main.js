@@ -374,7 +374,12 @@ function get(name){
 		return decodeURIComponent(name[1]);
 }
 function processAjaxData(response, urlPath) {
-	document.getElementsByTagName("html")[0].innerHTML = response;
+	var el = document.createElement("html");
+	el.innerHTML = response;
+	var container = el.getElementsByClassName('container');
+	var head = el.getElementsByTagName('head');
+	document.getElementsByTagName('head')[0].innerHTML = head[0].innerHTML;
+	document.getElementsByClassName('container')[0].innerHTML = container[0].innerHTML;
 	var title = $(response).filter('title').text();
 	document.title = title;
 	window.history.pushState({
