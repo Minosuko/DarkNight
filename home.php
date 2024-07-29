@@ -18,8 +18,8 @@ $data = _get_data_from_token($_COOKIE['token']);
 		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<br>
 			<input type="hidden" id="page" value="0">
 			<div class="createpost_box">

@@ -25,8 +25,8 @@ $data = _get_data_from_token($_COOKIE['token']);
 		</style>
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<input type="hidden" id="page" value="0">
 			<h1>Friends</h1>
 			<div class="friend_list" id="friend_list">

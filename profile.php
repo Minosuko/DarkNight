@@ -84,8 +84,8 @@ $data = _get_data_from_token($_COOKIE['token']);
 		</style>
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<input type="hidden" id="page" value="0">
 			<div class="profile_cover" id="profile_cover">
 			</div>
@@ -98,22 +98,5 @@ $data = _get_data_from_token($_COOKIE['token']);
 	<script>
 	fetch_profile("fetch_profile_info.php<?php if($current_id != $data['user_id']) echo "?id=$current_id"; ?>");
 	fetch_post("fetch_profile_post.php<?php if($current_id != $data['user_id']) echo "?id=$current_id"; ?>");
-	function showPath(){
-		var path = document.getElementById("selectedFile").value;
-		path = path.replace(/^.*\\/, "");
-		document.getElementById("path").innerHTML = path;
-	}
-	function validateNumber(){
-		var number = document.getElementById("phonenum").value;
-		var required = document.getElementsByClassName("required");
-		if(number == ""){
-			required[0].innerHTML = "You must type Your Number.";
-			return false;
-		} else if(isNaN(number)){
-			required[0].innerHTML = "Phone Number must contain digits only."
-			return false;
-		}
-		return true;
-	}
 	</script>
 </html>

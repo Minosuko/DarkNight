@@ -17,8 +17,8 @@ $data = _get_data_from_token($_COOKIE['token']);
 		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<h1>Search Results</h1>
 			<?php
 				/*

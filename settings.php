@@ -16,8 +16,8 @@ $data = _get_data_from_token($_COOKIE['token']);
 		<link rel="stylesheet" type="text/css" href="resources/css/font-awesome/all.css">
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<div class="settings">
 				<div class="settings_nav">
 					<center>

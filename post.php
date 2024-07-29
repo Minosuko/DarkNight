@@ -39,8 +39,8 @@ if(isset($_GET['id'])){
 		</style>
 	</head>
 	<body>
+		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<?php include 'includes/navbar.php'; ?>
 			<input type="hidden" id="page" value="0">
 			<div id="image_content">
 				<center>
