@@ -1042,3 +1042,9 @@ input:-webkit-autofill:active{
 		filter: hue-rotate(360deg);
 	}
 }
+#loading_bar{
+	width: 0%;
+	height: 2px;
+	background: #fff;
+	transition: 0.1s ease-out;
+}
