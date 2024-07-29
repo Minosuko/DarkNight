@@ -104,15 +104,20 @@ function _like(id) {
 		});
 	});
 }
+function loading_bar(percent){
+	document.getElementById("loading_bar").style.width = percent + "%";
+}
 localStorage.setItem("cgurl",0);
 function changeUrl(url) {
 	window.scrollTo({top: 0, behavior: 'smooth'});
 	localStorage.setItem("cgurl",1);
+	loading_bar(70)
 	$.ajax({
 		url: url,
 		type: 'GET',
 		success: function(res) {
 			_online();
+			loading_bar(100)
 			processAjaxData(res, url);
 			localStorage.setItem("cgurl",0);
 		},
@@ -377,8 +382,22 @@ function processAjaxData(response, urlPath) {
 	var el = document.createElement("html");
 	el.innerHTML = response;
 	var container = el.getElementsByClassName('container');
-	var head = el.getElementsByTagName('head');
-	document.getElementsByTagName('head')[0].innerHTML = head[0].innerHTML;
+	var style = el.getElementsByTagName('style');
+	var docStyle = document.getElementsByTagName('style');
+	var docHead = document.getElementsByTagName('head');
+	if(style.length > 0){
+		if(docStyle.length == 0){
+			var StyleNode = document.createElement("style");
+			StyleNode.innerHTML = style[0].innerHTML;
+			docHead[0].appendChild(StyleNode);
+		}else{
+			docStyle[0].innerHTML = style[0].innerHTML;
+		}
+	}else{
+		if(docStyle.length > 0){
+			docStyle[0].innerHTML = '';
+		}
+	}
 	document.getElementsByClassName('container')[0].innerHTML = container[0].innerHTML;
 	var title = $(response).filter('title').text();
 	document.title = title;
@@ -386,6 +405,7 @@ function processAjaxData(response, urlPath) {
 		"html": response,
 		"pageTitle": title
 	}, "", urlPath);
+	loading_bar(0);
 	if (urlPath.substring(0,13) === "/settings.php" || urlPath.substring(0,12) === "settings.php")
 		_load_settings();
 	if (urlPath === "/home.php" || urlPath === "home.php")
