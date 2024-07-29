@@ -48,15 +48,18 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 						}
 						header('Content-Disposition: filename="'.$md5.'.'.$fetch['media_ext'].'"');
 						header("Content-Type: {$fetch['media_format']}");
+						header("Content-Encoding: identity");
+						header('Expires: 0');
+						header('Cache-Control: must-revalidate');
+						header('Pragma: public');
 						header("Last-Modified: $tsstring");
 						header("ETag: $md5");
 						header("Content-Length: $fsize");
 						if(substr($fetch['media_format'],0,5)=='video'){
-							ob_end_flush();
 							if($compressed && file_exists("videos/compressed/$hash.bin"))
-								readfile("images/compressed/$md5.bin");
+								video_stream("images/compressed/$md5.bin");
 							else
-								readfile("videos/video/$md5.bin");
+								video_stream("videos/video/$md5.bin");
 						}
 					}
 				}
