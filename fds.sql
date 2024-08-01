@@ -158,17 +158,6 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `user_phone`
---
-
-CREATE TABLE IF NOT EXISTS `user_phone` (
-  `user_id` int(11) DEFAULT NULL,
-  `user_phone` int(11) DEFAULT NULL,
-  KEY `user_id` (`user_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-COMMIT;
-
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
