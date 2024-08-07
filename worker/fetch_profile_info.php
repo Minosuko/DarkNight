@@ -36,14 +36,7 @@ if($flag == 0) {
 					ON userfriends.user_id = users.user_id
 					WHERE users.user_id = $current_id";
 }
-$off = 0;
-$esql = '';
-if(isset($_GET['page']))
-	if(is_numeric($_GET['page']))
-		$off = 30*$_GET['page'];
-if($off != 0)
-	$esql = " LIMIT 30 OFFSET $off";
-$sql = "$profilesql$esql";
+$sql = "$profilesql";
 $query = $conn->query($sql);
 $total_rows = $query->num_rows;
 if($total_rows == 0){
