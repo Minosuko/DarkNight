@@ -30,7 +30,7 @@ function load_video(i, h, f, e){
 		async: true,
 		url: url,
 	}).done(function(message,text,jqXHR){
-		var ContentSize = Number(jqXHR.getrHeader('Content-Length'));
+		var ContentSize = Number(jqXHR.getResponseHeader('Content-Length'));
 		if(ContentSize > 33554432){
 			e.setAttribute("src",url);
 		}else{
