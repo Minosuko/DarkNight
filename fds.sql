@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `friendship` (
   `friendship_status` int(11) NOT NULL,
   KEY `user1_id` (`user1_id`),
   KEY `user2_id` (`user2_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `media` (
   `media_ext` varchar(255) NOT NULL,
   PRIMARY KEY (`media_id`),
   UNIQUE KEY `media_hash` (`media_hash`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `is_share` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`post_id`),
   KEY `post_by` (`post_by`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS `session` (
   `session_valid` int(11) NOT NULL DEFAULT 0,
   `last_online` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`session_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `TwoFactorAuth` (
   `auth_key` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY (`auth_key`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `user_email` (`user_email`),
   UNIQUE KEY `user_nickname` (`user_nickname`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
