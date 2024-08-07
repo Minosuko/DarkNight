@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `media` (
   `media_ext` varchar(255) NOT NULL,
   PRIMARY KEY (`media_id`),
   UNIQUE KEY `media_hash` (`media_hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -122,8 +122,9 @@ CREATE TABLE IF NOT EXISTS `session` (
   `session_device` varchar(255) NOT NULL,
   `session_ip` varchar(255) NOT NULL,
   `session_valid` int(11) NOT NULL DEFAULT 0,
+  `last_online` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`session_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -135,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `TwoFactorAuth` (
   `auth_key` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY (`auth_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
