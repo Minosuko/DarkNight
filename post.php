@@ -14,6 +14,8 @@ if(isset($_GET['id'])){
 }else{
 	header("location:home.php");
 }
+if(!is_post_exists($id))
+	header("location:home.php");
 ?>
 
 <!DOCTYPE html>
