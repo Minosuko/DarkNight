@@ -689,9 +689,10 @@ function new_session($time, $userID, $auth2FA){
 	_setcookie("session_id", $session_id, $time);
 	_setcookie("session_token", $session_token, $time);
 }
-function _is_session_valid(){
+function _is_session_valid($checkActive = true){
 	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']))
 		return false;
+	$add = ($checkActive) ? ' AND session_valid = 1' : '';
 	$session_id = $_COOKIE['session_id'];
 	$session_token = $_COOKIE['session_token'];
 	$token = $_COOKIE['token'];
@@ -704,10 +705,11 @@ function _is_session_valid(){
 	if($query->num_rows > 0){
 		$userID = _get_data_from_token($token)['user_id'];
 		$sql = sprintf(
-			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s'",
+			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s'%s",
 			$userID,
 			$conn->real_escape_string($session_id),
-			$conn->real_escape_string($session_token)
+			$conn->real_escape_string($session_token),
+			$add
 		);
 		$query = $conn->query($sql);
 		if($query->num_rows > 0)

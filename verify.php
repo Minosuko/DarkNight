@@ -1,5 +1,11 @@
 <?php
 require_once "includes/functions.php";
+if(_is_session_valid(false)){
+	$data = _get_data_from_token();
+	$has2FA = Has2FA($data['user_id']);
+	if(!$has2FA)
+		header("Location: home.php");
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -36,6 +42,17 @@ require_once "includes/functions.php";
 									else
 										echo "<h1>Wrong code</h1>";
 								}
+								echo "<form method=\"post\">";
+								echo "<div class=\"index_input_box\">";
+								echo "<label>2FA Code: <span>*</span></label>";
+								echo "<div class=\"required\"></div>";
+								echo "<br>";
+								echo "<input type=\"text\" name=\"code\" id=\"loginuseremail\" placeholder=\"2FA Code\" required>";
+								echo "<br>";
+								echo "</div>";
+								echo "<br>";
+								echo "<input type=\"submit\" value=\"Verify\">";
+								echo "</form>";
 								break;
 							case 'verify':
 								if(_verify($_GET['username'],$_GET['user_email'],$_GET['h']))

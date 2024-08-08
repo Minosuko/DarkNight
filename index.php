@@ -1,6 +1,6 @@
 <?php 
 require_once 'includes/functions.php';
-if(_is_session_valid()){
+if(_is_session_valid(false)){
 	$data = _get_data_from_token();
 	$has2FA = Has2FA($data['user_id']);
 	if($has2FA)
