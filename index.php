@@ -4,7 +4,7 @@ if(_is_session_valid()){
 	$data = _get_data_from_token();
 	$has2FA = Has2FA($data['user_id']);
 	if($has2FA)
-		header("Location: verify.php");
+		header("Location: verify.php?t=2FA");
 	else
 		header("Location: home.php");
 }
@@ -31,8 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					_setcookie("token", $row['user_token'], $time);
 					$has2FA = Has2FA($row['user_id']);
 					new_session($time,$row['user_id'],($has2FA ? 0 : 1));
-					if($has2FA)
-						header("Location: verify.php");
+					if($row['active'])
+						header("location: verify.php?t=registered");
+					elseif($has2FA)
+						header("Location: verify.php?t=2FA");
 					else
 						header("Location: home.php");
 				}
@@ -89,9 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$conn->real_escape_string($user_token)
 			);
 			$query = $conn->query($sql);
+			$link = (isset($_SERVER["HTTPS"]) ? 'https' : 'http')."://". $_SERVER['SERVER_NAME'].'/verify.php?t=verify&user_email='.htmlspecialchars($useremail).'&username='.htmlspecialchars($usernickname).'&h='.hash('sha256',($userpassword.$user_token));
+			SendVerifyMail($useremail,"$userfirstname $userlastname",$link);
+			file_put_contents('link.txt',$link);
 			if($query){
-				_setcookie("token", $user_token, 86400*90);
-				header("location:home.php");
+				header("location:verify.php?t=registered");
 			}
 		}
 	}
@@ -100,14 +104,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Lunar Freedom Social</title>
+		<title>Darknight</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" type="text/css" href="resources/css/main.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/index.css">
 	</head>
 	<body>
-		<h1>Freedom Social</h1>
+		<h1>Darknight</h1>
 		<div class="container">
 			<div class="transparent_block">
 				<div class="tab">
