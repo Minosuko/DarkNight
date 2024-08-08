@@ -15,7 +15,30 @@ require_once "includes/functions.php";
 		<div class="container">
 			<div class="transparent_block">
 				<div class="content">
-					
+					<?php
+					if(isset($_GET['t'])){
+						$type = $_GET['t'];
+						switch($type){
+							case 'registered':
+								echo "<h1>Email sent, check your mailbox to verify your account.</h1>";
+								break;
+							case '2FA':
+								echo "<h1>...</h1>";
+								break;
+							case 'verify':
+								if(_verify($_GET['username'],$_GET['user_email'],$_GET['h']))
+									echo "<h1>Verified, now you can login :3</h1>";
+								else
+									echo "<h1>Nah, wrong link uwu</h1>";
+								break;
+							default:
+								echo "<h1>What are you doing here?</h1>";
+								break;
+						}
+					}else{
+						echo "<h1>What are you doing here?</h1>";
+					}
+					?>
 				</div>
 			</div>
 		</div>

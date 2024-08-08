@@ -630,6 +630,28 @@ function _get_session_info(){
 	$fetch = $query->fetch_assoc();
 	return $fetch;
 }
+function _verify($username, $email, $hash){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM users WHERE user_nickname LIKE '%s' AND user_email LIKE '%s' AND active = 0",
+		$conn->real_escape_string($username),
+		$conn->real_escape_string($email)
+	);
+	$query = $conn->query($sql);
+	if($query->num_rows > 0){
+		$fetch = $query->fetch_assoc();
+		if(hash('sha256',($fetch['user_password'].$fetch['user_token'])) == $hash){
+			$sql = sprintf(
+				"UPDATE users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
+				$conn->real_escape_string($username),
+				$conn->real_escape_string($email)
+			);
+			$query = $conn->query($sql);
+			return true;
+		}
+	}
+	return false;
+}
 function new_session($time, $userID, $auth2FA){
 	$session_id = uniqid();
 	$session_token = _generate_token("SesAuth_");
