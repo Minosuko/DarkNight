@@ -23,7 +23,16 @@ require_once "includes/functions.php";
 								echo "<h1>Email sent, check your mailbox to verify your account.</h1>";
 								break;
 							case '2FA':
-								echo "<h1>...</h1>";
+								if(!_is_session_valid())
+									header("Location: index.php");
+								$data = _get_data_from_token();
+								if(isset($_POST['code'])){
+									$verify = _verify_2FA($_POST['code'],$data['user_id']);
+									if($verify)
+										echo "<h1>Verified, now you can <a href=\"index.php\">get in</a> :3</h1>";
+									else
+										echo "<h1>Wrong code</h1>";
+								}
 								break;
 							case 'verify':
 								if(_verify($_GET['username'],$_GET['user_email'],$_GET['h']))

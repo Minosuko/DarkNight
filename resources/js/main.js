@@ -92,6 +92,8 @@ function birthdateConverter(UNIX_timestamp){
 	if(month.toString().length == 1)
 		month = '0' + month;
 	var date = a.getDate();
+	if(date.toString().length == 1)
+		date = '0' + date;
 	var time = year + '-' + month + '-' + date;
 	return time;
 }

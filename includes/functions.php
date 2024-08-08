@@ -2,6 +2,7 @@
 require_once __DIR__ . "/config/database.php";
 require_once __DIR__ . "/config/mail.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
+require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -10,11 +11,27 @@ $conn = new mysqli($host, $username, $dbpassword, $dbdata);
 $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUsername, $mailPassword);
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
+$GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
 $conn->query("set character_set_results='utf8'");
 $conn->query("SET NAMES 'utf8'");
 function _setcookie($name, $value, $time){
 	$time = time() + $time;
 	setcookie($name, $value, $time);
+}
+function _verify_2FA($code, $userID){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM `twofactorauth` WHERE user_id = %d",
+		$conn->real_escape_string($userID)
+	);
+	$query = $conn->query($sql);
+	$rows = $query->fetch_all(MYSQLI_ASSOC);
+	foreach($rows as $row){
+		$VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAllZone($row['auth_key'], $code);
+		if($VerifyCode)
+			return true;
+	}
+	return false;
 }
 /*
 function compress_video($source, $quality = 90) {

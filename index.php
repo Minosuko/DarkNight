@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					_setcookie("token", $row['user_token'], $time);
 					$has2FA = Has2FA($row['user_id']);
 					new_session($time,$row['user_id'],($has2FA ? 0 : 1));
-					if($row['active'])
+					if($row['active'] == 0)
 						header("location: verify.php?t=registered");
 					elseif($has2FA)
 						header("Location: verify.php?t=2FA");
