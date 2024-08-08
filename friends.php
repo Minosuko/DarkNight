@@ -1,10 +1,8 @@
 <?php 
 require_once 'includes/functions.php';
-if (!isset($_COOKIE['token']))
-    header("location:index.php");
-if (!_is_session_valid($_COOKIE['token']))
-    header("location:index.php");
-$data = _get_data_from_token($_COOKIE['token']);
+if (!_is_session_valid())
+    header("location:../index.php");
+$data = _get_data_from_token();
 ?>
 <!DOCTYPE html>
 <html>

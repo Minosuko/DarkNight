@@ -4,7 +4,7 @@ if (!isset($_COOKIE['token']))
 require_once '../includes/functions.php';
 if (!_is_session_valid($_COOKIE['token']))
     header("location:../index.php");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
 	if(isset($_FILES['fileUpload']) && isset($_POST['type'])){
 		$type = $_POST['type'];

@@ -1,11 +1,9 @@
 <?php
-if (!isset($_COOKIE['token']))
-    header("location:../index.php");
 require_once '../includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
+if (!_is_session_valid())
     header("location:../index.php");
 header("content-type: application/json");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 $sql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified, users.user_create_date, users.user_email, users.last_username_change
 		FROM users
 		WHERE users.user_id = {$data['user_id']}";

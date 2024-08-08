@@ -4,7 +4,7 @@ if (!isset($_COOKIE['token']))
 require_once 'includes/functions.php';
 if (!_is_session_valid($_COOKIE['token']))
 	header("location:index.php");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 if(isset($_GET['id']) && $_GET['id'] != $data['user_id']) {
 	$current_id = $conn->real_escape_string($_GET['id']);
 	$flag = 1;
@@ -16,7 +16,7 @@ if(!is_user_exists($current_id)){
 	$current_id = $data['user_id'];
 	$flag = 0;
 }
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 ?>
 <!DOCTYPE html>
 <html>

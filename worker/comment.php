@@ -1,11 +1,8 @@
 <?php
-// Check whether user is logged on or not
-if (!isset($_COOKIE['token']))
-    header("location:../index.php");
 require_once '../includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
+if (!_is_session_valid())
     header("location:../index.php");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 if(isset($_GET['id'])){
 	if(is_numeric($_GET['id'])){
 		if(isset($_POST['comment']) && isset($_GET['id'])){

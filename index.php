@@ -1,8 +1,13 @@
 <?php 
 require_once 'includes/functions.php';
-if (isset($_COOKIE['token']))
-	if(_is_session_valid($_COOKIE['token']))
-		header("location:home.php");
+if(_is_session_valid()){
+	$data = _get_data_from_token();
+	$has2FA = Has2FA($data['user_id']);
+	if($has2FA)
+		header("Location: verify.php");
+	else
+		header("Location: home.php");
+}
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	if (isset($_POST['login'])) {
 		$userlogin  = $_POST['userlogin'];
@@ -16,21 +21,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			)
 		);
 		if($query){
-			$p = 0;
 			if($query->num_rows == 1) {
-				$p = 1;
 				$row = $query->fetch_assoc();
 				if(password_verify($userpass, $row['user_password'])){
-					$p = 2;
 					if(isset($_POST['remember_me']))
 						$time = 86400*365;
 					else
 						$time = 86400*30;
 					_setcookie("token", $row['user_token'], $time);
-					header("Location: home.php");
+					$has2FA = Has2FA($row['user_id']);
+					new_session($time,$row['user_id'],($has2FA ? 0 : 1));
+					if($has2FA)
+						header("Location: verify.php");
+					else
+						header("Location: home.php");
 				}
 			}
-			header("Location: ?err=invalid_login&p=$p");
+			//header("Location: ?err=invalid_login");
 		}
 	}
 	if (isset($_POST['register'])) {

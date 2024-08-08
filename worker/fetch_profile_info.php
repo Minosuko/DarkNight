@@ -1,11 +1,9 @@
 <?php
-if (!isset($_COOKIE['token']))
-    header("location:../index.php");
 require_once '../includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
+if (!_is_session_valid())
     header("location:../index.php");
 header("content-type: application/json");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 if(isset($_GET['id']) && $_GET['id'] != $data['user_id']) {
 	$current_id = $conn->real_escape_string($_GET['id']);
 	$flag = 1;

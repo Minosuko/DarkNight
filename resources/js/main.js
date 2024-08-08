@@ -1019,7 +1019,11 @@ function showMore(id){
 function _online(){
 	$.ajax({
 		url: "/worker/online.php",
-		type: 'GET'
+		type: 'GET',
+		success: function(res) {
+			if(res == 0)
+				document.location = "/index.php";
+		}
 	});
 	changeUrlWork();
 }

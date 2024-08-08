@@ -163,7 +163,6 @@ CREATE TABLE IF NOT EXISTS `users` (
   `cover_media_id` int(11) NOT NULL,
   `verified` int(1) NOT NULL DEFAULT 0,
   `online_status` int(1) NOT NULL DEFAULT 1,
-  `last_online` int(11) NOT NULL DEFAULT 0,
   `last_username_change` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `user_email` (`user_email`),

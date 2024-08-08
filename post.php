@@ -5,7 +5,7 @@ if (!isset($_COOKIE['token']))
 require_once 'includes/functions.php';
 if (!_is_session_valid($_COOKIE['token']))
 	header("location:index.php");
-$data = _get_data_from_token($_COOKIE['token']);
+$data = _get_data_from_token();
 if(isset($_GET['id'])){
 	if(is_numeric($_GET['id']))
 		$id = $_GET['id'];
