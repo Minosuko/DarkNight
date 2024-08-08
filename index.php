@@ -93,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			$query = $conn->query($sql);
 			$link = (isset($_SERVER["HTTPS"]) ? 'https' : 'http')."://". $_SERVER['SERVER_NAME'].'/verify.php?t=verify&user_email='.htmlspecialchars($useremail).'&username='.htmlspecialchars($usernickname).'&h='.hash('sha256',($userpassword.$user_token));
 			SendVerifyMail($useremail,"$userfirstname $userlastname",$link);
-			file_put_contents('link.txt',$link);
 			if($query){
 				header("location:verify.php?t=registered");
 			}

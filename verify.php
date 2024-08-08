@@ -39,6 +39,7 @@ require_once "includes/functions.php";
 						echo "<h1>What are you doing here?</h1>";
 					}
 					?>
+					<center><a href="/index.php"><h5>Goto login</h5></a></center>
 				</div>
 			</div>
 		</div>

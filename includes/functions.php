@@ -1,24 +1,4 @@
 <?php
-session_name("SessionGuard");
-session_start();
-$limitps = 120;
-if (!isset($_SESSION['banip']))
-	$_SESSION['banip'] = 0;
-if (!isset($_SESSION['first_request'])){
-	$_SESSION['requests'] = 0;
-	$_SESSION['first_request'] = $_SERVER['REQUEST_TIME'];
-}
-$_SESSION['requests']++;
-if ($_SESSION['requests']>=$limitps && strtotime($_SERVER['REQUEST_TIME'])-strtotime($_SESSION['first_request'])<=1){
-	$_SESSION['banip'] = 1;
-}elseif(strtotime($_SERVER['REQUEST_TIME'])-strtotime($_SESSION['first_request']) > 2){
-	$_SESSION['requests'] = 0;
-	$_SESSION['first_request'] = $_SERVER['REQUEST_TIME'];
-}
-if ($_SESSION['banip']==1) {
-	header('HTTP/1.1 503 Service Unavailable');
-	die();
-}
 require_once __DIR__ . "/config/database.php";
 require_once __DIR__ . "/config/mail.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
@@ -277,6 +257,28 @@ function SendVerifyMail($email, $name, $link){
 		$MailBody,
 		['isHTML' => true, 'From' => 'DarkNight', 'to' => $name]
 	);
+}
+function is_user_exists($id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM users WHERE user_id = %d",
+		$conn->real_escape_string($id)
+	);
+	$query = $conn->query($sql);
+	if($query->num_rows > 0)
+		return true;
+	return false;
+}
+function is_post_exists($id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM posts WHERE post_id = %d",
+		$conn->real_escape_string($id)
+	);
+	$query = $conn->query($sql);
+	if($query->num_rows > 0)
+		return true;
+	return false;
 }
 function getBrowser() 
 {
