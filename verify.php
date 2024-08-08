@@ -26,6 +26,9 @@ require_once "includes/functions.php";
 								if(!_is_session_valid())
 									header("Location: index.php");
 								$data = _get_data_from_token();
+								$has2FA = Has2FA($data['user_id']);
+								if(!$has2FA)
+									header("Location: home.php");
 								if(isset($_POST['code'])){
 									$verify = _verify_2FA($_POST['code'],$data['user_id']);
 									if($verify)
