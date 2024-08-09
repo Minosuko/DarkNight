@@ -1,3 +1,35 @@
+const default_male_pfp = 'data/images.php?t=default_M';
+const default_female_pfp = 'data/images.php?t=default_F';
+const pfp_cdn = 'data/images.php?t=profile';
+const media_cdn = 'data/images.php?t=media';
+const video_cdn = 'data/videos.php?t=media';
+
+const lang__001 = 'Post';
+const lang__002 = 'Public';
+const lang__003 = 'Private';
+const lang__004 = 'Friend only';
+const lang__005 = 'Request Pending';
+const lang__006 = 'Send Friend Request';
+const lang__007 = 'You must type Your Number';
+const lang__008 = 'Phone Number must contain digits only';
+const lang__009 = "You can't Leave the Caption Empty";
+const lang__010 = "You don't yet have any friends";
+const lang__011 = "You have no pending friend requests";
+const lang__012 = "Nothing new yet...";
+const lang__013 = "Cant display this post";
+const lang__014 = "Show more";
+const lang__015 = "Write something...";
+const lang__016 = "Verified";
+
+function gebi(id){
+	return document.getElementById(id);
+}
+function gebcn(id){
+	return document.getElementsByClassName(id);
+}
+function gebtn(id){
+	return document.getElementsByTagName(id);
+}
 function preview(input){
 	if (input.files && input.files[0]) {
 		var reader = new FileReader();
@@ -7,7 +39,7 @@ function preview(input){
 			var format = match[2];
 			$('#preview_' + type).css('display', 'initial');
 			if(type == 'video'){
-				var video = document.getElementById("preview_video");
+				var video = gebi("preview_video");
 				video.setAttribute('src', event.target.result);
 				video.setAttribute('type', type + '/' + format);
 			}else{
@@ -17,14 +49,13 @@ function preview(input){
 		reader.readAsDataURL(input.files[0]);
 	}
 }
-function make_blob_url(content, format){
-	var blob = new Blob([content], { type: format });
+function make_blob_url(c, f){
+	var blob = new Blob([c], { type: f });
 	var blobUrl = URL.createObjectURL(blob);
 	return blobUrl;
 }
 function load_video(i, h, f, e){
-	var url = 'data/videos.php?t=media&id=' + i + '&h=' + h;
-	console.log("Saved url=" + url + " format=" + f);
+	var url = video_cdn + '&id=' + i + '&h=' + h;
 	$.ajax({
 		type: "HEAD",
 		async: true,
@@ -52,18 +83,18 @@ function load_video(i, h, f, e){
     });
 }
 function showPath(){
-	var path = document.getElementById("selectedFile").value;
+	var path = gebi("selectedFile").value;
 	path = path.replace(/^.*\\/, "");
-	document.getElementById("path").innerHTML = path;
+	gebi("path").innerHTML = path;
 }
 function validateNumber(){
-	var number = document.getElementById("phonenum").value;
-	var required = document.getElementsByClassName("required");
+	var number = gebi("phonenum").value;
+	var required = gebcn("required");
 	if(number == ""){
-		required[0].innerHTML = "You must type Your Number.";
+		required[0].innerHTML = lang__007;
 		return false;
 	} else if(isNaN(number)){
-		required[0].innerHTML = "Phone Number must contain digits only."
+		required[0].innerHTML = lang__008;
 		return false;
 	}
 	return true;
@@ -74,28 +105,28 @@ $("textarea").each(function() {
 	this.style.height = 0;
 	this.style.height = (this.scrollHeight) + "px";
 });
-function timeConverter(UNIX_timestamp){
-	var a = new Date(UNIX_timestamp);
-	var year = a.getFullYear();
-	var month = a.getMonth() + 1;
-	var date = a.getDate();
-	var hour = a.getHours();
-	var min = a.getMinutes();
-	var sec = a.getSeconds();
-	var time = date + '/' + month + '/' + year + ' ' + hour + ':' + min + ':' + sec ;
-	return time;
+function timeConverter(t){
+	var a = new Date(t);
+	var y = a.getFullYear();
+	var m = a.getMonth() + 1;
+	var d = a.getDate();
+	var h = a.getHours();
+	var i = a.getMinutes();
+	var s = a.getSeconds();
+	var r = d + '/' + m + '/' + y + ' ' + h + ':' + i + ':' + s ;
+	return r;
 }
-function birthdateConverter(UNIX_timestamp){
-	var a = new Date(UNIX_timestamp);
-	var year = a.getFullYear();
-	var month = a.getMonth() + 1;
-	if(month.toString().length == 1)
-		month = '0' + month;
-	var date = a.getDate();
-	if(date.toString().length == 1)
-		date = '0' + date;
-	var time = year + '-' + month + '-' + date;
-	return time;
+function birthdateConverter(t){
+	var a = new Date(t);
+	var y = a.getFullYear();
+	var m = a.getMonth() + 1;
+	if(m.toString().length == 1)
+		m = '0' + m;
+	var d = a.getDate();
+	if(d.toString().length == 1)
+		d = '0' + d;
+	var r = y + '-' + m + '-' + d;
+	return r;
 }
 function timeSince(date) {
 	var seconds = Math.floor((new Date() - date) / 1000);
@@ -125,7 +156,7 @@ function timeSince(date) {
 function _like(id) {
 	$.get("worker/likes.php?post_id=" + id, function(data) {
 		var splt = data.split(";");
-		var post_like = document.getElementById("post-like-" + id);
+		var post_like = gebi("post-like-" + id);
 		var class_l = "icon-heart fa-heart icon-click";
 		if (splt[0] === "1") {
 			post_like.className = class_l + " fa-solid p-heart";
@@ -133,13 +164,13 @@ function _like(id) {
 		} else {
 			post_like.className = class_l + " fa-regular white-col";
 		}
-		zTemplate(document.getElementById("post-like-count-" + id), {
+		zTemplate(gebi("post-like-count-" + id), {
 			"counter": parseInt(splt[1])
 		});
 	});
 }
 function loading_bar(percent){
-	document.getElementById("loading_bar").style.width = percent + "%";
+	gebi("loading_bar").style.width = percent + "%";
 }
 localStorage.setItem("cgurl",0);
 function changeUrl(url) {
@@ -168,15 +199,15 @@ $(window).on("popstate", function (event, state) {
 });
 function fetch_pfp_box(){
 	$.get("worker/profile_image.php", function(data) {
-		var pfp_box = document.getElementById('pfp_box');
-		if(pfp_box != null){
+		var b = gebi('pfp_box');
+		if(b != null){
 			if (data['pfp_media_id'] > 0) {
-				pfp_box.src = 'data/images.php?t=profile&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'];
+				b.src = pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'];
 			} else {
 				if (data['user_gender'] == 'M')
-					pfp_box.src = 'data/images.php?t=default_M';
+					b.src = default_male_pfp;
 				else if (data['user_gender'] == 'F')
-					pfp_box.src = 'data/images.php?t=default_F';
+					b.src = default_female_pfp;
 			}
 		}
 	});
@@ -186,8 +217,8 @@ function fetch_post(loc) {
 	$.get("worker/" + loc, function(data) {
 		var f = '';
 		var l = Object.keys(data).length;
-		var page = document.getElementById('page');
-		var end_of_page = false;
+		var page = gebi('page');
+		var e = false;
 		if (data["success"] == 1) {
 			for (let i = 0; i < (l - 1); i++) {
 				var s = data[i];
@@ -197,29 +228,29 @@ function fetch_post(loc) {
 				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
 				a += '<div class="header">';
 				if (s['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="' + "data/images.php?t=profile&id=" + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] + '" width="40px" height="40px">';
+					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] + '" width="40px" height="40px">';
 				} else {
 					if (s['user_gender'] == 'M')
-						a += '<img class="pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
+						a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
 					else if (s['user_gender'] == 'F')
-						a += '<img class="pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
+						a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
 				}
 				a += '<a class="fname profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'];
 				if(s['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" title="verified"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" title="' + lang__016 + '"></i>';
 				a += '<span class="nickname">@' + s['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<a class="public">';
 				a += '<span class="postedtime" title="' + timeConverter(s['post_time'] * 1000) + '">';
 				switch(Number(s['post_public'])){
 					case 2:
-						a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+						a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
 						break;
 					case 1:
-						a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+						a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
 						break;
 					default:
-						a += '<i class="fa-solid fa-lock" title="Private"></i>';
+						a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
 						break;
 				}
 				a += " " + timeSince(s['post_time'] * 1000) + '</span>';;
@@ -229,7 +260,7 @@ function fetch_post(loc) {
 				if (s['post_media'] != 0) {
 					if(s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196){
 						a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-						a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">Show more</p></div>';
+						a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
 					}else{
 						a += '<div class="caption_box" style="height: 100%">';
 					}
@@ -238,7 +269,7 @@ function fetch_post(loc) {
 					if(s['is_video'])
 						a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + s['post_id'] + '" controls></video>';
 					else
-						a += '<img src="' + "data/images.php?t=media&id=" + s['post_media'] + "&h=" + s['media_hash'] + '" style="max-width:100%;">';
+						a += '<img src="' + media_cdn + "&id=" + s['post_media'] + "&h=" + s['media_hash'] + '" style="max-width:100%;">';
 					a += '<br><br>';
 					a += '</center>';
 				} else {
@@ -246,7 +277,7 @@ function fetch_post(loc) {
 						a += '<center>';
 						if(s['post_caption'].split(/\r\n|\r|\n/).length > 3){
 							a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">Show more</p></div>';
+							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
 						}else{
 							a += '<div class="caption_box" style="height: 100%">';
 						}
@@ -255,7 +286,7 @@ function fetch_post(loc) {
 					}else{
 						if(s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196){
 							a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">Show more</p></div>';
+							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
 						}else{
 							a += '<div class="caption_box" style="height: 100%">';
 						}
@@ -271,27 +302,27 @@ function fetch_post(loc) {
 						a += '<div class="header">';
 
 						if (s['share']['pfp_media_id'] > 0) {
-							a += '<img class="pfp" src="' + "data/images.php?t=profile&id=" + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] + '" width="40px" height="40px">';
+							a += '<img class="pfp" src="' + pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] + '" width="40px" height="40px">';
 						} else {
 							if (s['share']['user_gender'] == 'M')
-								a += '<img class="pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
+								a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
 							else if (s['share']['user_gender'] == 'F')
-								a += '<img class="pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
+								a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
 						}
 
 						a += '<a class="fname profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'];
 						if(s['share']['verified'] > 0)
-							a += '<i class="fa-solid fa-badge-check verified_color_' + s['share']['verified'] + '" title="verified"></i>';
+							a += '<i class="fa-solid fa-badge-check verified_color_' + s['share']['verified'] + '" title="' + lang__016 + '"></i>';
 						a += '<span class="nickname">@' + s['share']['user_nickname'] + '</span>';
 						a += '</a>';
 						a += '<a class="public">';
 						a += '<span class="postedtime" title="' + timeConverter(s['share']['post_time'] * 1000) + '">';
 						if (s['share']['post_public'] == 2) {
-							a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+							a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
 						} else if (s['share']['post_public'] == 1) {
-							a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+							a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
 						} else {
-							a += '<i class="fa-solid fa-lock" title="Private"></i>';
+							a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
 						}
 						a += " " + timeSince(s['share']['post_time'] * 1000) + '</span>';;
 						a += '</a>';
@@ -300,7 +331,7 @@ function fetch_post(loc) {
 						if (s['post_media'] !== 0) {
 							if(s['share']['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['share']['post_caption'].length > 1196){
 								a += '<div class="caption_box" id="caption_box-'+s['is_share']+'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">Show more</p></div>';
+								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + lang__014 + '</p></div>';
 							}else{
 								a += '<div class="caption_box" style="height: 100%">';
 							}
@@ -310,14 +341,14 @@ function fetch_post(loc) {
 							if(s['share']['is_video'])
 								a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + s['share']['post_id'] + 's" controls></video>';
 							else
-								a += '<img src="' + "data/images.php?t=media&id=" + s['share']['post_media'] + "&h=" + s['share']['media_hash'] + '" style="max-width:100%;">';
+								a += '<img src="' + media_cdn + "&id=" + s['share']['post_media'] + "&h=" + s['share']['media_hash'] + '" style="max-width:100%;">';
 							a += '<br><br>';
 							a += '</center>';
 						} else {
 							a += '<center>';
 							if(s['share']['post_caption'].split(/\r\n|\r|\n/).length > 3 || s['share']['post_caption'].length > 60){
 								a += '<div class="caption_box" id="caption_box-'+s['is_share']+'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">Show more</p></div>';
+								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + lang__014 + '</p></div>';
 							}else{
 								a += '<div class="caption_box" style="height: 100%">';
 							}
@@ -328,7 +359,7 @@ function fetch_post(loc) {
 
 					} else {
 						share_able = false;
-						a += '<p style="font-size: 150%;text-align: center">Cant display this post </p>';
+						a += '<p style="font-size: 150%;text-align: center">' + lang__013 +'</p>';
 					}
 					a += '</div>';
 					share_id = s['is_share'];
@@ -367,20 +398,20 @@ function fetch_post(loc) {
 				f += a;
 			}
 		} else {
-			end_of_page = true;
+			e = true;
 			f += '<div class="post">';
-			f += '<h1>Nothing new yet...</h1>';
+			f += '<h1>' + lang__012 + '</h1>';
 			f += '</div>';
 		}
 		if(page.value != -1){
-			if(end_of_page)
+			if(e)
 				 page.value = -1;
-			document.getElementById("feed").innerHTML += f;
+			gebi("feed").innerHTML += f;
 			
 			for (let i = 0; i < (l - 1); i++) {
 				var s = data[i];
-				var _pvideo = document.getElementById("video_pid-" + s['post_id']);
-				var _psvideo = document.getElementById("video_pid-" + s['post_id'] + 's');
+				var _pvideo = gebi("video_pid-" + s['post_id']);
+				var _psvideo = gebi("video_pid-" + s['post_id'] + 's');
 				if(_pvideo != null)
 					load_video(s['post_media'], s['media_hash'], s['media_format'], _pvideo);
 				if(_psvideo != null)
@@ -426,8 +457,8 @@ function processAjaxData(r, u) {
 	el.innerHTML = r;
 	var container = el.getElementsByClassName('container');
 	var style = el.getElementsByTagName('style');
-	var docStyle = document.getElementsByTagName('style');
-	var docHead = document.getElementsByTagName('head');
+	var docStyle = gebtn('style');
+	var docHead = gebtn('head');
 	if(style.length > 0){
 		if(docStyle.length == 0){
 			var StyleNode = document.createElement("style");
@@ -441,7 +472,7 @@ function processAjaxData(r, u) {
 			docStyle[0].innerHTML = '';
 		}
 	}
-	document.getElementsByClassName('container')[0].innerHTML = container[0].innerHTML;
+	gebcn('container')[0].innerHTML = container[0].innerHTML;
 	var title = $(r).filter('title').text();
 	document.title = title;
 	window.history.pushState({
@@ -475,29 +506,29 @@ function processAjaxData(r, u) {
 	changeUrlWork();
 }
 function modal_close() {
-	document.getElementById("modal").style.display = "none";
-	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
+	gebi("modal").style.display = "none";
+	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _load_comment(id, page){
 	$.get("worker/fetch_comment.php?id=" + id + "&page=" + page, function(data) {
-		var b = document.getElementById("comment-box");
+		var b = gebi("comment-box");
 		var a = '';
 		if(data['success'] == 2)
-			document.getElementById('page').value = -1;
+			gebi('page').value = -1;
 		if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="comment">';
 				if (data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp comment-pfp" src="' + "data/images.php?t=profile&id=" + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="40px" height="40px">';
+					a += '<img class="pfp comment-pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="40px" height="40px">';
 				} else {
 					if (data[i]['user_gender'] == 'M')
-						a += '<img class="pfp comment-pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
+						a += '<img class="pfp comment-pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
 					else if (data[i]['user_gender'] == 'F')
-						a += '<img class="pfp comment-pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
+						a += '<img class="pfp comment-pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
 				}
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="verified"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + lang__016 + '"></i>';
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<span class="cmt_postedtime" title="' + timeConverter(data[i]['comment_time'] * 1000) + '">' + timeSince(data[i]['comment_time'] * 1000) + '</span>';
@@ -512,9 +543,9 @@ function _load_comment(id, page){
 	});
 }
 function _share(id) {
-	document.getElementsByTagName('body')[0].style.overflowY = "hidden";
+	gebtn('body')[0].style.overflowY = "hidden";
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
-		document.getElementById("modal").style.display = "block";
+		gebi("modal").style.display = "block";
 		var s = data;
 		var a = "";
 		
@@ -525,14 +556,14 @@ function _share(id) {
 		a += '			<span style="float:right; color:black">';
 		a += '			<input type="hidden" name="post_id" id="post_id" value="'+s['post_id']+'">';
 		a += '			<select name="private" id="private">';
-		a += '				<option value="2">public</option>';
-		a += '				<option value="1">friend</option>';
-		a += '				<option value="0">private</option>';
+		a += '				<option value="2">' + lang__002 + '</option>';
+		a += '				<option value="1">' + lang__004 + '</option>';
+		a += '				<option value="0">' + lang__003 + '</option>';
 		a += '			</select>';
 		a += '			</span>';
-		a += '			<img class="pfp" src="' + document.getElementById('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
-		a += '			<span class="required" style="display:none;"> *You can\'t Leave the Caption Empty.</span><br>';
-		a += '			<textarea rows="6" name="caption" class="caption" placeholder="Write something..."></textarea>';
+		a += '			<img class="pfp" src="' + gebi('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + gebi('fullname').value + "</a>";
+		a += '			<span class="required" style="display:none;">' + lang__009 + '</span><br>';
+		a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + lang__015 + '"></textarea>';
 		a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 		a += '			<div class="createpostbuttons">';
 		a += '				<label>';
@@ -545,17 +576,17 @@ function _share(id) {
 		a += '		<br>';
 		
 		a += '<div class="post">';
-		a += document.getElementById("post_id-" + id).innerHTML;
+		a += gebi("post_id-" + id).innerHTML;
 		a += '</div>';
 		
-		document.getElementById("modal_content").innerHTML = a;
+		gebi("modal_content").innerHTML = a;
 		
 		$(document).ready(function(){
 				$('#imagefile').change(function(){
 					preview(this);
 				});
 			});
-		var textarea = document.getElementsByTagName("textarea")[0];
+		var textarea = gebtn("textarea")[0];
 		textarea.oninput = function() {
 			textarea.style.height = "";
 			textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
@@ -563,8 +594,8 @@ function _share(id) {
 	});
 }
 function make_post(){
-	document.getElementsByTagName('body')[0].style.overflowY = "hidden";
-	document.getElementById("modal").style.display = "block";
+	gebtn('body')[0].style.overflowY = "hidden";
+	gebi("modal").style.display = "block";
 	var a = "";
 	a += '	<div class="createpost_box">';
 	a += '		<div>';
@@ -574,31 +605,31 @@ function make_post(){
 	a += '			<hr>';
 	a += '			<span style="float:right; color:black">';
 	a += '			<select name="private" id="private">';
-	a += '				<option value="2">public</option>';
-	a += '				<option value="1">friend</option>';
-	a += '				<option value="0">private</option>';
+	a += '				<option value="2">' + lang__002 + '</option>';
+	a += '				<option value="1">' + lang__004 + '</option>';
+	a += '				<option value="0">' + lang__003 + '</option>';
 	a += '			</select>';
 	a += '			</span>';
-	a += '			<img class="pfp" src="' + document.getElementById('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + document.getElementById('fullname').value + "</a>";
-	a += '			<span class="required" style="display:none;"> *You can\'t Leave the Caption Empty.</span><br>';
-	a += '			<textarea rows="6" name="caption" class="caption" placeholder="Write something..."></textarea>';
+	a += '			<img class="pfp" src="' + gebi('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + gebi('fullname').value + "</a>";
+	a += '			<span class="required" style="display:none;">' + lang__009 + '</span><br>';
+	a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + lang__015 + '"></textarea>';
 	a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 	a += '			<div class="createpostbuttons">';
 	a += '				<label>';
 	a += '					<i class="fa-regular fa-image"></i>';
 	a += '					<input type="file" accept="image/*,video/*" name="fileUpload" id="imagefile">';
 	a += '				</label>';
-	a += '				<input type="button" value="Post" name="post" onclick="return validatePost(0)">';
+	a += '				<input type="button" value="' + lang__001 + '" name="post" onclick="return validatePost(0)">';
 	a += '			</div>';
 	a += '		</div>';
 	a += '	</div>';
-	document.getElementById("modal_content").innerHTML = a;
+	gebi("modal_content").innerHTML = a;
 	$(document).ready(function(){
 			$('#imagefile').change(function(){
 				preview(this);
 			});
 		});
-	var textarea = document.getElementsByTagName("textarea")[0];
+	var textarea = gebtn("textarea")[0];
 	textarea.oninput = function() {
 		textarea.style.height = "";
 		textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
@@ -610,12 +641,12 @@ function _open_post(id){
 }
 function fetch_friend_list(loc){
 	$.get("worker/" + loc, function(data) {
-		var friend_list = document.getElementById("friend_list");
+		var friend_list = gebi("friend_list");
 		var a = '';
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="post">';
-			a += 'You don\'t yet have any friends.';
+			a += lang__010;
 			a += '</div>';
 		} else if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
@@ -623,19 +654,19 @@ function fetch_friend_list(loc){
 				a += '<center>';
 				a += '<div class="pfp-box">';
 				if(data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="data/images.php?t=profile&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
+					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
 				} else {
 					if(data[i]['user_gender'] == 'M')
-						a += '<img class="pfp" src="data/images.php?t=default_M" width="168px" height="168px" id="pfp"/>';
+						a += '<img class="pfp" src="' + default_male_pfp + '" width="168px" height="168px" id="pfp"/>';
 					else if (data[i]['user_gender'] == 'F')
-						a += '<img class="pfp" src="data/images.php?t=default_F" width="168px" height="168px" id="pfp"/>';
+						a += '<img class="pfp" src="' + default_female_pfp + '" width="168px" height="168px" id="pfp"/>';
 				}
 				a += '<div class="status-circle ' + ( (data[i]['is_online']) ? 'online' : 'offline') + '-status-circle"></div>';
 				a += '</div>';
 				a += '<br>';
 				a += '<a class="flist_link" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="verified"></i>'; 
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + lang__016 + '"></i>'; 
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '</center>';
@@ -650,29 +681,29 @@ function fetch_friend_list(loc){
 }
 function fetch_friend_request(loc){
 	$.get("worker/" + loc, function(data) {
-		var friend_reqest_list = document.getElementById("friend_reqest_list");
+		var friend_reqest_list = gebi("friend_reqest_list");
 		var a = '';
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="userquery">';
-			a += 'You have no pending friend requests.';
+			a += lang__011;
 			a += '<br><br>';
 			a += '</div>';
 		}else if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="userquery">';
 				if(data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="data/images.php?t=profile&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
+					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
 				} else {
 					if(data[i]['user_gender'] == 'M')
-						a += '<img class="pfp" src="data/images.php?t=default_M" width="168px" height="168px" id="pfp"/>';
+						a += '<img class="pfp" src="' + default_male_pfp + '" width="168px" height="168px" id="pfp"/>';
 					else if (data['user_gender'] == 'F')
-						a += '<img class="pfp" src="data/images.php?t=default_F" width="168px" height="168px"	id="pfp"/>';
+						a += '<img class="pfp" src="' + default_female_pfp + '" width="168px" height="168px"	id="pfp"/>';
 				}
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] +'">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0) 
-					a += '<i class="fa-solid fa-badge-check verified_color_'+data[i]['verified']+'" title="verified"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_'+data[i]['verified']+'" title="' + lang__016 + '"></i>';
 				a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 				a += '<a>';
 				a += '<div id="toggle-fr-' + data[i]['user_id'] + '">';
@@ -695,27 +726,27 @@ function fetch_profile(loc){
 	$.get("worker/" + loc, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
-		var profile = document.getElementById("profile");
-		var profile_cover = document.getElementById("profile_cover");
+		var profile = gebi("profile");
+		var profile_cover = gebi("profile_cover");
 		var a = '';
 		a += '<center>';
 		a += '<div class="profile_head">';
 		if(data['pfp_media_id'] > 0) {
-			a += '<img class="pfp" src="data/images.php?t=profile&id=' + data['pfp_media_id'] + '&h=' + data['pfp_media_hash'] + '" width="200px" height="200px"	id="pfp"/>';
+			a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + '&h=' + data['pfp_media_hash'] + '" width="200px" height="200px"	id="pfp"/>';
 		} else {
 			if(data['user_gender'] == 'M')
-				a += '<img class="pfp" src="data/images.php?t=default_M" width="200px" height="200px" id="pfp"/>';
+				a += '<img class="pfp" src="' + default_male_pfp + '" width="200px" height="200px" id="pfp"/>';
 			else if (data['user_gender'] == 'F')
-				a += '<img class="pfp" src="data/images.php?t=default_F" width="200px" height="200px"	id="pfp"/>';
+				a += '<img class="pfp" src="' + default_female_pfp + '" width="200px" height="200px"	id="pfp"/>';
 		}
 		if(data['cover_media_id'] > 0)
-			profile_cover.style.backgroundImage = 'url("data/images.php?t=profile&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
+			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
 		
 		a += "<div class='user_name'>";
 		a += data['user_firstname'] + ' ' + data['user_lastname'];
 		
 		if(data['verified'] > 0)
-			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="verified"></i>';
+			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
 		a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 		a += "</div>";
 		a += '</div>';
@@ -764,22 +795,22 @@ function fetch_profile(loc){
 			a += '<br>';
 			if(data['friendship_status'] != null) {
 				a += '<div>';
-				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="Request Pending" name="remove" id="special" class="fr_button">';
+				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="' + lang__005 + ' name="remove" id="special" class="fr_button">';
 				a += '</div>';
 			} else {
 				a += '<div>';
-				a += '<input type="submit" onclick="_friend_toggle()" value="Send Friend Request" name="request" id="special" class="fr_button">';
+				a += '<input type="submit" onclick="_friend_toggle()" value="' + lang__006 + '" name="request" id="special" class="fr_button">';
 				a += '</div>';
 			}
 		}
 		a += '</center>';
 		profile.innerHTML = a;
 		if(isMobile()){
-			var pfp_head = document.getElementsByClassName('profile_head')[0];
-			var user_name = document.getElementsByClassName('user_name')[0];
-			var about_me = document.getElementsByClassName('about_me')[0];
-			var nickname = document.getElementsByClassName('nickname')[0];
-			var feed = document.getElementById('feed');
+			var pfp_head = gebcn('profile_head')[0];
+			var user_name = gebcn('user_name')[0];
+			var about_me = gebcn('about_me')[0];
+			var nickname = gebcn('nickname')[0];
+			var feed = gebi('feed');
 			pfp_head.style.marginLeft = "auto";
 			user_name.style.marginTop = "0";
 			user_name.style.marginLeft = "0";
@@ -803,16 +834,16 @@ function _load_post(id){
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
 		if(data['success'] == 2)
 			window.history.go(-1);
-		var _content_left = document.getElementById("_content_left");
-		var _content_right = document.getElementById("_content_right");
+		var _content_left = gebi("_content_left");
+		var _content_right = gebi("_content_right");
 		var a = '';
 		a += '<div class="rcf_box"></div>';
 		a += '<div class="header" style="margin: 15px">';
-		document.getElementById("_content_left").style.height = ($(window).height() - 45) + "px";
+		gebi("_content_left").style.height = ($(window).height() - 45) + "px";
 		_content_right.style.height = ($(window).height() - 45) + "px";
 		if(data['post_media'] > 0 || data['is_share'] > 0){
-			var picture = document.getElementById("picture");
-			var video = document.getElementById("video");
+			var picture = gebi("picture");
+			var video = gebi("video");
 			if(data['is_share'] > 0){
 				a += '<a style="text-align: center;" href="post.php?id='+data['is_share'] +'">View original post</a>';
 				a += '<hr>';
@@ -820,10 +851,10 @@ function _load_post(id){
 					video.setAttribute('src', "data/empty.mp4");
 					video.setAttribute('type', "video/mp4");
 					video.setAttribute('id', data['share']['media_hash']);
-					load_video(data['share']['post_media'],data['share']['media_hash'],data['share']['media_format'],document.getElementById(data['media_hash']));
+					load_video(data['share']['post_media'],data['share']['media_hash'],data['share']['media_format'],gebi(data['media_hash']));
 					picture.style.display = 'none';
 				}else{
-					picture.src = "data/images.php?t=media&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash'];
+					picture.src = media_cdn + "&id=" + data['share']['post_media'] + "&h=" + data['share']['media_hash'];
 					video.style.display = 'none';
 				}
 			}else{
@@ -831,10 +862,10 @@ function _load_post(id){
 					video.setAttribute('src', "data/empty.mp4");
 					video.setAttribute('type', "video/mp4");
 					video.setAttribute('id', data['media_hash']);
-					load_video(data['post_media'],data['media_hash'],data['media_format'],document.getElementById(data['media_hash']));
+					load_video(data['post_media'],data['media_hash'],data['media_format'],gebi(data['media_hash']));
 					picture.style.display = 'none';
 				}else{
-					picture.src = "data/images.php?t=media&id=" + data['post_media'] + "&h=" + data['media_hash'];
+					picture.src = media_cdn + "?t=media&id=" + data['post_media'] + "&h=" + data['media_hash'];
 					video.style.display = 'none';
 				}
 			}
@@ -848,29 +879,29 @@ function _load_post(id){
 			a += '<style>.caption_box{overflow-y: auto;}.caption_box_shadow{margin-top:540px;width:99%;}.comment-form{width: calc(80% - 10px);}</style>';
 		}
 		if (data['pfp_media_id'] > 0) {
-			a += '<img class="pfp" src="' + "data/images.php?t=profile&id=" + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
+			a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
 		} else {
 			if (data['user_gender'] == 'M')
-				a += '<img class="pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
+				a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
 			else if (data['user_gender'] == 'F')
-				a += '<img class="pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
+				a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
 		}
 		a += '<a class="fname profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 		if(data['verified'] > 0)
-			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="verified"></i>';
+			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
 		a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 		a += '</a>';
 		a += '<a class="public">';
 		a += '<span class="postedtime" title="' + timeConverter(data['post_time'] * 1000) + '">';
 		switch(Number(data['post_public'])){
 			case 2:
-				a += '<i class="fa-solid fa-earth-americas" title="Public"></i>';
+				a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
 				break;
 			case 1:
-				a += '<i class="fa-solid fa-user-group" title="Friend only"></i>';
+				a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
 				break;
 			default:
-				a += '<i class="fa-solid fa-lock" title="Private"></i>';
+				a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
 				break;
 		}
 		a += " " + timeSince(data['post_time'] * 1000) + '</span>';
@@ -879,7 +910,7 @@ function _load_post(id){
 		a += '<br>';
 		if(data['post_caption'].split(/\r\n|\r|\n/).length > 13 || data['post_caption'].length > 1196){
 			a += '<div class="caption_box" id="caption_box-'+data['post_id']+'">';
-			a += '<div class="caption_box_shadow" id="caption_box_shadow-'+data['post_id']+'"><p onclick="showMore(\''+data['post_id']+'\')">Show more</p></div>';
+			a += '<div class="caption_box_shadow" id="caption_box_shadow-'+data['post_id']+'"><p onclick="showMore(\''+data['post_id']+'\')">' + lang__014 + '</p></div>';
 		}else{
 			a += '<div class="caption_box">';
 		}
@@ -905,12 +936,12 @@ function _load_post(id){
 			_content_right.style.borderRight = 'none';
 			_content_right.style.margin = 'auto';
 			_content_right.style.position = 'relative';
-			document.getElementsByClassName('comment-form')[0].style.width = "100%";
+			gebcn('comment-form')[0].style.width = "100%";
 		}
 		$("#comment-box").scroll(function() {
 			var obj = this;
 			if(obj.scrollTop === (obj.scrollHeight - obj.offsetHeight)){
-				var page = document.getElementById('page');
+				var page = gebi('page');
 				if(page != -1){
 					var nextPage = Number(page.value) + 1;
 					_load_comment(get('id'), nextPage);
@@ -940,17 +971,17 @@ function _friend_request_toggle(id,accept){
 		ac = 'ignore';
 	$.get("worker/friend_request_toggle.php?id=" + id + "&" + ac, function(data) {
 		if(data['success'] == 1){
-			var tgf = document.getElementById('toggle-fr-' + data['id']);
-			var tgf_a = '';
-			tgf_a += '<center>';
-			tgf_a += 'accepted';
-			tgf_a += '</center>';
-			tgf.innerHTML = tgf_a;
+			var t = gebi('toggle-fr-' + data['id']);
+			var a = '';
+			a += '<center>';
+			a += 'accepted';
+			a += '</center>';
+			t.innerHTML = a;
 		}
 	});
 }
 function send_comment(){
-	var text = document.getElementById("comment-form-text").value;
+	var text = gebi("comment-form-text").value;
 	var f = new FormData();
 	f.append('comment', text);
 	$.ajax({
@@ -962,28 +993,28 @@ function send_comment(){
 		data: f,
 		success: function (r) {
 			$.get("worker/fetch_profile_info.php", function(data) {
-				var b = document.getElementById('comment-box');
+				var b = gebi('comment-box');
 				var a = '';
 				a += '<div class="comment">';
 				if (data['pfp_media_id'] > 0) {
-					a += '<img class="pfp comment-pfp" src="' + "data/images.php?t=profile&id=" + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
+					a += '<img class="pfp comment-pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
 				} else {
 					if (data['user_gender'] == 'M')
-						a += '<img class="pfp comment-pfp" src="data/images.php?t=default_M" width="40px" height="40px">';
+						a += '<img class="pfp comment-pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
 					else if (data['user_gender'] == 'F')
-						a += '<img class="pfp comment-pfp" src="data/images.php?t=default_F" width="40px" height="40px">';
+						a += '<img class="pfp comment-pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
 				}
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if(data['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="verified"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
 				a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<span class="cmt_postedtime" title="' + timeConverter(Date.now()) + '">' + timeSince(Date.now()) + '</span>';
-				a += '<pre class="comment-text">' + document.getElementById("comment-form-text").value + '</pre>';
+				a += '<pre class="comment-text">' + gebi("comment-form-text").value + '</pre>';
 				a += '</div>';
 				a += '<hr/>';
 				b.innerHTML = b.innerHTML + a;
-				document.getElementById("comment-form-text").value = '';
+				gebi("comment-form-text").value = '';
 				b.style.height = (Math.max(document.documentElement.clientHeight, window.innerHeight || 0) + 55) + "px";
 				changeUrlWork();
 			});
@@ -991,7 +1022,7 @@ function send_comment(){
 	});
 }
 function _friend_toggle(){
-	var special = document.getElementById("special");
+	var special = gebi("special");
 	var f = new FormData();
 	f.append(special.name, '1');
 	$.ajax({
@@ -1002,21 +1033,20 @@ function _friend_toggle(){
 		contentType: false,
 		data: f,
 		success: function (r) {
-			var special = document.getElementById("special");
 			if(special.name == "request"){
 				special.name = "remove";
-				special.value = "Request Pending";
+				special.value = lang__005;
 			}else{
 				special.name = "request";
-				special.value = "Send Friend Request";
+				special.value = lang__006;
 			}
 		}
 	});
 }
 function showMore(id){
-	var cap = document.getElementById('caption_box-' + id);
+	var cap = gebi('caption_box-' + id);
 	cap.style.height = (cap.children[1].clientHeight + 15) + "px";
-	document.getElementById('caption_box_shadow-' + id).style.display = "none";
+	gebi('caption_box_shadow-' + id).style.display = "none";
 }
 function _online(){
 	$.ajax({
@@ -1034,7 +1064,7 @@ function _fr_count(){
 		url: "/worker/friend_request_count.php",
 		type: 'GET',
 		success: function(res) {
-			document.getElementById('friend_req_count').innerHTML = res;
+			gebi('friend_req_count').innerHTML = res;
 		}
 	});
 }
@@ -1043,7 +1073,7 @@ function _load_hljs(){
 		url: "/worker/hljs_lang_list.php",
 		type: 'GET',
 		success: function(res) {
-			var hljs_lang_list= document.getElementById('hljs_lang_list');
+			var hljs_lang_list= gebi('hljs_lang_list');
 			for(let i = 0; i < res.length; i++){
 				var ScriptLink = document.createElement("script");
 				ScriptLink.src = "/resources/js/highlight/"+res[i];
@@ -1057,29 +1087,29 @@ function _load_settings(){
 	var tab = get("tab");
 	if(tab == undefined)
 		tab = 'account';
-	var current_tab = document.getElementById('tab-' + tab);
+	var current_tab = gebi('tab-' + tab);
 	if(current_tab != null)
 		current_tab.classList.add("active");
-	var current_setting_tab = document.getElementById('setting-tab-' + tab);
+	var current_setting_tab = gebi('setting-tab-' + tab);
 	if(current_setting_tab != null)
 		current_setting_tab.style.display = "block";
 	$.ajax({
 		url: "/worker/fetch_profile_setting_info.php",
 		type: 'GET',
 		success: function(res) {
-			var usernickname = document.getElementById('usernickname');
-			var userfirstname = document.getElementById('userfirstname');
-			var userlastname = document.getElementById('userlastname');
-			var malegender = document.getElementById('malegender');
-			var femalegender = document.getElementById('femalegender');
-			var email = document.getElementById('email');
-			var user_hometown = document.getElementById('userhometown');
-			var user_about = document.getElementById('userabout');
-			var verified = document.getElementById('verified');
-			var verified_text = document.getElementById('verified-text');
-			var birthday = document.getElementById('birthday');
-			var profile_picture = document.getElementById('profile_picture');
-			var setting_profile_cover = document.getElementById('setting_profile_cover');
+			var usernickname = gebi('usernickname');
+			var userfirstname = gebi('userfirstname');
+			var userlastname = gebi('userlastname');
+			var malegender = gebi('malegender');
+			var femalegender = gebi('femalegender');
+			var email = gebi('email');
+			var user_hometown = gebi('userhometown');
+			var user_about = gebi('userabout');
+			var verified = gebi('verified');
+			var verified_text = gebi('verified-text');
+			var birthday = gebi('birthday');
+			var profile_picture = gebi('profile_picture');
+			var setting_profile_cover = gebi('setting_profile_cover');
 			var psrc = '';
 			user_about.value = res['user_about'];
 			user_hometown.value = res['user_hometown'];
@@ -1088,14 +1118,14 @@ function _load_settings(){
 			userlastname.value = res['user_lastname'];
 			email.value = res['user_email'];
 			if(res['cover_media_id'] > 0)
-				setting_profile_cover.style.backgroundImage = 'url("data/images.php?t=profile&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
+				setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
 			if (res['pfp_media_id'] > 0) {
-				psrc = 'data/images.php?t=profile&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'];
+				psrc = pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'];
 			} else {
 				if (res['user_gender'] == 'M')
-					psrc = 'data/images.php?t=default_M';
+					psrc = default_male_pfp;
 				else if (res['user_gender'] == 'F')
-					psrc = 'data/images.php?t=default_F';
+					psrc = default_female_pfp;
 			}
 			profile_picture.src = psrc;
 			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
@@ -1134,12 +1164,12 @@ function _load_settings(){
 }
 
 function _f(){
-	var file_data = document.getElementById("imagefile");
-	var is_private = document.getElementById('private').value;
+	var file_data = gebi("imagefile");
+	var is_private = gebi('private').value;
 	var f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
-	f.append("caption", document.getElementsByTagName("textarea")[0].value);
+	f.append("caption", gebtn("textarea")[0].value);
 	if(file_data.files.length > 0)
 		f.append("fileUpload", file_data.files[0]);
 	$.ajax({
@@ -1154,17 +1184,17 @@ function _f(){
 				fetch_post("fetch_post.php");
 		}
 	});
-	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
+	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _share_feed(){
-	var file_data = document.getElementById("imagefile");
-	var is_private = document.getElementById('private').value;
-	var post_id = document.getElementById('post_id').value;
+	var file_data = gebi("imagefile");
+	var is_private = gebi('private').value;
+	var post_id = gebi('post_id').value;
 	var f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("post_id", post_id);
-	f.append("caption", document.getElementsByTagName("textarea")[0].value);
+	f.append("caption", gebtn("textarea")[0].value);
 	if(file_data.files.length > 0)
 		f.append("fileUpload", file_data.files[0]);
 	$.ajax({
@@ -1175,29 +1205,29 @@ function _share_feed(){
 		contentType: false,
 		data: f,
 		success: function (r) {
-			var id = document.getElementById('post_id').value;
+			var id = gebi('post_id').value;
 			var splt = data.split(";");
-			zTemplate(document.getElementById("post-share-count-" + id), {
+			zTemplate(gebi("post-share-count-" + id), {
 				"counter": parseInt(splt[1])
 			});
 			setTimeout(null,100);
 			fetch_post("fetch_post.php");
 		}
 	});
-	document.getElementsByTagName('body')[0].style.overflowY = "scroll";
+	gebtn('body')[0].style.overflowY = "scroll";
 }
 
 function validatePost(type){
-	var required = document.getElementsByClassName("required");
-	var caption = document.getElementsByTagName("textarea")[0].value;
+	var required = gebcn("required");
+	var caption = gebtn("textarea")[0].value;
 	required[0].style.display = "none";
 	if(type == 0)
 		_f();
 	else
 		_share_feed();
-	document.getElementById("imagefile").value = null;
+	gebi("imagefile").value = null;
 	caption.value = '';
-	document.getElementById("imagefile").style.display = 'none';
+	gebi("imagefile").style.display = 'none';
 	modal_close();
 	return false;
 }
@@ -1209,7 +1239,7 @@ document.addEventListener('readystatechange', function(e){
 	if(document.readyState == "complete"){
 		_online();
 		_fr_count();
-		if(document.getElementById("online_status").value == 1)
+		if(gebi("online_status").value == 1)
 			setInterval(_online, 300000);
 		setInterval(_fr_count, 300000);
 		onResizeEvent();
@@ -1224,27 +1254,27 @@ function isMobile() {
 };
 function changeUrlWork(){
 	if(isMobile()){
-		var cpost_box = document.getElementsByClassName('createpost_box');
+		var cpost_box = gebcn('createpost_box');
 		if(cpost_box != null){
 			if(cpost_box.length > 0){
 				cpost_box[0].style.width = "90%";
-				var ipb = document.getElementsByClassName('input_box');
+				var ipb = gebcn('input_box');
 				ipb[0].style.height = "80px";
 				ipb[0].style.marginLeft = "88px";
 				ipb[0].style.marginTop = "-90px";
 				ipb[0].style.width = "88%";
-				var pfp_box = document.getElementById('pfp_box');
+				var pfp_box = gebi('pfp_box');
 				pfp_box.style.height = "80px";
 				pfp_box.style.width = "80px";
 			}
 		}
-		document.getElementsByClassName('usernav')[0].style.fontSize = "150%";
-		var container = document.getElementsByClassName('container');
+		gebcn('usernav')[0].style.fontSize = "150%";
+		var container = gebcn('container');
 		if(container != null){
 			container[0].style.width = "100%";
 		}
-		document.getElementsByTagName('body')[0].style.zoom = "0.5";;
-		document.getElementsByTagName('body')[0].style.fontSize = "200%";
+		gebtn('body')[0].style.zoom = "0.5";;
+		gebtn('body')[0].style.fontSize = "200%";
 	}
 	$("a").each(function() {
 		if(this.href != '' && this.className != "post-link"){
@@ -1261,10 +1291,10 @@ function changeUrlWork(){
 window.addEventListener ("resize", onResizeEvent, true);
 function onResizeEvent() {
 	if(!isMobile()){
-		var bodyElement = document.getElementsByTagName("BODY")[0];
+		var bodyElement = gebtn("BODY")[0];
 		newWidth = bodyElement.offsetWidth;
-		var feed = document.getElementById('feed');
-		var custom_style = document.getElementById('custom_style');
+		var feed = gebi('feed');
+		var custom_style = gebi('custom_style');
 		if(feed != null && custom_style != null) feed.style.marginTop = "-230px";
 		if(custom_style != null) custom_style.innerHTML = "<style>#feed>.post{margin-right:20% !important;}</style>";
 		if(newWidth < 1708 && newWidth < 1350 && newWidth < 1670){
@@ -1285,7 +1315,7 @@ $(window).scroll(function() {
 	if($(window).height() != $(document).height()){
 		if((($(window).scrollTop() + $(window).height() > $(document).height() - 100) && !isMobile()) || (isBottom() && isMobile())) {
 			if ((u === "/home.php" || u === "home.php") || (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php")){
-				var page = document.getElementById('page');
+				var page = gebi('page');
 				if(page.value != -1){
 					var nextPage = Number(page.value) + 1;
 					if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
@@ -1299,14 +1329,14 @@ $(window).scroll(function() {
 					page.value = nextPage;
 				}
 			} else if(u === "/friends.php" || u === "friends.php"){
-				var page = document.getElementById('page');
+				var page = gebi('page');
 				if(page.value != -1){
 					var nextPage = Number(page.value) + 1;
 					fetch_friend_list('fetch_friend_list.php?page=' + nextPage);
 					page.value = nextPage;
 				}
 			}else if(u === "/requests.php" || u === "requests.php"){
-				var page = document.getElementById('page');
+				var page = gebi('page');
 				if(page.value != -1){
 					var nextPage = Number(page.value) + 1;
 					fetch_friend_request('fetch_friend_request.php?page=' + nextPage);
