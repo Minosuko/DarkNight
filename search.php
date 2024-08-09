@@ -17,8 +17,9 @@ $data = _get_data_from_token();
 	<body>
 		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<h1>Search Results</h1>
+			<h1 id="set_lang__019"></h1>
 			<h1>Currently disabled until search fontend is done</h1>
+			<div id="search"></div>
 		</div>
 	</body>
 </html>

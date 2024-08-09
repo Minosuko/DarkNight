@@ -28,7 +28,7 @@ $data = _get_data_from_token();
 					<img class="pfp" src="data/blank.jpg" width="40px" height="40px" id="pfp_box">
 					</a>
 					<div class="input_box" onclick="make_post()">
-						<a>Post something...</a>
+						<a id="set_lang__017"></a>
 					</div>
 				</div>
 			</div>

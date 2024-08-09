@@ -26,7 +26,7 @@ $data = _get_data_from_token();
 		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
 			<input type="hidden" id="page" value="0">
-			<h1>Friends</h1>
+			<h1 id="set_lang__021"></h1>
 			<div class="friend_list" id="friend_list">
 			</div>
 			<script>

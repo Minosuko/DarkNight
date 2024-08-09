@@ -4,23 +4,83 @@ const pfp_cdn = 'data/images.php?t=profile';
 const media_cdn = 'data/images.php?t=media';
 const video_cdn = 'data/videos.php?t=media';
 
-const lang__001 = 'Post';
-const lang__002 = 'Public';
-const lang__003 = 'Private';
-const lang__004 = 'Friend only';
-const lang__005 = 'Request Pending';
-const lang__006 = 'Send Friend Request';
-const lang__007 = 'You must type Your Number';
-const lang__008 = 'Phone Number must contain digits only';
-const lang__009 = "You can't Leave the Caption Empty";
-const lang__010 = "You don't yet have any friends";
-const lang__011 = "You have no pending friend requests";
-const lang__012 = "Nothing new yet...";
-const lang__013 = "Cant display this post";
-const lang__014 = "Show more";
-const lang__015 = "Write something...";
-const lang__016 = "Verified";
+var lang__001 = 'Post';
+var lang__002 = 'Public';
+var lang__003 = 'Private';
+var lang__004 = 'Friend only';
+var lang__005 = 'Request Pending';
+var lang__006 = 'Send Friend Request';
+var lang__007 = 'You must type Your Number';
+var lang__008 = 'Phone Number must contain digits only';
+var lang__009 = "You can't Leave the Caption Empty";
+var lang__010 = "You don't yet have any friends";
+var lang__011 = "You have no pending friend requests";
+var lang__012 = "Nothing new yet...";
+var lang__013 = "Cant display this post";
+var lang__014 = "Show more";
+var lang__015 = "Write something...";
+var lang__016 = "Verified";
 
+var lang__017 = "Post something...";
+var lang__018 = "Notification";
+var lang__019 = "Search Results";
+var lang__020 = "Friend Requests";
+var lang__021 = "Friends";
+var lang__022 = "Login";
+var lang__023 = "Password";
+var lang__024 = "Remember Me?";
+var lang__025 = "First Name";
+var lang__026 = "Last Name";
+var lang__027 = "Nickname";
+var lang__028 = "Confirm Password";
+var lang__029 = "Birth Date";
+var lang__030 = "Male";
+var lang__031 = "Female";
+var lang__032 = "Create Account";
+var lang__033 = "Account";
+var lang__034 = "Profile";
+var lang__035 = "About";
+var lang__036 = "Email";
+var lang__037 = "Verified Status";
+var lang__038 = "Logout";
+var lang__039 = "Home Town";
+
+function load_lang(){
+	for(let i = 0; i < 999; i++){
+		var s = ((i.toString().length == 1) ? '00' : ((i.toString().length == 2) ? '0' : '0')) + i;
+		var e = gebi('set_lang__' + s);
+		if(typeof(e) != 'undefined' && e != null){
+			if(e.getAttribute('lang_set') != 'true'){
+				var t = e.tagName.toLocaleLowerCase();
+				var l = window["lang__" + s];
+				switch(t){
+					case 'input':
+						var a = e.getAttribute('type');
+						if(a == 'submit' || a == 'button'){
+							e.value = l;
+						}else{
+							e.placeholder = l;
+						}
+						break;
+					case 'a':
+					case 'p':
+					case 'h1':
+					case 'h2':
+					case 'h3':
+					case 'h4':
+					case 'h5':
+					case 'label':
+					case 'lang':
+					default:
+						e.innerHTML = l;
+						break;
+				}
+				console.log("set lang for " + s);
+				e.setAttribute('lang_set','true');
+			}
+		}
+	}
+}
 function gebi(id){
 	return document.getElementById(id);
 }
@@ -190,6 +250,60 @@ function changeUrl(url) {
 			localStorage.setItem("cgurl",0);
 		}
 	});
+}
+function processAjaxData(r, u) {
+	var el = document.createElement("html");
+	el.innerHTML = r;
+	var container = el.getElementsByClassName('container');
+	var style = el.getElementsByTagName('style');
+	var docStyle = gebtn('style');
+	var docHead = gebtn('head');
+	if(style.length > 0){
+		if(docStyle.length == 0){
+			var StyleNode = document.createElement("style");
+			StyleNode.innerHTML = style[0].innerHTML;
+			docHead[0].appendChild(StyleNode);
+		}else{
+			docStyle[0].innerHTML = style[0].innerHTML;
+		}
+	}else{
+		if(docStyle.length > 0){
+			docStyle[0].innerHTML = '';
+		}
+	}
+	gebcn('container')[0].innerHTML = container[0].innerHTML;
+	load_lang();
+	var title = $(r).filter('title').text();
+	document.title = title;
+	window.history.pushState({
+		"html": r,
+		"pageTitle": title
+	}, "", u);
+	loading_bar(0);
+	if (u.substring(0,13) === "/settings.php" || u.substring(0,12) === "settings.php")
+		_load_settings();
+	if (u === "/home.php" || u === "home.php")
+		fetch_post("fetch_post.php");
+	if (u === "/logout.php" || u === "logout.php")
+		location.reload();
+	if (u === "/friends.php" || u === "friends.php")
+		fetch_friend_list('fetch_friend_list.php');
+	if (u === "/requests.php" || u === "requests.php")
+		fetch_friend_request('fetch_friend_request.php');
+	if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
+		var add_header = "";
+		if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
+			add_header = "?id=" + get("id");
+		fetch_profile("fetch_profile_info.php" + add_header);
+		fetch_post("fetch_profile_post.php" + add_header);
+	}
+	if (u.substring(0,9) === "/post.php" || u.substring(0,8) === "post.php"){
+		if(u.substring(0,13) === "/post.php?id=" || u.substring(0,12) === "post.php?id=")
+			_load_post(get("id"));
+		else
+			window.history.go(-1);
+	}
+	changeUrlWork();
 }
 $(window).on("popstate", function (event, state) {
 	var url = new URL(window.location.href);
@@ -451,59 +565,6 @@ function fetch_post(loc) {
 function get(n){
 	if(n=(new RegExp('[?&]'+encodeURIComponent(n)+'=([^&]*)')).exec(location.search))
 		return decodeURIComponent(n[1]);
-}
-function processAjaxData(r, u) {
-	var el = document.createElement("html");
-	el.innerHTML = r;
-	var container = el.getElementsByClassName('container');
-	var style = el.getElementsByTagName('style');
-	var docStyle = gebtn('style');
-	var docHead = gebtn('head');
-	if(style.length > 0){
-		if(docStyle.length == 0){
-			var StyleNode = document.createElement("style");
-			StyleNode.innerHTML = style[0].innerHTML;
-			docHead[0].appendChild(StyleNode);
-		}else{
-			docStyle[0].innerHTML = style[0].innerHTML;
-		}
-	}else{
-		if(docStyle.length > 0){
-			docStyle[0].innerHTML = '';
-		}
-	}
-	gebcn('container')[0].innerHTML = container[0].innerHTML;
-	var title = $(r).filter('title').text();
-	document.title = title;
-	window.history.pushState({
-		"html": r,
-		"pageTitle": title
-	}, "", u);
-	loading_bar(0);
-	if (u.substring(0,13) === "/settings.php" || u.substring(0,12) === "settings.php")
-		_load_settings();
-	if (u === "/home.php" || u === "home.php")
-		fetch_post("fetch_post.php");
-	if (u === "/logout.php" || u === "logout.php")
-		location.reload();
-	if (u === "/friends.php" || u === "friends.php")
-		fetch_friend_list('fetch_friend_list.php');
-	if (u === "/requests.php" || u === "requests.php")
-		fetch_friend_request('fetch_friend_request.php');
-	if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
-		var add_header = "";
-		if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
-			add_header = "?id=" + get("id");
-		fetch_profile("fetch_profile_info.php" + add_header);
-		fetch_post("fetch_profile_post.php" + add_header);
-	}
-	if (u.substring(0,9) === "/post.php" || u.substring(0,8) === "post.php"){
-		if(u.substring(0,13) === "/post.php?id=" || u.substring(0,12) === "post.php?id=")
-			_load_post(get("id"));
-		else
-			window.history.go(-1);
-	}
-	changeUrlWork();
 }
 function modal_close() {
 	gebi("modal").style.display = "none";
@@ -1237,6 +1298,7 @@ function HighLightHLJS(){
 }
 document.addEventListener('readystatechange', function(e){
 	if(document.readyState == "complete"){
+		load_lang();
 		_online();
 		_fr_count();
 		if(gebi("online_status").value == 1)

@@ -142,14 +142,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					</div>
 					<div class="tabcontent" id="signup">
 						<form method="post" onsubmit="return validateRegister()">
-							<!--First Name-->
 							<div class="index_input_box name_input">
 								<label>First Name<span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userfirstname" id="userfirstname">
-							</div>
-							<!--Last Name-->			
+							</div>		
 							<div class="index_input_box name_input right_content_box">
 								<label>Last Name<span>*</span></label>
 								<div class="required"></div>
@@ -158,7 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							</div>
 							<br>
 							<br>
-							<!--Nickname-->
 							<div class="index_input_box">
 								<label>Nickname<span>*</span></label>
 								<div class="required"></div>
@@ -166,7 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<input type="text" name="usernickname" id="usernickname" placeholder="@username">
 							</div>
 							<br>
-							<!--Password-->
 							<div class="index_input_box">
 								<label>Password<span>*</span></label>
 								<div class="required"></div>
@@ -174,14 +170,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<input type="password" name="userpass" id="userpass">
 							</div>
 							<br>
-							<!--Confirm Password-->
 							<div class="index_input_box">
 								<label>Confirm Password<span>*</span></label>
 								<div class="required"></div><br>
 								<input type="password" name="userpassconfirm" id="userpassconfirm">
 							</div>
 							<br>
-							<!--Email-->
 							<div class="index_input_box">
 								<label>Email<span>*</span></label>
 								<div class="required"></div>
@@ -189,14 +183,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<input type="text" name="useremail" id="useremail">
 							</div>
 							<br>
-							<!--Birth Date-->
 							<div class="index_input_box">
 								<div class="required"></div>
-								Birth Date<span>*</span><br>
+								<label>Birth Date<span>*</span></label><br>
 								<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
 							</div>
 							<br>
-							<!--Gender-->
 							<div class="index_input_box">
 								<div class="required"></div>
 								<input type="radio" name="usergender" value="M" id="malegender" class="usergender">
