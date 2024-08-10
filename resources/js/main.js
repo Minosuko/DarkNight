@@ -1212,7 +1212,7 @@ function _change_picture(isCover = 0){
 	var a = "";
 	a += '<div class="createpost_box">';
 	a += '<div class="createpostbuttons">';
-	a += '<h1> ' + (isCover == 0) ? window['lang__041']:window['lang__042'] +' </h1>';
+	a += '<h1> ' + (isCover == 1) ? window['lang__041']:window['lang__042'] +' </h1>';
 	a += '<center><label>';
 	a += '<i class="fa-regular fa-image" id="fileInputIcon"></i>';
 	a += '<input type="file" id="fileInput" accept="image/*" />';
@@ -1250,8 +1250,8 @@ function _change_picture(isCover = 0){
 					});
 					$('#btnCrop').click(function() {
 						var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
-						var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture").attr('width', "660px") : $('<img>').attr('src', croppedImageDataURL);
-						$result.append(append);
+						var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture") : $('<img>').attr('src', croppedImageDataURL);
+						$result.append(append.attr('width', "680px"));
 						canvas.css('display','none');
 						$('#btnCrop').css('display','none');
 						$('#btnSavePicture').css('display','block');
