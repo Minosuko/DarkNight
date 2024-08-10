@@ -19,7 +19,7 @@ $data = _get_data_from_token();
 		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
 			<input type="hidden" id="page" value="0">
-			<h1 id="set_lang__020"></h1>
+			<h1><lang lang="lang__020"></lang></h1>
 			<div class="friend_reqest_list" id="friend_reqest_list"></div>
 			<script>
 				fetch_friend_request('fetch_friend_request.php');

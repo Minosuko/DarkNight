@@ -3,92 +3,75 @@ const default_female_pfp = 'data/images.php?t=default_F';
 const pfp_cdn = 'data/images.php?t=profile';
 const media_cdn = 'data/images.php?t=media';
 const video_cdn = 'data/videos.php?t=media';
-
-var lang__001 = 'Post';
-var lang__002 = 'Public';
-var lang__003 = 'Private';
-var lang__004 = 'Friend only';
-var lang__005 = 'Request Pending';
-var lang__006 = 'Send Friend Request';
-var lang__007 = 'You must type Your Number';
-var lang__008 = 'Phone Number must contain digits only';
-var lang__009 = "You can't Leave the Caption Empty";
-var lang__010 = "You don't yet have any friends";
-var lang__011 = "You have no pending friend requests";
-var lang__012 = "Nothing new yet...";
-var lang__013 = "Cant display this post";
-var lang__014 = "Show more";
-var lang__015 = "Write something...";
-var lang__016 = "Verified";
-
-var lang__017 = "Post something...";
-var lang__018 = "Notification";
-var lang__019 = "Search Results";
-var lang__020 = "Friend Requests";
-var lang__021 = "Friends";
-var lang__022 = "Login";
-var lang__023 = "Password";
-var lang__024 = "Remember Me?";
-var lang__025 = "First Name";
-var lang__026 = "Last Name";
-var lang__027 = "Nickname";
-var lang__028 = "Confirm Password";
-var lang__029 = "Birth Date";
-var lang__030 = "Male";
-var lang__031 = "Female";
-var lang__032 = "Create Account";
-var lang__033 = "Account";
-var lang__034 = "Profile";
-var lang__035 = "About";
-var lang__036 = "Email";
-var lang__037 = "Verified Status";
-var lang__038 = "Logout";
-var lang__039 = "Home Town";
-
-function load_lang(){
-	for(let i = 0; i < 999; i++){
-		var s = ((i.toString().length == 1) ? '00' : ((i.toString().length == 2) ? '0' : '0')) + i;
-		var e = gebi('set_lang__' + s);
-		if(typeof(e) != 'undefined' && e != null){
-			if(e.getAttribute('lang_set') != 'true'){
-				var t = e.tagName.toLocaleLowerCase();
-				var l = window["lang__" + s];
-				switch(t){
-					case 'input':
-						var a = e.getAttribute('type');
-						if(a == 'submit' || a == 'button'){
-							e.value = l;
-						}else{
-							e.placeholder = l;
-						}
-						break;
-					case 'a':
-					case 'p':
-					case 'h1':
-					case 'h2':
-					case 'h3':
-					case 'h4':
-					case 'h5':
-					case 'label':
-					case 'lang':
-					default:
-						e.innerHTML = l;
-						break;
-				}
-				console.log("set lang for " + s);
-				e.setAttribute('lang_set','true');
-			}
-		}
+if (typeof(Storage) !== "undefined") {
+	var a = lsg("language");
+	var d = lsg("language_data");
+	if(a == null)
+		lss("language",'en-us');
+	if(d == null){
+		$.get("resources/language/" + a + ".json", function(r) {
+			lss("language_data",JSON.stringify(r));
+			d = JSON.stringify(r);
+			location.reload();
+		});
 	}
+	var j = JSON.parse(d);
+	Object.keys(j).forEach(function(v,n){
+		window[v] = j[v];
+	});
 }
-function gebi(id){
-	return document.getElementById(id);
+function load_lang(){
+	var i = gebtn('lang');
+	Object.keys(i).forEach(function (n){
+		var e = i[n];
+		var s = e.getAttribute('lang');
+		if(e.getAttribute('lang_set') != 'true'){
+			var t = e.tagName.toLocaleLowerCase();
+			var l = window[s];
+			switch(t){
+				case 'input':
+					var a = e.getAttribute('type');
+					if(a == 'submit' || a == 'button'){
+						e.value = l;
+					}else{
+						e.placeholder = l;
+					}
+					break;
+			}
+			e.innerHTML = l;
+			e.setAttribute('lang_set','true');
+		}
+	});
+	var h = gebtn('input');
+	Object.keys(h).forEach(function (n){
+		var e = h[n];
+		var s = e.getAttribute('lang');
+		if(e.getAttribute('lang_set') != 'true'){
+			var t = e.tagName.toLocaleLowerCase();
+			var l = window[s];
+			var a = e.getAttribute('type');
+			if(a == 'submit' || a == 'button')
+				e.value = l;
+			else
+				e.placeholder = l;
+			e.setAttribute('lang_set','true');
+		}
+	});
 }
-function gebcn(id){
-	return document.getElementsByClassName(id);
+function lsg(n){
+	return localStorage.getItem(n);
 }
-function gebtn(id){
-	return document.getElementsByTagName(id);
+function lss(n,v){
+	return localStorage.setItem(n,v);
+}
+function gebi(i){
+	return document.getElementById(i);
+}
+function gebcn(i){
+	return document.getElementsByClassName(i);
+}
+function gebtn(i){
+	return document.getElementsByTagName(i);
 }
 function preview(input){
 	if (input.files && input.files[0]) {
@@ -151,10 +134,10 @@ function validateNumber(){
 	var number = gebi("phonenum").value;
 	var required = gebcn("required");
 	if(number == ""){
-		required[0].innerHTML = lang__007;
+		required[0].innerHTML = window["lang__007"];
 		return false;
 	} else if(isNaN(number)){
-		required[0].innerHTML = lang__008;
+		required[0].innerHTML = window["lang__008"];
 		return false;
 	}
 	return true;
@@ -232,10 +215,10 @@ function _like(id) {
 function loading_bar(percent){
 	gebi("loading_bar").style.width = percent + "%";
 }
-localStorage.setItem("cgurl",0);
+lss("cgurl",0);
 function changeUrl(url) {
 	window.scrollTo({top: 0, behavior: 'smooth'});
-	localStorage.setItem("cgurl",1);
+	lss("cgurl",1);
 	loading_bar(70)
 	$.ajax({
 		url: url,
@@ -244,10 +227,10 @@ function changeUrl(url) {
 			_online();
 			loading_bar(100)
 			processAjaxData(res, url);
-			localStorage.setItem("cgurl",0);
+			lss("cgurl",0);
 		},
 		error: function(){
-			localStorage.setItem("cgurl",0);
+			lss("cgurl",0);
 		}
 	});
 }
@@ -308,7 +291,7 @@ function processAjaxData(r, u) {
 $(window).on("popstate", function (event, state) {
 	var url = new URL(window.location.href);
 	var u = url.pathname + url.search;
-	if(localStorage.getItem("cgurl") == 0)
+	if(lsg("cgurl") == 0)
 		changeUrl(u);
 });
 function fetch_pfp_box(){
@@ -351,20 +334,20 @@ function fetch_post(loc) {
 				}
 				a += '<a class="fname profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'];
 				if(s['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" title="' + lang__016 + '"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" title="' + window["lang__016"] + '"></i>';
 				a += '<span class="nickname">@' + s['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<a class="public">';
 				a += '<span class="postedtime" title="' + timeConverter(s['post_time'] * 1000) + '">';
 				switch(Number(s['post_public'])){
 					case 2:
-						a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
+						a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
 						break;
 					case 1:
-						a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
+						a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
 						break;
 					default:
-						a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
+						a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
 						break;
 				}
 				a += " " + timeSince(s['post_time'] * 1000) + '</span>';;
@@ -374,7 +357,7 @@ function fetch_post(loc) {
 				if (s['post_media'] != 0) {
 					if(s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196){
 						a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-						a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
+						a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + window["lang__014"] + '</p></div>';
 					}else{
 						a += '<div class="caption_box" style="height: 100%">';
 					}
@@ -391,7 +374,7 @@ function fetch_post(loc) {
 						a += '<center>';
 						if(s['post_caption'].split(/\r\n|\r|\n/).length > 3){
 							a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
+							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + window["lang__014"] + '</p></div>';
 						}else{
 							a += '<div class="caption_box" style="height: 100%">';
 						}
@@ -400,7 +383,7 @@ function fetch_post(loc) {
 					}else{
 						if(s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196){
 							a += '<div class="caption_box" id="caption_box-'+s['post_id']+'">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + lang__014 + '</p></div>';
+							a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['post_id']+'"><p onclick="showMore(\''+s['post_id']+'\')">' + window["lang__014"] + '</p></div>';
 						}else{
 							a += '<div class="caption_box" style="height: 100%">';
 						}
@@ -426,17 +409,17 @@ function fetch_post(loc) {
 
 						a += '<a class="fname profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'];
 						if(s['share']['verified'] > 0)
-							a += '<i class="fa-solid fa-badge-check verified_color_' + s['share']['verified'] + '" title="' + lang__016 + '"></i>';
+							a += '<i class="fa-solid fa-badge-check verified_color_' + s['share']['verified'] + '" title="' + window["lang__016"] + '"></i>';
 						a += '<span class="nickname">@' + s['share']['user_nickname'] + '</span>';
 						a += '</a>';
 						a += '<a class="public">';
 						a += '<span class="postedtime" title="' + timeConverter(s['share']['post_time'] * 1000) + '">';
 						if (s['share']['post_public'] == 2) {
-							a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
+							a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
 						} else if (s['share']['post_public'] == 1) {
-							a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
+							a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
 						} else {
-							a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
+							a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
 						}
 						a += " " + timeSince(s['share']['post_time'] * 1000) + '</span>';;
 						a += '</a>';
@@ -445,7 +428,7 @@ function fetch_post(loc) {
 						if (s['post_media'] !== 0) {
 							if(s['share']['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['share']['post_caption'].length > 1196){
 								a += '<div class="caption_box" id="caption_box-'+s['is_share']+'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + lang__014 + '</p></div>';
+								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + window["lang__014"] + '</p></div>';
 							}else{
 								a += '<div class="caption_box" style="height: 100%">';
 							}
@@ -462,7 +445,7 @@ function fetch_post(loc) {
 							a += '<center>';
 							if(s['share']['post_caption'].split(/\r\n|\r|\n/).length > 3 || s['share']['post_caption'].length > 60){
 								a += '<div class="caption_box" id="caption_box-'+s['is_share']+'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + lang__014 + '</p></div>';
+								a += '<div class="caption_box_shadow" id="caption_box_shadow-'+s['is_share']+'shd"><p onclick="showMore(\''+s['is_share']+'shd\')">' + window["lang__014"] + '</p></div>';
 							}else{
 								a += '<div class="caption_box" style="height: 100%">';
 							}
@@ -473,7 +456,7 @@ function fetch_post(loc) {
 
 					} else {
 						share_able = false;
-						a += '<p style="font-size: 150%;text-align: center">' + lang__013 +'</p>';
+						a += '<p style="font-size: 150%;text-align: center">' + window["lang__013"] +'</p>';
 					}
 					a += '</div>';
 					share_id = s['is_share'];
@@ -514,7 +497,7 @@ function fetch_post(loc) {
 		} else {
 			e = true;
 			f += '<div class="post">';
-			f += '<h1>' + lang__012 + '</h1>';
+			f += '<h1>' + window["lang__012"] + '</h1>';
 			f += '</div>';
 		}
 		if(page.value != -1){
@@ -589,7 +572,7 @@ function _load_comment(id, page){
 				}
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + lang__016 + '"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + window["lang__016"] + '"></i>';
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<span class="cmt_postedtime" title="' + timeConverter(data[i]['comment_time'] * 1000) + '">' + timeSince(data[i]['comment_time'] * 1000) + '</span>';
@@ -617,14 +600,14 @@ function _share(id) {
 		a += '			<span style="float:right; color:black">';
 		a += '			<input type="hidden" name="post_id" id="post_id" value="'+s['post_id']+'">';
 		a += '			<select name="private" id="private">';
-		a += '				<option value="2">' + lang__002 + '</option>';
-		a += '				<option value="1">' + lang__004 + '</option>';
-		a += '				<option value="0">' + lang__003 + '</option>';
+		a += '				<option value="2">' + window["lang__002"] + '</option>';
+		a += '				<option value="1">' + window["lang__004"] + '</option>';
+		a += '				<option value="0">' + window["lang__003"] + '</option>';
 		a += '			</select>';
 		a += '			</span>';
 		a += '			<img class="pfp" src="' + gebi('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + gebi('fullname').value + "</a>";
-		a += '			<span class="required" style="display:none;">' + lang__009 + '</span><br>';
-		a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + lang__015 + '"></textarea>';
+		a += '			<span class="required" style="display:none;">' + window["lang__009"] + '</span><br>';
+		a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + window["lang__015"] + '"></textarea>';
 		a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 		a += '			<div class="createpostbuttons">';
 		a += '				<label>';
@@ -666,21 +649,21 @@ function make_post(){
 	a += '			<hr>';
 	a += '			<span style="float:right; color:black">';
 	a += '			<select name="private" id="private">';
-	a += '				<option value="2">' + lang__002 + '</option>';
-	a += '				<option value="1">' + lang__004 + '</option>';
-	a += '				<option value="0">' + lang__003 + '</option>';
+	a += '				<option value="2">' + window["lang__002"] + '</option>';
+	a += '				<option value="1">' + window["lang__004"] + '</option>';
+	a += '				<option value="0">' + window["lang__003"] + '</option>';
 	a += '			</select>';
 	a += '			</span>';
 	a += '			<img class="pfp" src="' + gebi('pfp_box').src + '" width="40px" height="40px"><a class="fname">' + gebi('fullname').value + "</a>";
-	a += '			<span class="required" style="display:none;">' + lang__009 + '</span><br>';
-	a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + lang__015 + '"></textarea>';
+	a += '			<span class="required" style="display:none;">' + window["lang__009"] + '</span><br>';
+	a += '			<textarea rows="6" name="caption" class="caption" placeholder="' + window["lang__015"] + '"></textarea>';
 	a += '			<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 	a += '			<div class="createpostbuttons">';
 	a += '				<label>';
 	a += '					<i class="fa-regular fa-image"></i>';
 	a += '					<input type="file" accept="image/*,video/*" name="fileUpload" id="imagefile">';
 	a += '				</label>';
-	a += '				<input type="button" value="' + lang__001 + '" name="post" onclick="return validatePost(0)">';
+	a += '				<input type="button" value="' + window["lang__001"] + '" name="post" onclick="return validatePost(0)">';
 	a += '			</div>';
 	a += '		</div>';
 	a += '	</div>';
@@ -707,7 +690,7 @@ function fetch_friend_list(loc){
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="post">';
-			a += lang__010;
+			a += window["lang__010"];
 			a += '</div>';
 		} else if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
@@ -727,7 +710,7 @@ function fetch_friend_list(loc){
 				a += '<br>';
 				a += '<a class="flist_link" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + lang__016 + '"></i>'; 
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + window["lang__016"] + '"></i>'; 
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '</center>';
@@ -747,7 +730,7 @@ function fetch_friend_request(loc){
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="userquery">';
-			a += lang__011;
+			a += window["lang__011"];
 			a += '<br><br>';
 			a += '</div>';
 		}else if(data['success'] == 1){
@@ -764,7 +747,7 @@ function fetch_friend_request(loc){
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] +'">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0) 
-					a += '<i class="fa-solid fa-badge-check verified_color_'+data[i]['verified']+'" title="' + lang__016 + '"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_'+data[i]['verified']+'" title="' + window["lang__016"] + '"></i>';
 				a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 				a += '<a>';
 				a += '<div id="toggle-fr-' + data[i]['user_id'] + '">';
@@ -807,7 +790,7 @@ function fetch_profile(loc){
 		a += data['user_firstname'] + ' ' + data['user_lastname'];
 		
 		if(data['verified'] > 0)
-			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
+			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
 		a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 		a += "</div>";
 		a += '</div>';
@@ -856,11 +839,11 @@ function fetch_profile(loc){
 			a += '<br>';
 			if(data['friendship_status'] != null) {
 				a += '<div>';
-				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="' + lang__005 + ' name="remove" id="special" class="fr_button">';
+				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__005"] + ' name="remove" id="special" class="fr_button">';
 				a += '</div>';
 			} else {
 				a += '<div>';
-				a += '<input type="submit" onclick="_friend_toggle()" value="' + lang__006 + '" name="request" id="special" class="fr_button">';
+				a += '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__006"] + '" name="request" id="special" class="fr_button">';
 				a += '</div>';
 			}
 		}
@@ -949,20 +932,20 @@ function _load_post(id){
 		}
 		a += '<a class="fname profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 		if(data['verified'] > 0)
-			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
+			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
 		a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 		a += '</a>';
 		a += '<a class="public">';
 		a += '<span class="postedtime" title="' + timeConverter(data['post_time'] * 1000) + '">';
 		switch(Number(data['post_public'])){
 			case 2:
-				a += '<i class="fa-solid fa-earth-americas" title="' + lang__002 + '"></i>';
+				a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
 				break;
 			case 1:
-				a += '<i class="fa-solid fa-user-group" title="' + lang__004 + '"></i>';
+				a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
 				break;
 			default:
-				a += '<i class="fa-solid fa-lock" title="' + lang__003 + '"></i>';
+				a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
 				break;
 		}
 		a += " " + timeSince(data['post_time'] * 1000) + '</span>';
@@ -971,7 +954,7 @@ function _load_post(id){
 		a += '<br>';
 		if(data['post_caption'].split(/\r\n|\r|\n/).length > 13 || data['post_caption'].length > 1196){
 			a += '<div class="caption_box" id="caption_box-'+data['post_id']+'">';
-			a += '<div class="caption_box_shadow" id="caption_box_shadow-'+data['post_id']+'"><p onclick="showMore(\''+data['post_id']+'\')">' + lang__014 + '</p></div>';
+			a += '<div class="caption_box_shadow" id="caption_box_shadow-'+data['post_id']+'"><p onclick="showMore(\''+data['post_id']+'\')">' + window["lang__014"] + '</p></div>';
 		}else{
 			a += '<div class="caption_box">';
 		}
@@ -1067,7 +1050,7 @@ function send_comment(){
 				}
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if(data['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + lang__016 + '"></i>';
+					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
 				a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<span class="cmt_postedtime" title="' + timeConverter(Date.now()) + '">' + timeSince(Date.now()) + '</span>';
@@ -1096,10 +1079,10 @@ function _friend_toggle(){
 		success: function (r) {
 			if(special.name == "request"){
 				special.name = "remove";
-				special.value = lang__005;
+				special.value = window["lang__005"];
 			}else{
 				special.name = "request";
-				special.value = lang__006;
+				special.value = window["lang__006"];
 			}
 		}
 	});

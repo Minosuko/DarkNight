@@ -17,7 +17,7 @@ $data = _get_data_from_token();
 	<body>
 		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
-			<h1 id="set_lang__018"></h1>
+			<h1><lang lang="lang__018"></lang></h1>
 			<h1>in-dev</h1>
 		</div>
 	</body>
