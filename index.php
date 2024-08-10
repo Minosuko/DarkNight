@@ -121,20 +121,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					<div class="tabcontent" id="signin">
 						<form method="post" onsubmit="return validateLogin()">
 							<div class="index_input_box">
-								<label><lang id="set_lang__022"></lang><span>*</span></label>
+								<label><lang lang="lang__022"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userlogin" id="loginuseremail" placeholder="Username or email">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang id="set_lang__023"></lang><span>*</span></label>
+								<label><lang lang="lang__023"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="password" name="userpass" id="loginuserpass" placeholder="********">
 							</div>
 							<br>
-							<label><lang id="set_lang__024"></lang> </label>
+							<label><lang lang="lang__024"></lang> </label>
 							<input type="checkbox" name="remember_me" id="remember-me">
 							<br><br>
 							<input type="submit" value="Login" name="login">
@@ -143,13 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					<div class="tabcontent" id="signup">
 						<form method="post" onsubmit="return validateRegister()">
 							<div class="index_input_box name_input">
-								<label><lang id="set_lang__025"></lang><span>*</span></label>
+								<label><lang lang="lang__025"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userfirstname" id="userfirstname">
 							</div>		
 							<div class="index_input_box name_input right_content_box">
-								<label><lang id="set_lang__026"></lang><span>*</span></label>
+								<label><lang lang="lang__026"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userlastname" id="userlastname">
@@ -157,27 +157,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							<br>
 							<br>
 							<div class="index_input_box">
-								<label><lang id="set_lang__027"></lang><span>*</span></label>
+								<label><lang lang="lang__027"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="usernickname" id="usernickname" placeholder="@username">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang id="set_lang__023"></lang><span>*</span></label>
+								<label><lang lang="lang__023"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="password" name="userpass" id="userpass">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang id="set_lang__028"></lang><span>*</span></label>
+								<label><lang lang="lang__028"></lang><span>*</span></label>
 								<div class="required"></div><br>
 								<input type="password" name="userpassconfirm" id="userpassconfirm">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang id="set_lang__036"></lang><span>*</span></label>
+								<label><lang lang="lang__036"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="useremail" id="useremail">
@@ -185,16 +185,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							<br>
 							<div class="index_input_box">
 								<div class="required"></div>
-								<label><lang id="set_lang__029"></lang><span>*</span></label><br>
+								<label><lang lang="lang__029"></lang><span>*</span></label><br>
 								<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
 							</div>
 							<br>
 							<div class="index_input_box">
 								<div class="required"></div>
 								<input type="radio" name="usergender" value="M" id="malegender" class="usergender">
-								<label><lang id="set_lang__030"></lang></label>
+								<label><lang lang="lang__030"></lang></label>
 								<input type="radio" name="usergender" value="F" id="femalegender" class="usergender">
-								<label><lang id="set_lang__031"></lang></label>
+								<label><lang lang="lang__031"></lang></label>
 							</div>
 							<br><br>
 							<input type="submit" value="Create Account" lang="lang__040" name="register">
