@@ -1,46 +1,16 @@
--- phpMyAdmin SQL Dump
--- version 5.1.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Jul 20, 2024 at 11:31 AM
--- Server version: 10.4.22-MariaDB
--- PHP Version: 7.3.33
-
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Database: `fds`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `comments`
---
 
 CREATE TABLE IF NOT EXISTS `comments` (
   `comment_id` int(11) NOT NULL AUTO_INCREMENT,
   `post_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `comment` text NOT NULL,
+  `comment_media` int(11) NOT NULL,
   `comment_time` int(11) NOT NULL,
   PRIMARY KEY (`comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `friendship`
---
 
 CREATE TABLE IF NOT EXISTS `friendship` (
   `user1_id` int(11) NOT NULL,
@@ -50,22 +20,10 @@ CREATE TABLE IF NOT EXISTS `friendship` (
   KEY `user2_id` (`user2_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `likes`
---
-
 CREATE TABLE IF NOT EXISTS `likes` (
   `user_id` int(11) NOT NULL,
   `post_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `media`
---
 
 CREATE TABLE IF NOT EXISTS `media` (
   `media_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -76,12 +34,6 @@ CREATE TABLE IF NOT EXISTS `media` (
   UNIQUE KEY `media_hash` (`media_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `notification`
---
-
 CREATE TABLE IF NOT EXISTS `notification` (
   `notification_id` int(11) NOT NULL AUTO_INCREMENT,
   `type` int(1) NOT NULL,
@@ -91,11 +43,6 @@ CREATE TABLE IF NOT EXISTS `notification` (
   PRIMARY KEY (`notification_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `posts`
---
 
 CREATE TABLE IF NOT EXISTS `posts` (
   `post_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -109,12 +56,6 @@ CREATE TABLE IF NOT EXISTS `posts` (
   KEY `post_by` (`post_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `session`
---
-
 CREATE TABLE IF NOT EXISTS `session` (
   `session_id` int(11) NOT NULL AUTO_INCREMENT,
   `session_token` varchar(255) NOT NULL,
@@ -126,23 +67,12 @@ CREATE TABLE IF NOT EXISTS `session` (
   PRIMARY KEY (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `TwoFactorAuth`
---
-
 CREATE TABLE IF NOT EXISTS `TwoFactorAuth` (
   `auth_key` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   KEY (`auth_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
 
 CREATE TABLE IF NOT EXISTS `users` (
   `user_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -168,9 +98,3 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `user_email` (`user_email`),
   UNIQUE KEY `user_nickname` (`user_nickname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- --------------------------------------------------------
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
