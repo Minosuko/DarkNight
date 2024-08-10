@@ -1047,4 +1047,5 @@ input:-webkit-autofill:active{
 	height: 2px;
 	background: #fff;
 	transition: 0.1s ease-out;
+	position: absolute;
 }
