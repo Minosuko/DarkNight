@@ -12,6 +12,7 @@ $data = _get_data_from_token();
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" type="text/css" href="resources/css/main.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/font-awesome/all.css">
+		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
 	</head>
 	<body>
 		<?php include 'includes/navbar.php'; ?>
@@ -71,8 +72,8 @@ $data = _get_data_from_token();
 						</div>
 						<div class="setting_tab" id="setting-tab-profile">
 							<div class="setting__box_image">
-								<div class="setting_profile_cover" id="setting_profile_cover"></div>
-								<img width="168px" height="168px" src="data/blank.jpg" id="profile_picture" class="setting_profile_picture">
+								<div class="setting_profile_cover" id="setting_profile_cover" onclick="_change_picture(1)"></div>
+								<img width="168px" height="168px" src="data/blank.jpg" id="profile_picture" class="setting_profile_picture" onclick="_change_picture()">
 							</div>
 							<div class="setting__box">
 								<div class="index_input_box name_input">

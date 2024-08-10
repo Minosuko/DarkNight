@@ -326,7 +326,7 @@ img.pfp{
 	background: #0066cc !important;
 }
 
-.createpostbuttons>label>i{
+.createpostbuttons>center>label>i{
 	font-size:200%;
 }
 a.public {
@@ -981,6 +981,7 @@ input:-webkit-autofill:active{
 	display: none;
 }
 .setting_profile_picture{
+	cursor: pointer;
 	border-radius: 25%;
 	margin-top: 65px;
 }
@@ -993,6 +994,7 @@ input:-webkit-autofill:active{
 	width: 100%;
 	height: 400px;
 	z-index: -2;
+	cursor: pointer;
 }
 .setting__box_image{
 	height: 400px;

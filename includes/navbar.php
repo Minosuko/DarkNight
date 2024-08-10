@@ -31,24 +31,11 @@ if(!isset($IFI)) die("");
 			</center>
 		</div>
 		<script src="resources/js/zTemplate.js"></script>
-		<script src="resources/js/main.js"></script>
 		<script src="resources/js/cropper.js"></script>
 		<script src="resources/js/jquery-cropper.js"></script>
-		<script>
-			function validateField(){
-				var query = document.getElementById("query");
-				var button = document.getElementById("querybutton");
-				if(query.value == "") {
-					query.placeholder = 'Type something!';
-					return false;
-				}
-				return true;
-			}
-		</script>
-		<?php
-		echo "<input id='fullname' value='".htmlspecialchars($data['user_firstname'] . ' ' . $data['user_lastname'])."' type='hidden'>\n";
-		echo "		<input id='online_status' value='".$data['online_status']."' type='hidden'>";
-		?>
+		<script src="resources/js/main.js"></script>
+		<input id='fullname' value='<?php echo htmlspecialchars($data['user_firstname'] . ' ' . $data['user_lastname']); ?>' type='hidden'>
+		<input id='online_status' value='<?php echo $data['online_status']; ?>' type='hidden'>
 		<div id="modal" class="modal">
 			<div class="modal-content" id="modal-content">
 				<a class="close" onclick="modal_close()">&times;</a>

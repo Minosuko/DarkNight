@@ -38,5 +38,10 @@
 	"lang__037":"Verified Status",
 	"lang__038":"Logout",
 	"lang__039":"Home Town",
-	"lang__040":"Create Account"
+	"lang__040":"Create Account",
+	"lang__041":"Change Cover Picture",
+	"lang__042":"Change Profile Picture",
+	"lang__043":"Crop",
+	"lang__044":"Save",
+	"lang__045":"Your browser does not support the HTML5 canvas element."
 }

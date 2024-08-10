@@ -610,10 +610,10 @@ function _share(id) {
 		a += '<textarea rows="6" name="caption" class="caption" placeholder="' + window["lang__015"] + '"></textarea>';
 		a += '<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 		a += '<div class="createpostbuttons">';
-		a += '<label>';
+		a += '<center><label>';
 		a += '<i class="fa-regular fa-image"></i>';
 		a += '<input type="file" name="fileUpload" id="imagefile">';
-		a += '</label>';
+		a += '</label></center>';
 		a += '<input type="button" value="Share" name="post" onclick="return validatePost(1)">';
 		a += '</div>';
 		a += '</div>';
@@ -657,10 +657,12 @@ function make_post(){
 	a += '<textarea rows="6" name="caption" class="caption" placeholder="' + window["lang__015"] + '"></textarea>';
 	a += '<center><img src="" id="preview_image" style="max-width:100%; display:none;"><video id="preview_video" style="max-width:100%; display:none;"></video></center>';
 	a += '<div class="createpostbuttons">';
+	a += '<center>';
 	a += '<label>';
 	a += '<i class="fa-regular fa-image"></i>';
 	a += '<input type="file" accept="image/*,video/*" name="fileUpload" id="imagefile">';
 	a += '</label>';
+	a += '</center>';
 	a += '<input type="button" value="' + window["lang__001"] + '" name="post" onclick="return validatePost(0)">';
 	a += '</div>';
 	a += '</div>';
@@ -1204,7 +1206,88 @@ function _load_settings(){
 	});
 	changeUrlWork();
 }
-
+function _change_picture(isCover = 0){	
+	gebtn('body')[0].style.overflowY = "hidden";
+	gebi("modal").style.display = "block";
+	var a = "";
+	a += '<div class="createpost_box">';
+	a += '<div class="createpostbuttons">';
+	a += '<h1> ' + (isCover == 0) ? window['lang__041']:window['lang__042'] +' </h1>';
+	a += '<center><label>';
+	a += '<i class="fa-regular fa-image" id="fileInputIcon"></i>';
+	a += '<input type="file" id="fileInput" accept="image/*" />';
+	a += '</label></center>';
+	a += '</div>';
+	a += '<div id="cropper_box">';
+	a += '<canvas id="canvas">'+window['lang__045']+'</canvas>';
+	a += '</div>';
+	a += '<div id="imgresult"></div>';
+	a += '<button id="btnCrop" class="s_button">'+window['lang__043']+'</button>';
+	a += '<button id="btnSavePicture" class="s_button">'+window['lang__044']+'</button>';
+	a += '</div>';
+	gebi("modal_content").innerHTML = a;
+	gebcn("createpost_box")[0].style.padding = "10px 0px";
+	gebcn("createpost_box")[0].style.width = "680px";
+	var canvas	= $("#canvas"),
+	context = canvas.get(0).getContext("2d"),
+	$result = $('#imgresult');
+	$('#btnSavePicture').css('display','none');
+	$('#fileInput').on( 'change', function(){
+		if (this.files && this.files[0]) {
+			if(this.files[0].type.match(/^image\//) ) {
+			var reader = new FileReader();
+			reader.onload = function(evt) {
+				$('#fileInputIcon').css('display','none');
+				var img = new Image();
+				img.onload = function() {
+					context.canvas.height = img.height;
+					context.canvas.width	= img.width;
+					context.drawImage(img, 0, 0);
+					var cropper = canvas.cropper({
+						aspectRatio: (isCover == 1) ? (16 / 9) : (1 / 1),
+						viewMode: 2,
+						dragMode: 'move'
+					});
+					$('#btnCrop').click(function() {
+						var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
+						var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture").attr('width', "660px") : $('<img>').attr('src', croppedImageDataURL);
+						$result.append(append);
+						canvas.css('display','none');
+						$('#btnCrop').css('display','none');
+						$('#btnSavePicture').css('display','block');
+						$('#cropper_box').css('display','none');
+						canvas.cropper('getCroppedCanvas').toBlob(function (blob) {
+							$('#btnSavePicture').click(function() {
+								var formData = new FormData();
+								formData.append('fileUpload', blob, 'media_cropped.jpg');
+								formData.append('type', (isCover == 1) ? 'cover' :'profile');
+								$.ajax('/worker/change_picture.php', {
+									method: "POST",
+									data: formData,
+									processData: false,
+									contentType: false,
+									success: function () {
+										modal_close();
+										(isCover == 1) ? $("#setting_profile_cover").css('background-image', "url('" + croppedImageDataURL + "')") : $("#profile_picture").attr('src', croppedImageDataURL);
+									}
+								});
+							});
+						}, 'image/jpeg', 0.9);
+					});
+				};
+				img.src = evt.target.result;
+				};
+			reader.readAsDataURL(this.files[0]);
+			}
+			else {
+				alert("Invalid file type! Please select an image file.");
+			}
+		}
+		else {
+			alert('No file(s) selected.');
+		}
+	});
+}
 function _f(){
 	var file_data = gebi("imagefile");
 	var is_private = gebi('private').value;
@@ -1348,6 +1431,16 @@ function onResizeEvent() {
 			if(custom_style != null) custom_style.innerHTML = "<style>#feed>.post{margin-right:15% !important;}</style>";
 		}
 	}
+}
+
+function validateField(){
+	var query = document.getElementById("query");
+	var button = document.getElementById("querybutton");
+	if(query.value == "") {
+		query.placeholder = 'Type something!';
+		return false;
+	}
+	return true;
 }
 function isBottom() {
 	var calc = $(window).scrollTop()*2.15 + $(window).height() > $(document).height() - 200;
