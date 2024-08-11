@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 						header("Location: home.php");
 				}
 			}
-			//header("Location: ?err=invalid_login");
+			header("Location: ?err=invalid_login");
 		}
 	}
 	if (isset($_POST['register'])) {
@@ -52,14 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$usergender     = $_POST['usergender'];
 		$userabout      = $_POST['userabout'];
 		$user_token     = _generate_token();
-		if(!validateDate($_POST['birthday']))
-			header("Location:?err=invalid_date");
-		if(!filter_var($email, FILTER_VALIDATE_EMAIL))
-			header("Location:?err=invalid_email");
-		if (isset($_POST['userstatus']))
-			$userstatus = $_POST['userstatus'];
-		else
-			$userstatus = NULL;
+		
+		!validateDate($_POST['birthday']) ?? header("Location:?err=invalid_date");
+		!_is_username_valid($usernickname) ?? header("Location:?err=invalid_nickname");
+		!filter_var($email, FILTER_VALIDATE_EMAIL) ?? header("Location:?err=invalid_email");
+			
+		$userstatus = isset($_POST['userstatus']) ? $_POST['userstatus'] : null;
 		
 		$query = $conn->query(
 			sprintf(
@@ -160,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<label><lang lang="lang__027"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="text" name="usernickname" id="usernickname" placeholder="@username">
+								<input type="text" name="usernickname" id="usernickname" placeholder="username">
 							</div>
 							<br>
 							<div class="index_input_box">
@@ -208,8 +206,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if (typeof(Storage) !== "undefined") {
 				var a = localStorage.getItem("language");
 				var d = localStorage.getItem("language_data");
-				if(a == null)
+				if(a == null){
 					localStorage.setItem("language",'en-us');
+					a = 'en-us';
+				}
 				if(d == null){
 					$.get("resources/language/" + a + ".json", function(r) {
 						localStorage.setItem("language_data",JSON.stringify(r));

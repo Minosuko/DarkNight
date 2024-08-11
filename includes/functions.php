@@ -645,6 +645,16 @@ function _get_data_from_token(){
 	$fetch = $query->fetch_assoc();
 	return $fetch;
 }
+function _get_data_from_id($id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM users WHERE user_id = %d",
+		$conn->real_escape_string($id)
+	);
+	$query = $conn->query($sql);
+	$fetch = $query->fetch_assoc();
+	return $fetch;
+}
 function _get_hash_from_media_id($id){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
@@ -674,6 +684,10 @@ function _is_video($id){
 	$query = $conn->query($sql);
 	$fetch = $query->fetch_assoc();
 	return (substr($fetch['media_format'],0,5) == 'video');
+}
+function _is_username_valid($userName){
+	$validChar = 'QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm';
+	return empty(str_replace(str_split($validChar),'',$userName));
 }
 function caesarShift($str, $amount) {
 	if ($amount < 0) {
