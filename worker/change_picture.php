@@ -1,8 +1,6 @@
 <?php
-if (!isset($_COOKIE['token']))
-    header("location:../index.php");
 require_once '../includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
+if (!_is_session_valid())
     header("location:../index.php");
 $data = _get_data_from_token();
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
