@@ -6,8 +6,10 @@ const video_cdn = 'data/videos.php?t=media';
 if (typeof(Storage) !== "undefined") {
 	var a = lsg("language");
 	var d = lsg("language_data");
-	if(a == null)
-		lss("language",'en-us');
+	if(a == null){
+		localStorage.setItem("language",'en-us');
+		a = 'en-us';
+	}
 	if(d == null){
 		$.get("resources/language/" + a + ".json", function(r) {
 			lss("language_data",JSON.stringify(r));
@@ -678,6 +680,7 @@ function make_post(){
 		textarea.style.height = "";
 		textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
 	};
+	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _open_post(id){
 	changeUrl("post.php?id=" + id);
@@ -1206,13 +1209,25 @@ function _load_settings(){
 	});
 	changeUrlWork();
 }
-function _change_picture(isCover = 0){	
+function _change_infomation(){
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
 	var a = "";
 	a += '<div class="createpost_box">';
 	a += '<div class="createpostbuttons">';
 	a += '<h1> ' + (isCover == 1) ? window['lang__041']:window['lang__042'] +' </h1>';
+	a += '</div>';
+	a += '<button id="btnChangePassword" class="s_button">'+window['lang__044']+'</button>';
+	a += '</div>';
+	gebtn('body')[0].style.overflowY = "scroll";
+}
+function _change_picture(isCover = 0){	
+	gebtn('body')[0].style.overflowY = "hidden";
+	gebi("modal").style.display = "block";
+	var a = "";
+	a += '<div class="createpost_box">';
+	a += '<div class="createpostbuttons">';
+	a += '<h1>' + (isCover == 1) ? window['lang__041']:window['lang__042'] + '</h1>';
 	a += '<center><label>';
 	a += '<i class="fa-regular fa-image" id="fileInputIcon"></i>';
 	a += '<input type="file" id="fileInput" accept="image/*" />';
@@ -1235,49 +1250,49 @@ function _change_picture(isCover = 0){
 	$('#fileInput').on( 'change', function(){
 		if (this.files && this.files[0]) {
 			if(this.files[0].type.match(/^image\//) ) {
-			var reader = new FileReader();
-			reader.onload = function(evt) {
-				$('#fileInputIcon').css('display','none');
-				var img = new Image();
-				img.onload = function() {
-					context.canvas.height = img.height;
-					context.canvas.width	= img.width;
-					context.drawImage(img, 0, 0);
-					var cropper = canvas.cropper({
-						aspectRatio: (isCover == 1) ? (16 / 9) : (1 / 1),
-						viewMode: 2,
-						dragMode: 'move'
-					});
-					$('#btnCrop').click(function() {
-						var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
-						var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture") : $('<img>').attr('src', croppedImageDataURL);
-						$result.append(append.attr('width', "680px"));
-						canvas.css('display','none');
-						$('#btnCrop').css('display','none');
-						$('#btnSavePicture').css('display','block');
-						$('#cropper_box').css('display','none');
-						canvas.cropper('getCroppedCanvas').toBlob(function (blob) {
-							$('#btnSavePicture').click(function() {
-								var formData = new FormData();
-								formData.append('fileUpload', blob, 'media_cropped.jpg');
-								formData.append('type', (isCover == 1) ? 'cover' :'profile');
-								$.ajax('/worker/change_picture.php', {
-									method: "POST",
-									data: formData,
-									processData: false,
-									contentType: false,
-									success: function () {
-										modal_close();
-										(isCover == 1) ? $("#setting_profile_cover").css('background-image', "url('" + croppedImageDataURL + "')") : $("#profile_picture").attr('src', croppedImageDataURL);
-									}
+				var reader = new FileReader();
+				reader.onload = function(evt) {
+					$('#fileInputIcon').css('display','none');
+					var img = new Image();
+					img.onload = function() {
+						context.canvas.height = img.height;
+						context.canvas.width	= img.width;
+						context.drawImage(img, 0, 0);
+						var cropper = canvas.cropper({
+							aspectRatio: (isCover == 1) ? (16 / 9) : (1 / 1),
+							viewMode: 2,
+							dragMode: 'move'
+						});
+						$('#btnCrop').click(function() {
+							var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
+							var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture") : $('<img>').attr('src', croppedImageDataURL);
+							$result.append(append.attr('width', "680px"));
+							canvas.css('display','none');
+							$('#btnCrop').css('display','none');
+							$('#btnSavePicture').css('display','block');
+							$('#cropper_box').css('display','none');
+							canvas.cropper('getCroppedCanvas').toBlob(function (blob) {
+								$('#btnSavePicture').click(function() {
+									var formData = new FormData();
+									formData.append('fileUpload', blob, 'media_cropped.jpg');
+									formData.append('type', (isCover == 1) ? 'cover' :'profile');
+									$.ajax('/worker/change_picture.php', {
+										method: "POST",
+										data: formData,
+										processData: false,
+										contentType: false,
+										success: function () {
+											modal_close();
+											(isCover == 1) ? $("#setting_profile_cover").css('background-image', "url('" + croppedImageDataURL + "')") : $("#profile_picture").attr('src', croppedImageDataURL);
+										}
+									});
 								});
-							});
-						}, 'image/jpeg', 0.9);
-					});
+							}, 'image/jpeg', 0.9);
+						});
+					};
+					img.src = evt.target.result;
 				};
-				img.src = evt.target.result;
-				};
-			reader.readAsDataURL(this.files[0]);
+				reader.readAsDataURL(this.files[0]);
 			}
 			else {
 				alert("Invalid file type! Please select an image file.");
@@ -1287,6 +1302,7 @@ function _change_picture(isCover = 0){
 			alert('No file(s) selected.');
 		}
 	});
+	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _f(){
 	var file_data = gebi("imagefile");
