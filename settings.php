@@ -72,8 +72,14 @@ $data = _get_data_from_token();
 						</div>
 						<div class="setting_tab" id="setting-tab-profile">
 							<div class="setting__box_image">
-								<div class="setting_profile_cover" id="setting_profile_cover" onclick="_change_picture(1)"></div>
-								<img width="168px" height="168px" src="data/blank.jpg" id="profile_picture" class="setting_profile_picture" onclick="_change_picture()">
+								<div class="setting__cover_photo_box">
+									<div class="setting_profile_cover" id="setting_profile_cover"></div>
+									<i class="fa-solid fa-camera setting__select_cover_photo" onclick="_change_picture(1)"></i>
+								</div>
+								<div class="setting__photo_box">
+									<img width="168px" height="168px" src="data/blank.jpg" id="profile_picture" class="setting_profile_picture">
+									<i class="fa-solid fa-camera setting__select_photo" onclick="_change_picture()"></i>
+								</div>
 							</div>
 							<div class="setting__box">
 								<div class="index_input_box name_input">

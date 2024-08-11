@@ -240,14 +240,14 @@ pre.caption code{
 		animation: heart 1s cubic-bezier(.17, .89, .32, 1.49);
 	}
 }
-.post .likes{
-	/* none */
+.post .likes>a{
+	cursor: default;
 }
-.post .comment{
-	/* none */
+.post .comment>a{
+	cursor: default;
 }
-.post .share{
-	/* none */
+.post .share>a{
+	cursor: default;
 }
 .post_no_border{
 	color: white;
@@ -981,7 +981,6 @@ input:-webkit-autofill:active{
 	display: none;
 }
 .setting_profile_picture{
-	cursor: pointer;
 	border-radius: 25%;
 	margin-top: 65px;
 }
@@ -994,11 +993,36 @@ input:-webkit-autofill:active{
 	width: 100%;
 	height: 400px;
 	z-index: -2;
-	cursor: pointer;
 }
 .setting__box_image{
 	height: 400px;
 	mask-image: linear-gradient(to top, transparent 0, black 25%);
+}
+.setting__photo_box{
+	max-width: 200px;
+}
+.setting__select_photo {
+	cursor: pointer;
+	position: relative;
+	font-size: 90%;
+	float: right;
+	margin-top: -40px;
+	z-index: 1 !important;
+	background-color: #111214;
+	border: 10px solid #111214;
+	border-radius: 50%;
+}
+.setting__select_cover_photo {
+	cursor: pointer;
+	position: relative;
+	font-size: 200%;
+	float: right;
+	margin-top: -40px;
+	top: 50px;
+	z-index: 15 !important;
+	background-color: #111214;
+	border: 5px solid #111214;
+	border-radius: 50%;
 }
 .red-dot-counter{
 	width: 12px;
