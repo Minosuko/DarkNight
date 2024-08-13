@@ -299,16 +299,8 @@ $(window).on("popstate", function (event, state) {
 function fetch_pfp_box(){
 	$.get("worker/profile_image.php", function(data) {
 		var b = gebi('pfp_box');
-		if(b != null){
-			if (data['pfp_media_id'] > 0) {
-				b.src = pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'];
-			} else {
-				if (data['user_gender'] == 'M')
-					b.src = default_male_pfp;
-				else if (data['user_gender'] == 'F')
-					b.src = default_female_pfp;
-			}
-		}
+		if(b != null)
+			b.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : (data['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
 	});
 }
 function fetch_post(loc) {
@@ -326,14 +318,9 @@ function fetch_post(loc) {
 				var a = "";
 				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
 				a += '<div class="header">';
-				if (s['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] + '" width="40px" height="40px">';
-				} else {
-					if (s['user_gender'] == 'M')
-						a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
-					else if (s['user_gender'] == 'F')
-						a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
-				}
+				a += '<img class="pfp" src="';
+				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] + '" width="40px" height="40px">' : (s['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+				a += '" width="40px" height="40px">';
 				a += '<a class="fname profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'];
 				if(s['verified'] > 0)
 					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" title="' + window["lang__016"] + '"></i>';
@@ -399,15 +386,9 @@ function fetch_post(loc) {
 					a += '<div class="share-post" id="post_id-' + s['share']['post_id'] + '">';
 					if (pflag) {
 						a += '<div class="header">';
-
-						if (s['share']['pfp_media_id'] > 0) {
-							a += '<img class="pfp" src="' + pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] + '" width="40px" height="40px">';
-						} else {
-							if (s['share']['user_gender'] == 'M')
-								a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
-							else if (s['share']['user_gender'] == 'F')
-								a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
-						}
+						a += '<img class="pfp" src="'
+						a += (s['share']['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : ((s['share']['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+						a += '" width="40px" height="40px">';
 
 						a += '<a class="fname profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'];
 						if(s['share']['verified'] > 0)
@@ -564,14 +545,9 @@ function _load_comment(id, page){
 		if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="comment">';
-				if (data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp comment-pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="40px" height="40px">';
-				} else {
-					if (data[i]['user_gender'] == 'M')
-						a += '<img class="pfp comment-pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
-					else if (data[i]['user_gender'] == 'F')
-						a += '<img class="pfp comment-pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
-				}
+				a += '<img class="pfp comment-pfp" src="'
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : (data[i]['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+				a += '" width="40px" height="40px">';
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
 					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + window["lang__016"] + '"></i>';
@@ -700,14 +676,9 @@ function fetch_friend_list(loc){
 				a += '<div class="frame">';
 				a += '<center>';
 				a += '<div class="pfp-box">';
-				if(data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
-				} else {
-					if(data[i]['user_gender'] == 'M')
-						a += '<img class="pfp" src="' + default_male_pfp + '" width="168px" height="168px" id="pfp"/>';
-					else if (data[i]['user_gender'] == 'F')
-						a += '<img class="pfp" src="' + default_female_pfp + '" width="168px" height="168px" id="pfp"/>';
-				}
+				a += '<img class="pfp" src="'
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : (data[i]['user_gender'] == 'M' ? default_male_pfp : default_female_pfp);
+				a += '" width="168px" height="168px" id="pfp"/>';
 				a += '<div class="status-circle ' + ( (data[i]['is_online']) ? 'online' : 'offline') + '-status-circle"></div>';
 				a += '</div>';
 				a += '<br>';
@@ -739,14 +710,9 @@ function fetch_friend_request(loc){
 		}else if(data['success'] == 1){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="userquery">';
-				if(data[i]['pfp_media_id'] > 0) {
-					a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] + '" width="168px" height="168px"	id="pfp"/>';
-				} else {
-					if(data[i]['user_gender'] == 'M')
-						a += '<img class="pfp" src="' + default_male_pfp + '" width="168px" height="168px" id="pfp"/>';
-					else if (data['user_gender'] == 'F')
-						a += '<img class="pfp" src="' + default_female_pfp + '" width="168px" height="168px"	id="pfp"/>';
-				}
+				a += '<img class="pfp" src="'
+				a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += '" width="40px" height="40px">';
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] +'">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0) 
@@ -778,14 +744,9 @@ function fetch_profile(loc){
 		var a = '';
 		a += '<center>';
 		a += '<div class="profile_head">';
-		if(data['pfp_media_id'] > 0) {
-			a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + '&h=' + data['pfp_media_hash'] + '" width="200px" height="200px"	id="pfp"/>';
-		} else {
-			if(data['user_gender'] == 'M')
-				a += '<img class="pfp" src="' + default_male_pfp + '" width="200px" height="200px" id="pfp"/>';
-			else if (data['user_gender'] == 'F')
-				a += '<img class="pfp" src="' + default_female_pfp + '" width="200px" height="200px"	id="pfp"/>';
-		}
+		a += '<img class="pfp" src="'
+		a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		a += '" width="200px" height="200px">';
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
 		
@@ -926,14 +887,9 @@ function _load_post(id){
 			_content_right.style.position = 'relative';
 			a += '<style>.caption_box{overflow-y: auto;}.caption_box_shadow{margin-top:540px;width:99%;}.comment-form{width: calc(80% - 10px);}</style>';
 		}
-		if (data['pfp_media_id'] > 0) {
-			a += '<img class="pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
-		} else {
-			if (data['user_gender'] == 'M')
-				a += '<img class="pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
-			else if (data['user_gender'] == 'F')
-				a += '<img class="pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
-		}
+		a += '<img class="pfp" src="'
+		a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		a += '" width="40px" height="40px">';
 		a += '<a class="fname profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 		if(data['verified'] > 0)
 			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
@@ -1044,14 +1000,9 @@ function send_comment(){
 				var b = gebi('comment-box');
 				var a = '';
 				a += '<div class="comment">';
-				if (data['pfp_media_id'] > 0) {
-					a += '<img class="pfp comment-pfp" src="' + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] + '" width="40px" height="40px">';
-				} else {
-					if (data['user_gender'] == 'M')
-						a += '<img class="pfp comment-pfp" src="' + default_male_pfp + '" width="40px" height="40px">';
-					else if (data['user_gender'] == 'F')
-						a += '<img class="pfp comment-pfp" src="' + default_female_pfp + '" width="40px" height="40px">';
-				}
+				a += '<img class="pfp comment-pfp" src="'
+				a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += '" width="40px" height="40px">';
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if(data['verified'] > 0)
 					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
@@ -1167,14 +1118,7 @@ function _load_settings(){
 			email.value = res['user_email'];
 			if(res['cover_media_id'] > 0)
 				setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
-			if (res['pfp_media_id'] > 0) {
-				psrc = pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'];
-			} else {
-				if (res['user_gender'] == 'M')
-					psrc = default_male_pfp;
-				else if (res['user_gender'] == 'F')
-					psrc = default_female_pfp;
-			}
+			psrc = (res['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'] : (res['user_gender'] == 'M' ? default_male_pfp : default_female_pfp);
 			profile_picture.src = psrc;
 			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
 			if(res['user_gender'] == 'F')
