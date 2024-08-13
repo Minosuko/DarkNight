@@ -319,7 +319,7 @@ function fetch_post(loc) {
 				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
 				a += '<div class="header">';
 				a += '<img class="pfp" src="';
-				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] + '" width="40px" height="40px">' : (s['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : (s['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
 				a += '" width="40px" height="40px">';
 				a += '<a class="fname profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'];
 				if(s['verified'] > 0)
@@ -387,7 +387,7 @@ function fetch_post(loc) {
 					if (pflag) {
 						a += '<div class="header">';
 						a += '<img class="pfp" src="'
-						a += (s['share']['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : ((s['share']['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+						a += (s['share']['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : ((s['share']['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
 						a += '" width="40px" height="40px">';
 
 						a += '<a class="fname profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'];
@@ -711,7 +711,7 @@ function fetch_friend_request(loc){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="userquery">';
 				a += '<img class="pfp" src="'
-				a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : ((data[i]['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
 				a += '" width="40px" height="40px">';
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] +'">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
@@ -745,7 +745,7 @@ function fetch_profile(loc){
 		a += '<center>';
 		a += '<div class="profile_head">';
 		a += '<img class="pfp" src="'
-		a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
 		a += '" width="200px" height="200px">';
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
@@ -888,7 +888,7 @@ function _load_post(id){
 			a += '<style>.caption_box{overflow-y: auto;}.caption_box_shadow{margin-top:540px;width:99%;}.comment-form{width: calc(80% - 10px);}</style>';
 		}
 		a += '<img class="pfp" src="'
-		a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
 		a += '" width="40px" height="40px">';
 		a += '<a class="fname profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 		if(data['verified'] > 0)
@@ -1001,7 +1001,7 @@ function send_comment(){
 				var a = '';
 				a += '<div class="comment">';
 				a += '<img class="pfp comment-pfp" src="'
-				a += (data['pfp_media_id'] > 0) ? + pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
 				a += '" width="40px" height="40px">';
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if(data['verified'] > 0)

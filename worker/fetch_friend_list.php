@@ -15,7 +15,7 @@ $sql = "SELECT users.user_id, users.user_firstname, users.user_lastname, users.u
 			FROM friendship
 			WHERE friendship.user1_id = {$data['user_id']} AND friendship.friendship_status = 1
 		) userfriends
-		ON userfriends.user_id = users.user_id DESC LIMIT 20";
+		ON userfriends.user_id = users.user_id LIMIT 20";
 $off = 0;
 $esql = '';
 if(isset($_GET['page']))
