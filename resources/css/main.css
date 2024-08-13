@@ -110,6 +110,7 @@ ul a {
 }
 
 .usernav ul li a {
+	width: 30px;
 	text-align: center;
 	display: inline-block;
 	color: white;
