@@ -859,19 +859,20 @@ function fetch_profile(loc){
 			var nickname = gebcn('nickname')[0];
 			var feed = gebi('feed');
 			pfp_head.style.marginLeft = "auto";
+			pfp_head.style.marginTop = "0";
 			user_name.style.marginTop = "0";
 			user_name.style.marginLeft = "0";
 			user_name.style.margin = "auto";
 			user_name.style.width = "100%";
-			about_me.style.marginLeft = "0";
-			about_me.style.marginTop = "100px";
-			about_me.style.width = "100%";
-			about_me.style.borderRadius = "0";
 			pfp_head.insertBefore(document.createElement("br"),pfp_head.children[1]);
 			nickname.style.display = "block";
 			profile.style.padding = "0px";
 			profile.style.width = "100%";
 			feed.style.marginTop = "20px";
+			about_me.style.marginLeft = "0";
+			about_me.style.marginTop = "100px";
+			about_me.style.width = "80%";
+			about_me.style.borderRadius = "0";
 		}
 		changeUrlWork();
 		onResizeEvent();
