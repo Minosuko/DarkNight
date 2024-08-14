@@ -43,5 +43,15 @@
 	"lang__042":"Change Profile Picture",
 	"lang__043":"Crop",
 	"lang__044":"Save",
-	"lang__045":"Your browser does not support the HTML5 canvas element."
+	"lang__045":"Your browser does not support the HTML5 canvas element.",
+	"lang__046":"This field cannot be empty.",
+	"lang__047":"Passwords doesn't match.",
+	"lang__048":"Invalid Email Format.",
+	"lang__049":"You must select your gender.",
+	"lang__050":"This Email already exists.",
+	"lang__051":"This Nickname already exists.",
+	"lang__052":"Only character, number, dashes allowed.",
+	"lang__053":"Invalid date.",
+	"lang__054":"Invalid email.",
+	"lang__055":"Invalid Login Credentials."
 }

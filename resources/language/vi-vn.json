@@ -43,5 +43,15 @@
 	"lang__042":"Đổi ảnh bìa",
 	"lang__043":"Cắt",
 	"lang__044":"Lưu",
-	"lang__045":"Trình duyệt của bạn không hỗ trợ HTML5 canvas"
+	"lang__045":"Trình duyệt của bạn không hỗ trợ HTML5 canvas",
+	"lang__046":"Thông tin này không thể để trống.",
+	"lang__047":"Mật khẩu không khớp.",
+	"lang__048":"Định dạng email không hợp lệ.",
+	"lang__049":"Bạn phải chọn giới tính của mình.",
+	"lang__050":"Email này đã tồn tại.",
+	"lang__051":"Username này đã tồn tại.",
+	"lang__052":"Username chỉ cho phép ký tự, số, dấu gạch ngang.",
+	"lang__053":"Ngày tháng không hợp lệ.",
+	"lang__054":"Email không hợp lệ.",
+	"lang__055":"Thông tin đăng nhập không hợp lệ."
 }
