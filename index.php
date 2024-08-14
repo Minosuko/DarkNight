@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 						$time = 86400*365;
 					else
 						$time = 86400*30;
-					_setcookie("token", $row['user_token'], $time);
 					$has2FA = Has2FA($row['user_id']);
+					_setcookie("token", $row['user_token'], $time);
 					new_session($time,$row['user_id'],($has2FA ? 0 : 1));
 					if($row['active'] == 0)
 						header("location: verify.php?t=registered");
@@ -268,8 +268,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			};
 			if(isMobile()){
 				document.getElementsByClassName('container')[0].style.width = "100%";
-				document.getElementsByClassName('container')[0].style.zoom = "0.75";
 			}
+				document.getElementsByClassName('container')[0].style.zoom = "0.75";
 			function openTab(evt, choice) {
 				var tabcontent = document.getElementsByClassName("tabcontent");
 				for (i = 0; i < tabcontent.length; i++) {
@@ -394,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					break;
 				case "invalid_login":
 					$ers = 'document.getElementsByClassName("required")[0].innerHTML = window["lang__55"];';
-					$ers = 'document.getElementsByClassName("required")[1].innerHTML = window["lang__55"];';
+					$ers .= 'document.getElementsByClassName("required")[1].innerHTML = window["lang__55"];';
 					break;
 			}
 			echo $ers;

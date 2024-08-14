@@ -15,8 +15,9 @@ $GLOBALS['Mailer'] = $Mailer;
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
 $conn->query("set character_set_results='utf8'");
 $conn->query("SET NAMES 'utf8'");
-if(!isset($_COOKIE['browser_id']))
-	_setcookie('browser_id',uniqid(),86400*365*15);
+if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/')
+	if(!isset($_COOKIE['browser_id']))
+		_setcookie('browser_id',uniqid(),86400*365*15);
 function _setcookie($name, $value, $time){
 	$time = time() + $time;
 	setcookie($name, $value, $time);
@@ -580,12 +581,12 @@ function _is_same_browser($userID){
 }
 function new_session($time, $userID, $auth2FA){
 	$check = _is_same_browser($userID);
-	if($check[0]){
+	if(!$check[0]){
 		$session_id = uniqid();
 		$session_token = _generate_token("SesAuth_");
 		$conn = $GLOBALS['conn'];
 		$sql = sprintf(
-			"INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,%s,%d)",
+			"INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,'%s',%d)",
 			$session_id,
 			$session_token,
 			$conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
