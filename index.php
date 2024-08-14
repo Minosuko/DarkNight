@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							<label><lang lang="lang__024"></lang> </label>
 							<input type="checkbox" name="remember_me" id="remember-me">
 							<br><br>
-							<input type="submit" value="Login" name="login">
+							<input type="submit" name="login" lang="lang__022"></>
 						</form>
 					</div>
 					<div class="tabcontent" id="signup">
