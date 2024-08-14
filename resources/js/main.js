@@ -14,6 +14,7 @@ if (typeof(Storage) !== "undefined") {
 		$.get("resources/language/" + a + ".json", function(r) {
 			lss("language_data",JSON.stringify(r));
 			d = JSON.stringify(r);
+		}).done(function() {
 			location.reload();
 		});
 	}
@@ -48,7 +49,7 @@ function load_lang(){
 	Object.keys(h).forEach(function (n){
 		var e = h[n];
 		var s = e.getAttribute('lang');
-		if(e.getAttribute('lang_set') != 'true'){
+		if(e.getAttribute('lang_set') != 'true' && s != null){
 			var t = e.tagName.toLocaleLowerCase();
 			var l = window[s];
 			var a = e.getAttribute('type');

@@ -112,8 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		<div class="container">
 			<div class="transparent_block">
 				<div class="tab">
-					<button class="tablink active" onclick="openTab(event,'signin')" id="link1">Sign In</button>
-					<button class="tablink" onclick="openTab(event,'signup')" id="link2">Sign Up</button>
+					<button class="tablink active" onclick="openTab(event,'signin')" id="link1"><lang lang="lang__022"></lang></button>
+					<button class="tablink" onclick="openTab(event,'signup')" id="link2"><lang lang="lang__032"></lang></button>
 				</div>
 				<div class="content">
 					<div class="tabcontent" id="signin">
@@ -144,13 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<label><lang lang="lang__025"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="text" name="userfirstname" id="userfirstname">
+								<input type="text" name="userfirstname" id="userfirstname" lang="lang__025">
 							</div>		
 							<div class="index_input_box name_input right_content_box">
 								<label><lang lang="lang__026"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="text" name="userlastname" id="userlastname">
+								<input type="text" name="userlastname" id="userlastname" lang="lang__026">
 							</div>
 							<br>
 							<br>
@@ -158,27 +158,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<label><lang lang="lang__027"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="text" name="usernickname" id="usernickname" placeholder="username">
+								<input type="text" name="usernickname" id="usernickname"  lang="lang__027">
 							</div>
 							<br>
 							<div class="index_input_box">
 								<label><lang lang="lang__023"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="password" name="userpass" id="userpass">
+								<input type="password" name="userpass" id="userpass" lang="lang__023">
 							</div>
 							<br>
 							<div class="index_input_box">
 								<label><lang lang="lang__028"></lang><span>*</span></label>
 								<div class="required"></div><br>
-								<input type="password" name="userpassconfirm" id="userpassconfirm">
+								<input type="password" name="userpassconfirm" id="userpassconfirm" lang="lang__028">
 							</div>
 							<br>
 							<div class="index_input_box">
 								<label><lang lang="lang__036"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
-								<input type="text" name="useremail" id="useremail">
+								<input type="text" name="useremail" id="useremail" lang="lang__036">
 							</div>
 							<br>
 							<div class="index_input_box">
@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 				Object.keys(h).forEach(function (n){
 					var e = h[n];
 					var s = e.getAttribute('lang');
-					if(e.getAttribute('lang_set') != 'true'){
+					if(e.getAttribute('lang_set') != 'true' && s != null){
 						var t = e.tagName.toLocaleLowerCase();
 						var l = window[s];
 						var a = e.getAttribute('type');
@@ -293,11 +293,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 				var userpass = document.getElementById("loginuserpass").value;
 				var result = true;
 				if (useremail == "") {
-					required[0].innerHTML = "This field cannot be empty.";
+					required[0].innerHTML = window['lang__46'];
 					result = false;
 				}
 				if (userpass == "") {
-					required[1].innerHTML = "This field cannot be empty.";
+					required[1].innerHTML = window['lang__46'];
 					result = false;
 				}
 				return result;
@@ -314,35 +314,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 				var usergender = document.getElementsByClassName("usergender");
 				var result = true;
 				if (userfirstname == "") {
-					required[2].innerHTML = "This field cannot be empty.";
+					required[2].innerHTML = window['lang__46'];
 					result = false;
 				}
 				if (userlastname == "") {
-					required[3].innerHTML = "This field cannot be empty.";
+					required[3].innerHTML = window['lang__46'];
 					result = false;
 				}
 				if (userpass == "") {
-					required[5].innerHTML = "This field cannot be empty.";
+					required[5].innerHTML = window['lang__46'];
 					result = false;
 				}
 				if (userpassconfirm == "") {
-					required[6].innerHTML = "This field cannot be empty.";
+					required[6].innerHTML = window['lang__46'];
 					result = false;
 				}
 				if (userpass != "" && userpassconfirm != "" && userpass != userpassconfirm) {
-					required[5].innerHTML = "Passwords doesn't match.";
-					required[6].innerHTML = "Passwords doesn't match.";
+					required[5].innerHTML = window['lang__47'];
+					required[6].innerHTML = window['lang__47'];
 					result = false;
 				}
 				if (useremail == "") {
-					required[7].innerHTML = "This field cannot be empty.";
+					required[7].innerHTML = window['lang__46'];
 					result = false;
 				} else if (!validateEmail(useremail)) {
-					required[7].innerHTML = "Invalid Email Format.";
+					required[7].innerHTML = window['lang__48'];
 					result = false;
 				}
 				if (!usergender[0].checked && !usergender[1].checked) {
-					required[8].innerHTML = "You must select your gender.";
+					required[8].innerHTML = window['lang__49'];
 					result = false;
 				}
 				return result;
@@ -378,23 +378,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			$ers = '';
 			switch($err){
 				case "exist_email":
-					$ers = 'document.getElementsByClassName("required")[7].innerHTML = "This Email already exists.";';
+					$ers = 'document.getElementsByClassName("required")[7].innerHTML = window["lang__50"];';
 					break;
 				case "exist_nickname":
-					$ers = 'document.getElementsByClassName("required")[4].innerHTML = "This Nickname already exists.";';
+					$ers = 'document.getElementsByClassName("required")[4].innerHTML = window["lang__51"];';
 					break;
 				case "invalid_nickname":
-					$ers = 'document.getElementsByClassName("required")[4].innerHTML = "Only character, number, dashes allowed.";';
+					$ers = 'document.getElementsByClassName("required")[4].innerHTML = window["lang__52"];';
 					break;
 				case "invalid_date":
-					$ers = 'document.getElementsByClassName("required")[8].innerHTML = "Invalid date.";';
+					$ers = 'document.getElementsByClassName("required")[8].innerHTML = window["lang__53"];';
 					break;
 				case "invalid_email":
-					$ers = 'document.getElementsByClassName("required")[7].innerHTML = "Invalid email.";';
+					$ers = 'document.getElementsByClassName("required")[7].innerHTML = window["lang__54"];';
 					break;
 				case "invalid_login":
-					$ers = 'document.getElementsByClassName("required")[0].innerHTML = "Invalid Login Credentials.";';
-					$ers = 'document.getElementsByClassName("required")[1].innerHTML = "Invalid Login Credentials.";';
+					$ers = 'document.getElementsByClassName("required")[0].innerHTML = window["lang__55"];';
+					$ers = 'document.getElementsByClassName("required")[1].innerHTML = window["lang__55"];';
 					break;
 			}
 			echo $ers;
