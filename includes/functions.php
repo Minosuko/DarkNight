@@ -15,6 +15,8 @@ $GLOBALS['Mailer'] = $Mailer;
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
 $conn->query("set character_set_results='utf8'");
 $conn->query("SET NAMES 'utf8'");
+if(!isset($_COOKIE['browser_id']))
+	_setcookie('browser_id',uniqid(),86400*365*15);
 function _setcookie($name, $value, $time){
 	$time = time() + $time;
 	setcookie($name, $value, $time);
@@ -34,20 +36,6 @@ function _verify_2FA($code, $userID){
 	}
 	return false;
 }
-/*
-function compress_video($source, $quality = 90) {
-	$info = mime_content_type($source);
-	switch($info){
-		case 'video/mp4': 
-			$image = ($source);
-			break;
-	}
-	if(isset($image)){
-	}else{
-	}
-	return $imagedata;
-}
-*/
 function video_stream($file_path){
 	$VidStream = new VideoStream($file_path);
 	$VidStream->start();
@@ -578,30 +566,51 @@ function _verify($username, $email, $hash){
 	}
 	return false;
 }
-function new_session($time, $userID, $auth2FA){
-	$session_id = uniqid();
-	$session_token = _generate_token("SesAuth_");
+function _is_same_browser($userID){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online) VALUES ('%s','%s','%s',%d,'%s',%d,%d)",
-		$session_id,
-		$session_token,
-		$conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
+		"SELECT * FROM session WHERE user_id = %d browser_id = '%s'",
 		$userID,
-		getUserIP(),
-		$auth2FA,
-		time()
+		$conn->real_escape_string($_COOKIE['browser_id'])
 	);
 	$query = $conn->query($sql);
+	if($query->num_rows > 0)
+		return [true,$query->fetch_assoc()];
+	return [false];
+}
+function new_session($time, $userID, $auth2FA){
+	$check = _is_same_browser($userID);
+	if($check[0]){
+		$session_id = uniqid();
+		$session_token = _generate_token("SesAuth_");
+		$conn = $GLOBALS['conn'];
+		$sql = sprintf(
+			"INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,%s,%d)",
+			$session_id,
+			$session_token,
+			$conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
+			$userID,
+			getUserIP(),
+			$auth2FA,
+			time(),
+			$conn->real_escape_string($_COOKIE['browser_id']),
+			time()
+		);
+		$query = $conn->query($sql);
+	}else{
+		$session_id = $check[1]['session_id'];
+		$session_token = $check[1]['session_token'];
+	}
 	_setcookie("session_id", $session_id, $time);
 	_setcookie("session_token", $session_token, $time);
 }
 function _is_session_valid($checkActive = true){
-	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']))
+	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']) && !isset($_COOKIE['browser_id']))
 		return false;
 	$add = ($checkActive) ? ' AND session_valid = 1' : '';
 	$session_id = $_COOKIE['session_id'];
 	$session_token = $_COOKIE['session_token'];
+	$browser_id = $_COOKIE['browser_id'];
 	$token = $_COOKIE['token'];
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
@@ -612,10 +621,11 @@ function _is_session_valid($checkActive = true){
 	if($query->num_rows > 0){
 		$userID = _get_data_from_token($token)['user_id'];
 		$sql = sprintf(
-			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s'%s",
+			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s' AND browser_id = '%s'%s",
 			$userID,
 			$conn->real_escape_string($session_id),
 			$conn->real_escape_string($session_token),
+			$conn->real_escape_string($browser_id),
 			$add
 		);
 		$query = $conn->query($sql);

@@ -43,7 +43,6 @@ CREATE TABLE IF NOT EXISTS `notification` (
   PRIMARY KEY (`notification_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
 CREATE TABLE IF NOT EXISTS `posts` (
   `post_id` int(11) NOT NULL AUTO_INCREMENT,
   `post_caption` text NOT NULL,
@@ -57,22 +56,23 @@ CREATE TABLE IF NOT EXISTS `posts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `session` (
-  `session_id` int(11) NOT NULL AUTO_INCREMENT,
+  `session_id` varchar(32) NOT NULL,
   `session_token` varchar(255) NOT NULL,
   `user_id` int(11) NOT NULL,
   `session_device` varchar(255) NOT NULL,
   `session_ip` varchar(255) NOT NULL,
   `session_valid` int(11) NOT NULL DEFAULT 0,
   `last_online` int(11) NOT NULL DEFAULT 0,
+  `browser_id` varchar(32) NOT NULL,
+  `login_time` int(11) NOT NULL,
   PRIMARY KEY (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `TwoFactorAuth` (
+CREATE TABLE IF NOT EXISTS `twofactorauth` (
   `auth_key` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  KEY (`auth_key`)
+  KEY `auth_key` (`auth_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 CREATE TABLE IF NOT EXISTS `users` (
   `user_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -98,3 +98,4 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `user_email` (`user_email`),
   UNIQUE KEY `user_nickname` (`user_nickname`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+COMMIT;
