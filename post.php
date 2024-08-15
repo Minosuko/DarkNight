@@ -1,23 +1,3 @@
-<?php 
-// Check whether user is logged on or not
-if (!isset($_COOKIE['token']))
-	header("location:index.php");
-require_once 'includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
-	header("location:index.php");
-$data = _get_data_from_token();
-if(isset($_GET['id'])){
-	if(is_numeric($_GET['id']))
-		$id = $_GET['id'];
-	else
-		header("location:home.php");
-}else{
-	header("location:home.php");
-}
-if(!is_post_exists($id))
-	header("location:home.php");
-?>
-
 <!DOCTYPE html>
 <html>
 	<head>
@@ -51,13 +31,11 @@ if(!is_post_exists($id))
 						<video class="content-vid" id="video" controls></video>
 					</div>
 				</center>
-				<div class="right_content" id="_content_right">
-					
-				</div>
+				<div class="right_content" id="_content_right"></div>
 			</div>
 		</div>
 		<script>
-			_load_post(<?php echo $id; ?>);
+			_load_post();
 		</script>
 	</body>
 </html>

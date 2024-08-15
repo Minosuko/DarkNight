@@ -198,7 +198,16 @@ function timeSince(date) {
 	}
 	return Math.floor(seconds) + " seconds";
 }
-
+function _load_info(){
+	$.ajax({
+		url: "/worker/fetch_profile_setting_info.php",
+		type: 'GET',
+		success: function(res) {
+			gebi('online_status').value = res['online_status'];
+			gebi('fullname').value = res['user_firstname'] + ' ' + res['user_lastname'];
+		}
+	});
+}
 function _like(id) {
 	$.get("worker/likes.php?post_id=" + id, function(data) {
 		var splt = data.split(";");
@@ -230,6 +239,7 @@ function changeUrl(url) {
 			_online();
 			loading_bar(100)
 			processAjaxData(res, url);
+			_load_info();
 			lss("cgurl",0);
 		},
 		error: function(){
@@ -280,7 +290,7 @@ function processAjaxData(r, u) {
 		var add_header = "";
 		if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
 			add_header = "?id=" + get("id");
-		fetch_profile("fetch_profile_info.php" + add_header);
+		fetch_profile();
 		fetch_post("fetch_profile_post.php" + add_header);
 	}
 	if (u.substring(0,9) === "/post.php" || u.substring(0,8) === "post.php"){
@@ -736,8 +746,12 @@ function fetch_friend_request(loc){
 		changeUrlWork();
 	});
 }
-function fetch_profile(loc){
-	$.get("worker/" + loc, function(data) {
+function fetch_profile(){
+	var id = get("id");
+	var id_a = '';
+	if(typeof(id) != 'undefined')
+		id_a = '?id=' + id;
+	$.get("worker/fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
 		var profile = gebi("profile");
@@ -840,7 +854,10 @@ function fetch_profile(loc){
 		onResizeEvent();
 	});
 }
-function _load_post(id){
+function _load_post(post_id = null){
+	var id = (post_id != null) ? post_id : get('id');
+	if(typeof(id) == 'undefined')
+		window.history.go(-1);
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
 		if(data['success'] == 2)
 			window.history.go(-1);
@@ -1324,6 +1341,7 @@ function HighLightHLJS(){
 }
 document.addEventListener('readystatechange', function(e){
 	if(document.readyState == "complete"){
+		_load_info();
 		load_lang();
 		_online();
 		_fr_count();

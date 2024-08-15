@@ -1,23 +1,3 @@
-<?php 
-if (!isset($_COOKIE['token']))
-	header("location:index.php");
-require_once 'includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
-	header("location:index.php");
-$data = _get_data_from_token();
-if(isset($_GET['id']) && $_GET['id'] != $data['user_id']) {
-	$current_id = $conn->real_escape_string($_GET['id']);
-	$flag = 1;
-} else {
-	$current_id = $data['user_id'];
-	$flag = 0;
-}
-if(!is_user_exists($current_id)){
-	$current_id = $data['user_id'];
-	$flag = 0;
-}
-$data = _get_data_from_token();
-?>
 <!DOCTYPE html>
 <html>
 	<head>
@@ -96,7 +76,7 @@ $data = _get_data_from_token();
 		</div>
 	</body>
 	<script>
-	fetch_profile("fetch_profile_info.php<?php if($current_id != $data['user_id']) echo "?id=$current_id"; ?>");
-	fetch_post("fetch_profile_post.php<?php if($current_id != $data['user_id']) echo "?id=$current_id"; ?>");
+	fetch_profile("fetch_profile_info.php");
+	fetch_post("fetch_profile_post.php");
 	</script>
 </html>

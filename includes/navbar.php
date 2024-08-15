@@ -11,7 +11,7 @@ if ((($if_none_match && $if_none_match == $md5) || (!$if_none_match)) && ($if_mo
 	header("Last-Modified: $tsstring");
 	header("ETag: $md5");
 }
-if(!isset($IFI)) die("");
+if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die($_SERVER['REQUEST_URI']);
 ?>
 <script src="resources/js/jquery.js"></script>
 		<script src="resources/js/highlight.js"></script>
@@ -34,8 +34,8 @@ if(!isset($IFI)) die("");
 		<script src="resources/js/cropper.js"></script>
 		<script src="resources/js/jquery-cropper.js"></script>
 		<script src="resources/js/main.js"></script>
-		<input id='fullname' value='<?php echo htmlspecialchars($data['user_firstname'] . ' ' . $data['user_lastname']); ?>' type='hidden'>
-		<input id='online_status' value='<?php echo $data['online_status']; ?>' type='hidden'>
+		<input id='fullname' value='Unkown' type='hidden'>
+		<input id='online_status' value='1' type='hidden'>
 		<div id="modal" class="modal">
 			<div class="modal-content" id="modal-content">
 				<a class="close" onclick="modal_close()">&times;</a>

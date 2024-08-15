@@ -1,11 +1,3 @@
-<?php 
-if (!isset($_COOKIE['token']))
-	header("location:index.php");
-require_once 'includes/functions.php';
-if (!_is_session_valid($_COOKIE['token']))
-	header("location:index.php");
-$data = _get_data_from_token();
-?>
 <!DOCTYPE html>
 <html>
 	<head>
