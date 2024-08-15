@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		}else{
 			$sql = 
 			sprintf(
-				"INSERT INTO users(user_firstname, user_lastname, user_nickname, user_password, user_email, user_gender, user_birthdate, user_about, user_token) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
+				"INSERT INTO users(user_firstname, user_lastname, user_nickname, user_password, user_email, user_gender, user_birthdate, user_about, user_token, user_create_date) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
 				$conn->real_escape_string($userfirstname),
 				$conn->real_escape_string($userlastname),
 				$conn->real_escape_string($usernickname),
@@ -86,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$conn->real_escape_string($usergender),
 				$conn->real_escape_string($userbirthdate),
 				$conn->real_escape_string($userabout),
-				$conn->real_escape_string($user_token)
+				$conn->real_escape_string($user_token),
+				time()
 			);
 			$query = $conn->query($sql);
 			$link = (isset($_SERVER["HTTPS"]) ? 'https' : 'http')."://". $_SERVER['SERVER_NAME'].'/verify.php?t=verify&user_email='.htmlspecialchars($useremail).'&username='.htmlspecialchars($usernickname).'&h='.hash('sha256',($userpassword.$user_token));
