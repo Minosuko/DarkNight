@@ -108,7 +108,14 @@ function SendVerifyMail($email, $name, $link){
 			}
 			body{
 				font-family: Roboto;
-				background: url(\'data:image/jpeg;base64,'.base64_encode(file_get_contents(__DIR__ . '/../data/darknight.jpg')).'\');
+			}
+			.context{
+				background-image: url(\'data:image/jpeg;base64,'.base64_encode(file_get_contents(__DIR__ . '/../data/darknight.jpg')).'\');
+				background-repeat: no-repeat;
+				background-attachment: fixed;
+				background-size: cover;
+				width: 100%;
+				height: 100%;
 			}
 			.content{
 				width: 60%;
@@ -140,25 +147,27 @@ function SendVerifyMail($email, $name, $link){
 		</style>
 	</head>
 	<body>
-		<h1>Darknight Social</h1>
-		<div class="container">
-			<div class="transparent_block">
-				<div class="content">
-					<p>Hello '.$name.',</p>
-					<p>Follow this link to verify your email address.</p>
-					<br>
-					<a href="'.$link.'"><button>Verify</button></a>
-					<br>
-					<br>
-					<p>Or you can follow this link</p>
-					<br>
-					<a href="'.$link.'">'.$link.'</a>
-					<br>
-					<br>
-					<p>If you didn’t ask to verify this address, you can ignore this email.</p>
-					<br>
-					<p>Thanks</p>
-					<center><b>- DarkNightDev - </b></center>
+		<div class="context>"
+			<h1>Darknight Social</h1>
+			<div class="container">
+				<div class="transparent_block">
+					<div class="content">
+						<p>Hello '.$name.',</p>
+						<p>Follow this link to verify your email address.</p>
+						<br>
+						<a href="'.$link.'"><button>Verify</button></a>
+						<br>
+						<br>
+						<p>Or you can follow this link</p>
+						<br>
+						<a href="'.$link.'">'.$link.'</a>
+						<br>
+						<br>
+						<p>If you didn’t ask to verify this address, you can ignore this email.</p>
+						<br>
+						<p>Thanks</p>
+						<center><b>- DarkNightDev - </b></center>
+					</div>
 				</div>
 			</div>
 		</div>
