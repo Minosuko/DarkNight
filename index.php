@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$useremail      = $_POST['useremail'];
 		$userbirthdate  = strtotime($_POST['birthday']);
 		$usergender     = $_POST['usergender'];
-		$userabout      = $_POST['userabout'];
+		$userabout      = '';
 		$user_token     = _generate_token();
 		
 		!validateDate($_POST['birthday']) ?? header("Location:?err=invalid_date");
