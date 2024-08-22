@@ -39,8 +39,8 @@
 	"lang__038":"Đăng xuất",
 	"lang__039":"Quê quán",
 	"lang__040":"Tạo tài khoản",
-	"lang__041":"Đổi ảnh đại diện",
-	"lang__042":"Đổi ảnh bìa",
+	"lang__041":"Đổi ảnh bìa",
+	"lang__042":"Đổi ảnh đại diện",
 	"lang__043":"Cắt",
 	"lang__044":"Lưu",
 	"lang__045":"Trình duyệt của bạn không hỗ trợ HTML5 canvas",
@@ -53,5 +53,13 @@
 	"lang__052":"Username chỉ cho phép ký tự, số, dấu gạch ngang.",
 	"lang__053":"Ngày tháng không hợp lệ.",
 	"lang__054":"Email không hợp lệ.",
-	"lang__055":"Thông tin đăng nhập không hợp lệ."
+	"lang__055":"Thông tin đăng nhập không hợp lệ.",
+	"lang__056":"Đổi mật khẩu",
+	"lang__057":"Đổi username",
+	"lang__058":"Đổi email",
+	"lang__059":"Mật khẩu hiện tại",
+	"lang__060":"Mật khẩu mới",
+	"lang__061":"Xác nhận mật khẩu mới",
+	"lang__062":"Username mới",
+	"lang__063":"Email mới"
 }

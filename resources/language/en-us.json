@@ -53,5 +53,13 @@
 	"lang__052":"Only character, number, dashes allowed.",
 	"lang__053":"Invalid date.",
 	"lang__054":"Invalid email.",
-	"lang__055":"Invalid Login Credentials."
+	"lang__055":"Invalid Login Credentials.",
+	"lang__056":"Change password",
+	"lang__057":"Change username",
+	"lang__058":"Change email",
+	"lang__059":"Current Password",
+	"lang__060":"New Password",
+	"lang__061":"Verify New Password",
+	"lang__062":"New Username",
+	"lang__063":"New Email"
 }

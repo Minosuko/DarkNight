@@ -667,7 +667,6 @@ function make_post(){
 		textarea.style.height = "";
 		textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
 	};
-	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _open_post(id){
 	changeUrl("post.php?id=" + id);
@@ -1172,17 +1171,85 @@ function _load_settings(){
 	});
 	changeUrlWork();
 }
-function _change_infomation(){
+function _change_infomation(type = null){
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
+	var t = "";
+	var m = "";
 	var a = "";
 	a += '<div class="createpost_box">';
+	switch(type){
+		case 0:
+			t = window['lang__056'];
+			t = window['lang__058'];
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<br>';
+			m += '<input type="password" name="password" id="password">';
+			m += '</div>';
+			m += '<br>';
+			m += '<br>';
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="newpassword">'+window['lang__060']+'</label>';
+			m += '<br>';
+			m += '<input type="password" name="newpassword" id="newpassword">';
+			m += '</div>';
+			m += '<br>';
+			m += '<br>';
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="vsnewpassword">'+window['lang__061']+'</label>';
+			m += '<br>';
+			m += '<input type="password" name="vnewpassword" id="vnewpassword">';
+			m += '</div>';
+			break;
+		case 1:
+			t = window['lang__057'];
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<br>';
+			m += '<input type="password" name="password" id="password">';
+			m += '</div>';
+			m += '<br>';
+			m += '<br>';
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="username">'+window['lang__062']+'</label>';
+			m += '<br>';
+			m += '<input type="text" name="username" id="username">';
+			m += '</div>';
+			break;
+		case 2:
+			t = window['lang__058'];
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<br>';
+			m += '<input type="password" name="password" id="password">';
+			m += '</div>';
+			m += '<br>';
+			m += '<br>';
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="email">'+window['lang__063']+'</label>';
+			m += '<br>';
+			m += '<input type="text" name="email" id="email">';
+			m += '</div>';
+			break;
+		default:
+			modal_close();
+			return 0;
+			break;
+	}
 	a += '<div class="createpostbuttons">';
-	a += '<h1> ' + (isCover == 1) ? window['lang__041']:window['lang__042'] +' </h1>';
+	a += '<h1> ' + t +' </h1>';
 	a += '</div>';
-	a += '<button id="btnChangePassword" class="s_button">'+window['lang__044']+'</button>';
+	a += m;
+	a += '<br>';
+	a += '<br>';
+	a += '<button id="btnChangeInfo" class="s_button">'+t+'</button>';
 	a += '</div>';
-	gebtn('body')[0].style.overflowY = "scroll";
+	gebi("modal_content").innerHTML = a;
+	load_lang();
+	$('#btnChangeInfo').click(function() {
+		
+	});
 }
 function _change_picture(isCover = 0){	
 	gebtn('body')[0].style.overflowY = "hidden";
@@ -1190,7 +1257,7 @@ function _change_picture(isCover = 0){
 	var a = "";
 	a += '<div class="createpost_box">';
 	a += '<div class="createpostbuttons">';
-	a += '<h1>' + (isCover == 1) ? window['lang__041']:window['lang__042'] + '</h1>';
+	a += '<h1>' + ((isCover == 1) ? window['lang__041'] : window['lang__042']) + '</h1>';
 	a += '<center><label>';
 	a += '<i class="fa-regular fa-image" id="fileInputIcon"></i>';
 	a += '<input type="file" id="fileInput" accept="image/*" />';
@@ -1258,14 +1325,13 @@ function _change_picture(isCover = 0){
 				reader.readAsDataURL(this.files[0]);
 			}
 			else {
-				alert("Invalid file type! Please select an image file.");
+				alert("Invalid image type! Please select an image file.");
 			}
 		}
 		else {
-			alert('No file(s) selected.');
+			alert('No image selected.');
 		}
 	});
-	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _f(){
 	var file_data = gebi("imagefile");
@@ -1288,7 +1354,6 @@ function _f(){
 				fetch_post("fetch_post.php");
 		}
 	});
-	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _share_feed(){
 	var file_data = gebi("imagefile");
@@ -1318,7 +1383,6 @@ function _share_feed(){
 			fetch_post("fetch_post.php");
 		}
 	});
-	gebtn('body')[0].style.overflowY = "scroll";
 }
 
 function validatePost(type){

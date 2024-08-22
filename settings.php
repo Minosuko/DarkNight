@@ -30,7 +30,7 @@
 									<br>
 									<div class="psetting">
 										<input type="text" name="usernickname" id="usernickname" autocomplete="off" readonly>
-										<i class="fa-solid fa-angle-right"></i>
+										<i class="fa-solid fa-angle-right" onclick="_change_infomation(1)"></i>
 									</div>
 								</div>
 							</div>
@@ -40,7 +40,7 @@
 									<br>
 									<div class="psetting">
 										<input type="email" name="email" id="email" autocomplete="off" readonly>
-										<i class="fa-solid fa-angle-right"></i>
+										<i class="fa-solid fa-angle-right" onclick="_change_infomation(2)"></i>
 									</div>
 								</div>
 							</div>
@@ -48,7 +48,7 @@
 								<div class="index_input_box xsetting asetting">
 									<label for="password"><lang lang="lang__023"></lang></label>
 									<div class="psetting">
-										<i class="fa-solid fa-angle-right"></i>
+										<i class="fa-solid fa-angle-right" onclick="_change_infomation(0)"></i>
 									</div>
 								</div>
 							</div>
