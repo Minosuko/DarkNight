@@ -975,7 +975,7 @@ class PHPMailer{
 		if (array_key_exists($langcode, $renamed_langcodes)) {
 			$langcode = $renamed_langcodes[$langcode];
 		}
-		$$PHPMailer_LANG = [
+		$PHPMailer_LANG = [
 			'authenticate' => 'SMTP Error: Could not authenticate.',
 			'connect_host' => 'SMTP Error: Could not connect to SMTP host.',
 			'data_not_accepted' => 'SMTP Error: data not accepted.',
