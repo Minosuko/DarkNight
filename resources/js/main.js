@@ -1254,8 +1254,10 @@ function _change_infomation(c = null){
 			m += '<button class="right_align" id="getCode"><div class="background" id="gcb"></div>'+window['lang__067']+' <i class="fa-light fa-envelope"></i></button>';
 			m += '</div>';
 			m += '</div>';
+			m += '<br>';
+			m += '<br>';
 			m += '<div class="index_input_box ysetting">';
-			m += '<label for="verifyCode">'+window['lang__061']+'</label>';
+			m += '<label for="verifyCode">'+window['lang__069']+'</label>';
 			m += '<br>';
 			m += '<input type="text" name="verifyCode" id="verifyCode" maxlength="8" required>';
 			m += '<div class="required"></div>';
@@ -1347,8 +1349,8 @@ function _change_infomation(c = null){
 							m = (c == 1) ? window['lang__065'] : window['lang__066'];
 							a = true;
 						}
-						r[0].innerHTML = m;
-						r[0].style.color = a ? 'green' : 'red';
+						r[1].innerHTML = m;
+						r[1].style.color = a ? 'green' : 'red';
 					}
 				});
 			}, 500);
@@ -1446,7 +1448,14 @@ function _change_infomation(c = null){
 							return 0;
 					}
 				}else{
-					gebi("modal_content").innerHTML = "<h1>Success " + q['success'] + '<h1>';
+					a = '';
+					a += '<div class="createpostbuttons">';
+					a +=  '<h1>Success<h1>';
+					a += '</div>';
+					gebi("modal_content").innerHTML = a;
+					setTimeout(function(){
+						location.reload();
+					},3000);
 				}
 			}
 		});
