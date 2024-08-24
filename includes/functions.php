@@ -1,9 +1,11 @@
 <?php
+date_default_timezone_set('UTC');
 require_once __DIR__ . "/config/database.php";
 require_once __DIR__ . "/config/mail.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
 require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 require_once __DIR__ . "/VideoStream.php";
+require_once __DIR__ . "/IP2Geo.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -13,6 +15,7 @@ $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUser
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
+$GLOBALS['IP2Geo'] = new IP2Geo(getUserIP());;
 $conn->query("set character_set_results='utf8'");
 $conn->query("SET NAMES 'utf8'");
 if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/')
@@ -24,6 +27,7 @@ function _setcookie($name, $value, $time){
 }
 function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];
+	$IP2Geo = $GLOBALS['IP2Geo'];
 	$sql = sprintf(
 		"SELECT * FROM `twofactorauth` WHERE user_id = %d",
 		$conn->real_escape_string($userID)
@@ -31,7 +35,9 @@ function _verify_2FA($code, $userID){
 	$query = $conn->query($sql);
 	$rows = $query->fetch_all(MYSQLI_ASSOC);
 	foreach($rows as $row){
-		$VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAllZone($row['auth_key'], $code);
+		$IP2Geo->changeIP($row['session_ip']);
+		$zone = $IP2Geo->getTimeZone();
+		$VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAtZone($row['auth_key'], $code, 1, $zone);
 		if($VerifyCode)
 			return true;
 	}
@@ -86,10 +92,10 @@ function SendVerifyMail($email, $name, $link){
 		<title>Darknight</title>
 		<meta charset="UTF-8">
 		<style>
-			h1{
+			.title{
 				text-align: center;
-				color: white;
-				font-size: 400%;
+				color: #4d94ff;
+				font-size: 500%;
 			}
 			p{
 				color: white;
@@ -103,19 +109,18 @@ function SendVerifyMail($email, $name, $link){
 				font-size: 180%;
 			}
 			b{
-				color: white;
+				color: #4d94ff;
 				font-size: 200%;
 			}
 			body{
 				font-family: Roboto;
 			}
 			.context{
-				background-image: url(\'data:image/jpeg;base64,'.base64_encode(file_get_contents(__DIR__ . '/../data/darknight.jpg')).'\');
-				background-repeat: no-repeat;
-				background-attachment: fixed;
-				background-size: cover;
-				width: 100%;
+				background-color: #121212;
+				width: 90%;
 				height: 100%;
+				padding: 50px;
+				margin: auto;
 			}
 			.content{
 				width: 60%;
@@ -124,14 +129,11 @@ function SendVerifyMail($email, $name, $link){
 				margin: auto;
 				position: realtive;
 				padding: 10px;
-				background: rgba(255, 255, 255, 0);
-				box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-				backdrop-filter: blur(3.7px);
-				-webkit-backdrop-filter: blur(3.7px);
-				border-top: 1px solid rgba(255, 255, 255, 0.34);
-				border-bottom: 1px solid rgba(255, 255, 255, 0.34);
-				border-left: 60px solid transparent;
-				border-right: 60px solid transparent;
+				background-color: #1b1d26;
+				border-radius: 15px;
+			}
+			.code{
+				background-color: #3f3f3f;
 			}
 			button{
 				font-size: 18px;
@@ -147,8 +149,8 @@ function SendVerifyMail($email, $name, $link){
 		</style>
 	</head>
 	<body>
-		<div class="context>"
-			<h1>Darknight Social</h1>
+		<div class="context">
+			<p class="title">Darknight Social</p>
 			<div class="container">
 				<div class="transparent_block">
 					<div class="content">
@@ -533,6 +535,29 @@ function getUserIP() {
 		$ipaddress = 'UNKNOWN';
 	return $ipaddress;
 }
+function lunar_hash($str){
+	$chars = str_split($str);
+	$len = strlen($str);
+	$p = [];
+	foreach($chars as $char)
+		$p[] = unpack("C",$char)[1];
+	$h = 0;
+	while($len--) {
+		$h += $p[$len];
+		$h += ($h << 32);
+		$h ^= ($h >> 64);
+	}
+	$h += ($h << 8);
+	$h ^= ($h >> 16);
+	$h += ($h << 32);
+	if($h < 0) $h *= -1;
+	$chars = str_split($h,2);
+	$r = '';
+	foreach($chars as $char)
+		$r .= pack('C',$char);
+	$hexOut = bin2hex($r);
+	return $hexOut;
+}
 function Has2FA($userID){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
@@ -615,8 +640,9 @@ function new_session($time, $userID, $auth2FA){
 	_setcookie("session_token", $session_token, $time);
 }
 function _is_session_valid($checkActive = true){
-	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']) && !isset($_COOKIE['browser_id']))
+	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']) && !isset($_COOKIE['browser_id'])){
 		return false;
+	}
 	$add = ($checkActive) ? ' AND session_valid = 1' : '';
 	$session_id = $_COOKIE['session_id'];
 	$session_token = $_COOKIE['session_token'];
@@ -639,8 +665,9 @@ function _is_session_valid($checkActive = true){
 			$add
 		);
 		$query = $conn->query($sql);
-		if($query->num_rows > 0)
+		if($query->num_rows > 0){
 			return true;
+		}
 	}
 	return false;
 }
@@ -705,8 +732,26 @@ function _is_video($id){
 	$fetch = $query->fetch_assoc();
 	return (substr($fetch['media_format'],0,5) == 'video');
 }
+function username_exists($username){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT COUNT(user_nickname) as count FROM users WHERE user_nickname LIKE '%s'",
+		$conn->real_escape_string($username)
+	);
+	$query = $conn->query($sql);
+	return ($query->fetch_assoc()['count'] > 0);
+}
+function email_exists($email){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT COUNT(user_email) as count FROM users WHERE user_email LIKE '%s'",
+		$conn->real_escape_string($email)
+	);
+	$query = $conn->query($sql);
+	return ($query->fetch_assoc()['count'] > 0);
+}
 function _is_username_valid($userName){
-	$validChar = 'QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm';
+	$validChar = 'QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm_';
 	return empty(str_replace(str_split($validChar),'',$userName));
 }
 function caesarShift($str, $amount) {
@@ -729,7 +774,7 @@ function caesarShift($str, $amount) {
 	return implode('', $output);
 }
 function _generate_token($start = 'Auth_'){
-	$gen_str = "QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm";
+	$gen_str = "QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm_-";
 	$token = "$start";
 	$caesar = "CaesarAuth";
 	$token .= str_replace("=",'',base64_encode(time()));

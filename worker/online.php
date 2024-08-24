@@ -1,7 +1,7 @@
 <?php
 require_once '../includes/functions.php';
 if (!_is_session_valid())
-    echo 0;
+    die(0);
 $data = _get_data_from_token();
 if($data['online_status'] == 1)
 	$query = $conn->query("UPDATE session SET last_online = $timestamp WHERE user_id = {$data['user_id']} AND session_id = {$_COOKIE['session_id']}");

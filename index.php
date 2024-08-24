@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$userabout      = '';
 		$user_token     = _generate_token();
 		
-		!validateDate($_POST['birthday']) ?? header("Location:?err=invalid_date");
-		!_is_username_valid($usernickname) ?? header("Location:?err=invalid_nickname");
-		!filter_var($email, FILTER_VALIDATE_EMAIL) ?? header("Location:?err=invalid_email");
+		if(!validateDate($_POST['birthday'])) header("Location:?err=invalid_date");
+		if(!_is_username_valid($usernickname)) header("Location:?err=invalid_nickname");
+		if(!filter_var($email, FILTER_VALIDATE_EMAIL)) header("Location:?err=invalid_email");
 			
 		$userstatus = isset($_POST['userstatus']) ? $_POST['userstatus'] : null;
 		
@@ -120,20 +120,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					<div class="tabcontent" id="signin">
 						<form method="post" onsubmit="return validateLogin()">
 							<div class="index_input_box">
-								<label><lang lang="lang__022"></lang><span>*</span></label>
+								<label for="userlogin"><lang lang="lang__022"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userlogin" id="loginuseremail" placeholder="Username or email">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang lang="lang__023"></lang><span>*</span></label>
+								<label for="userpass"><lang lang="lang__023"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="password" name="userpass" id="loginuserpass" placeholder="********">
 							</div>
 							<br>
-							<label><lang lang="lang__024"></lang> </label>
+							<label for="remember_me"><lang lang="lang__024"></lang> </label>
 							<input type="checkbox" name="remember_me" id="remember-me">
 							<br><br>
 							<input type="submit" name="login" lang="lang__022"></>
@@ -142,13 +142,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 					<div class="tabcontent" id="signup">
 						<form method="post" onsubmit="return validateRegister()">
 							<div class="index_input_box name_input">
-								<label><lang lang="lang__025"></lang><span>*</span></label>
+								<label for="userfirstname"><lang lang="lang__025"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userfirstname" id="userfirstname" lang="lang__025">
 							</div>		
 							<div class="index_input_box name_input right_content_box">
-								<label><lang lang="lang__026"></lang><span>*</span></label>
+								<label for="userlastname"><lang lang="lang__026"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="userlastname" id="userlastname" lang="lang__026">
@@ -156,27 +156,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							<br>
 							<br>
 							<div class="index_input_box">
-								<label><lang lang="lang__027"></lang><span>*</span></label>
+								<label for="usernickname"><lang lang="lang__027"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="usernickname" id="usernickname"  lang="lang__027">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang lang="lang__023"></lang><span>*</span></label>
+								<label for="userpass"><lang lang="lang__023"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="password" name="userpass" id="userpass" lang="lang__023">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang lang="lang__028"></lang><span>*</span></label>
+								<label for="userpassconfirm"><lang lang="lang__028"></lang><span>*</span></label>
 								<div class="required"></div><br>
 								<input type="password" name="userpassconfirm" id="userpassconfirm" lang="lang__028">
 							</div>
 							<br>
 							<div class="index_input_box">
-								<label><lang lang="lang__036"></lang><span>*</span></label>
+								<label for="useremail"><lang lang="lang__036"></lang><span>*</span></label>
 								<div class="required"></div>
 								<br>
 								<input type="text" name="useremail" id="useremail" lang="lang__036">
@@ -184,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 							<br>
 							<div class="index_input_box">
 								<div class="required"></div>
-								<label><lang lang="lang__029"></lang><span>*</span></label><br>
+								<label for="birthday"><lang lang="lang__029"></lang><span>*</span></label><br>
 								<input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
 							</div>
 							<br>

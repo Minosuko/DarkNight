@@ -61,5 +61,10 @@
 	"lang__060":"New Password",
 	"lang__061":"Verify New Password",
 	"lang__062":"New Username",
-	"lang__063":"New Email"
+	"lang__063":"New Email",
+	"lang__064":"Log Out of all devices",
+	"lang__065":"Username available",
+	"lang__066":"Email available",
+	"lang__067":"Get code",
+	"lang__068":"You can only change your username every 60 days"
 }

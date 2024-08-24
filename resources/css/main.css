@@ -942,6 +942,36 @@ input:-webkit-autofill:active{
 	width: 94.5%;
 	display: inline-block;
 }
+.zsetting input{
+	float: left;
+	width: 80% !important;
+}
+.zsetting .right_align{
+	all: unset;
+	float: right;
+	cursor: pointer;
+	padding: 4px;
+	position: relative;
+}
+.zsetting .right_align .background{
+	height: 100%;
+	width: 100%;
+	position: absolute;
+	margin: -4px;
+	border-radius: 10px;
+	float: left;
+}
+.zsetting .right_align .background.disabled {
+	position: absolute;
+	background: rgba(255, 255, 255, 0.2);
+	background-repeat: no-repeat;
+	animation: cooldown 60s linear;
+}
+.zsetting .right_align:hover .background:not([class^=".disabled"]){
+	& .background{
+		background: rgba(255, 255, 255, 0.2);
+	}
+}
 .xsetting .usergender{
 	float: left;
 }
@@ -1068,6 +1098,14 @@ input:-webkit-autofill:active{
 		-moz-filter: hue-rotate(360deg);
 		-ms-filter: hue-rotate(360deg);
 		filter: hue-rotate(360deg);
+	}
+}
+@keyframes cooldown {
+	0% {
+		transform: scale(1,1);
+	}
+	100% {
+		transform: scale(0,1);
 	}
 }
 #loading_bar{

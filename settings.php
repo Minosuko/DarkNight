@@ -28,9 +28,9 @@
 								<div class="index_input_box xsetting asetting">
 									<label for="usernickname"><lang lang="lang__027"></lang></label>
 									<br>
-									<div class="psetting">
+									<div class="psetting" onclick="_change_infomation(1)">
 										<input type="text" name="usernickname" id="usernickname" autocomplete="off" readonly>
-										<i class="fa-solid fa-angle-right" onclick="_change_infomation(1)"></i>
+										<i class="fa-solid fa-angle-right"></i>
 									</div>
 								</div>
 							</div>
@@ -38,17 +38,17 @@
 								<div class="index_input_box xsetting asetting">
 									<label for="email"><lang lang="lang__036"></lang></label>
 									<br>
-									<div class="psetting">
+									<div class="psetting" onclick="_change_infomation(2)">
 										<input type="email" name="email" id="email" autocomplete="off" readonly>
-										<i class="fa-solid fa-angle-right" onclick="_change_infomation(2)"></i>
+										<i class="fa-solid fa-angle-right"></i>
 									</div>
 								</div>
 							</div>
 							<div class="setting__box">
 								<div class="index_input_box xsetting asetting">
 									<label for="password"><lang lang="lang__023"></lang></label>
-									<div class="psetting">
-										<i class="fa-solid fa-angle-right" onclick="_change_infomation(0)"></i>
+									<div class="psetting" onclick="_change_infomation(0)">
+										<i class="fa-solid fa-angle-right"></i>
 									</div>
 								</div>
 							</div>

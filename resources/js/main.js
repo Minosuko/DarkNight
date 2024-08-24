@@ -1,8 +1,13 @@
-const default_male_pfp = 'data/images.php?t=default_M';
-const default_female_pfp = 'data/images.php?t=default_F';
-const pfp_cdn = 'data/images.php?t=profile';
-const media_cdn = 'data/images.php?t=media';
-const video_cdn = 'data/videos.php?t=media';
+var default_male_pfp, default_female_pfp, pfp_cdn, media_cdn, video_cdn, supported_language,clientTimeZone;
+
+default_male_pfp = 'data/images.php?t=default_M';
+default_female_pfp = 'data/images.php?t=default_F';
+pfp_cdn = 'data/images.php?t=profile';
+media_cdn = 'data/images.php?t=media';
+video_cdn = 'data/videos.php?t=media';
+supported_language = [['en-us','English'],['vi-vn','Tiếng Việt']];
+clientTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 if (typeof(Storage) !== "undefined") {
 	var a = lsg("language");
 	var d = lsg("language_data");
@@ -21,6 +26,15 @@ if (typeof(Storage) !== "undefined") {
 	var j = JSON.parse(d);
 	Object.keys(j).forEach(function(v,n){
 		window[v] = j[v];
+	});
+}
+function changeLanguage(lang = 'en-us'){
+	localStorage.setItem("language",lang);
+	$.get("resources/language/" + lang + ".json", function(r) {
+		lss("language_data",JSON.stringify(r));
+		d = JSON.stringify(r);
+	}).done(function() {
+		location.reload();
 	});
 }
 function load_lang(){
@@ -1171,71 +1185,85 @@ function _load_settings(){
 	});
 	changeUrlWork();
 }
-function _change_infomation(type = null){
+function _change_infomation(c = null){
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
-	var t = "";
-	var m = "";
-	var a = "";
+	var v=p=t=m=a=s=l=f=d=i= '';
 	a += '<div class="createpost_box">';
-	switch(type){
+	switch(c){
 		case 0:
 			t = window['lang__056'];
-			t = window['lang__058'];
 			m += '<div class="index_input_box ysetting">';
 			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<div class="required"></div>';
 			m += '<br>';
-			m += '<input type="password" name="password" id="password">';
+			m += '<input type="password" name="password" id="currentpassword" required>';
 			m += '</div>';
 			m += '<br>';
 			m += '<br>';
 			m += '<div class="index_input_box ysetting">';
 			m += '<label for="newpassword">'+window['lang__060']+'</label>';
 			m += '<br>';
-			m += '<input type="password" name="newpassword" id="newpassword">';
+			m += '<input type="password" name="newpassword" id="newpassword" required>';
+			m += '<div class="required"></div>';
 			m += '</div>';
 			m += '<br>';
 			m += '<br>';
 			m += '<div class="index_input_box ysetting">';
 			m += '<label for="vsnewpassword">'+window['lang__061']+'</label>';
 			m += '<br>';
-			m += '<input type="password" name="vnewpassword" id="vnewpassword">';
+			m += '<input type="password" name="vnewpassword" id="vnewpassword" required>';
+			m += '<div class="required"></div>';
 			m += '</div>';
+			m += '<br>';
+			m += '<br>';
+			m += '<label for="log_all_device">'+window['lang__064']+'</label>';
+			m += '<input type="checkbox" name="log_all_device" id="log_all_device">';
 			break;
 		case 1:
 			t = window['lang__057'];
 			m += '<div class="index_input_box ysetting">';
 			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<div class="required"></div>';
 			m += '<br>';
-			m += '<input type="password" name="password" id="password">';
+			m += '<input type="password" name="password" id="currentpassword" required>';
 			m += '</div>';
 			m += '<br>';
 			m += '<br>';
 			m += '<div class="index_input_box ysetting">';
-			m += '<label for="username">'+window['lang__062']+'</label>';
-			m += '<br>';
-			m += '<input type="text" name="username" id="username">';
+			m += '<label for="newusername">'+window['lang__062']+' ('+window['lang__062']+')</label>';
+			m += '<div class="required"></div>';
+			m += '<input type="text" name="newusername" id="newusername" required>';
 			m += '</div>';
 			break;
 		case 2:
 			t = window['lang__058'];
 			m += '<div class="index_input_box ysetting">';
 			m += '<label for="password">'+window['lang__059']+'</label>';
+			m += '<div class="required"></div>';
 			m += '<br>';
-			m += '<input type="password" name="password" id="password">';
+			m += '<input type="password" name="password" id="currentpassword" required>';
 			m += '</div>';
 			m += '<br>';
 			m += '<br>';
 			m += '<div class="index_input_box ysetting">';
-			m += '<label for="email">'+window['lang__063']+'</label>';
+			m += '<label for="newemail">'+window['lang__063']+'</label>';
+			m += '<div class="required"></div>';
+			m += '<div class="zsetting">';
+			m += '<input type="email" name="newemail" id="newemail" required>';
+			m += '<button class="right_align" id="getCode"><div class="background" id="gcb"></div>'+window['lang__067']+' <i class="fa-light fa-envelope"></i></button>';
+			m += '</div>';
+			m += '</div>';
+			m += '<div class="index_input_box ysetting">';
+			m += '<label for="verifyCode">'+window['lang__061']+'</label>';
 			m += '<br>';
-			m += '<input type="text" name="email" id="email">';
+			m += '<input type="text" name="verifyCode" id="verifyCode" maxlength="8" required>';
+			m += '<div class="required"></div>';
 			m += '</div>';
 			break;
 		default:
 			modal_close();
-			return 0;
-			break;
+			return;
 	}
 	a += '<div class="createpostbuttons">';
 	a += '<h1> ' + t +' </h1>';
@@ -1247,8 +1275,181 @@ function _change_infomation(type = null){
 	a += '</div>';
 	gebi("modal_content").innerHTML = a;
 	load_lang();
+	var r = gebcn('required');
+	if(c == 2){
+		$('#getCode').click(function(){
+			var p = $(this);
+			v = gebi('newemail');
+			if(v.value == '')
+				r[0].innerHTML = window['lang__046'];
+			if(!p.hasClass('disabled')){
+				d = new FormData();
+				d.append('type','RequestEmailCode');
+				d.append('CurrentPassword',gebi('currentpassword').value);
+				d.append('NewEmail',v.value);
+				$.ajax('/worker/change_account_infomation.php', {
+					method: "POST",
+					data: d,
+					processData: false,
+					contentType: false,
+					success: function (q) {
+						if(q['success'] != 1){
+							switch(q['code']){
+								case 0:
+									m = window['lang__054'];
+									i = 1;
+									break;
+								case 1:
+									m = window['lang__055'];
+									i = 0;
+									break;
+								case 2:
+									m = window['lang__050'];
+									i = 1;
+									break;
+							}
+							r[i].innerHTML = m;
+							r[i].style.color = 'red';
+						}
+					}
+				});
+				var b = gebi('gcb');
+				b.classList.add('disabled');
+				p.prop('disabled', true);
+				setTimeout(function(){
+					b.classList.remove('disabled');
+					p.prop('disabled', false);
+				},60000);
+				r[0].innerHTML = '';
+			}
+		});
+	}
+	if(c == 1 || c == 2){
+		t = (c == 2) ? 'email' : 'username';
+		v = gebi('new' + t);
+		v.addEventListener('keyup', e => {
+			clearTimeout(l);
+			l = setTimeout(() => {
+				d = new FormData();
+				d.append(t,e.target.value);
+				$.ajax('/worker/' + t + '_check.php', {
+					method: "POST",
+					data: d,
+					processData: false,
+					contentType: false,
+					success: function (q) {
+						a = false;
+						if(q['code'] == 1){
+							m = (c == 1) ? window['lang__051'] : window['lang__050'];
+						}else if(q['code'] == 2){
+							m = (c == 1) ? window['lang__052'] : window['lang__054'];
+						}else{
+							m = (c == 1) ? window['lang__065'] : window['lang__066'];
+							a = true;
+						}
+						r[0].innerHTML = m;
+						r[0].style.color = a ? 'green' : 'red';
+					}
+				});
+			}, 500);
+		});
+	}
 	$('#btnChangeInfo').click(function() {
+		f = new FormData();
+		s = gebi('currentpassword').value;
+		if(s == '' || s == undefined){
+			alert("Where password?");
+			return;
+		}
+		switch(c){
+			case 0:
+				p = gebi('newpassword').value;
+				v = gebi('vnewpassword').value;
+				l = gebi('log_all_device').checked ? 1 : 0;
+				if(p != v)
+				{
+					r[1].innerHTML = window['lang__047'];
+					r[2].innerHTML = window['lang__047'];
+					return;
+				}
+				f.append('type','ChangePassword');
+				f.append('CurrentPassword',s);
+				f.append('NewPassword',p);
+				f.append('VerifyPassword',v);
+				f.append('LogAllsDevice',l);
+				break;
+			case 1:
+				f.append('type','ChangeUsername');
+				f.append('CurrentPassword',s);
+				f.append('NewUsername',v.value);
+				break;
+			case 2:
+				v = gebi('newemail').value;
+				p = gebi('verifyCode').value;
+				f.append('type','ChangeEmail');
+				f.append('CurrentPassword',s);
+				f.append('NewEmail',v);
+				f.append('VerifyCode',p);
+				break;
+			default:
+				modal_close();
+				return 0;
+		}
 		
+		$.ajax('/worker/change_account_infomation.php', {
+			method: "POST",
+			data: f,
+			processData: false,
+			contentType: false,
+			success: function (q) {
+				if(q['success'] == 0){
+					switch(c){
+						case 0:
+							switch(q['code']){
+								case 0:
+									r[1].innerHTML = window['lang__047'];
+									r[2].innerHTML = window['lang__047'];
+									break;
+								case 1:
+									r[0].innerHTML = window['lang__055'];
+									break;
+							}
+							break;
+						case 1:
+							switch(q['code']){
+								case 0:
+									r[1].innerHTML = window['lang__052'];
+									break;
+								case 1:
+									r[0].innerHTML = window['lang__055'];
+									break;
+								case 2:
+									r[0].innerHTML = window['lang__051'];
+									break;
+							}
+							break;
+						case 2:
+							switch(q['code']){
+								case 0:
+									r[1].innerHTML = window['lang__054'];
+									break;
+								case 1:
+									r[0].innerHTML = window['lang__055'];
+									break;
+								case 2:
+									r[0].innerHTML = window['lang__050'];
+									break;
+							}
+							break;
+						default:
+							modal_close();
+							return 0;
+					}
+				}else{
+					gebi("modal_content").innerHTML = "<h1>Success " + q['success'] + '<h1>';
+				}
+			}
+		});
 	});
 }
 function _change_picture(isCover = 0){	
