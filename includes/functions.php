@@ -15,15 +15,17 @@ $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUser
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
-$GLOBALS['IP2Geo'] = new IP2Geo(getUserIP());;
+$GLOBALS['Mailer_Header'] = base64_decode('PCFET0NUWVBFIGh0bWw+DQo8aHRtbD4NCgk8aGVhZD4NCgkJPHRpdGxlPkRhcmtuaWdodDwvdGl0bGU+DQoJCTxtZXRhIGNoYXJzZXQ9IlVURi04Ij4NCgkJPHN0eWxlPg0KCQkJLnRpdGxlew0KCQkJCXRleHQtYWxpZ246IGNlbnRlcjsNCgkJCQljb2xvcjogIzRkOTRmZjsNCgkJCQlmb250LXNpemU6IDUwMCU7DQoJCQl9DQoJCQlwew0KCQkJCWNvbG9yOiB3aGl0ZTsNCgkJCQltYXJnaW46IDA7DQoJCQkJZm9udC1zaXplOiAxODAlOw0KCQkJfQ0KCQkJYXsNCgkJCQljb2xvcjogY3lhbjsNCgkJCQltYXJnaW46IDA7DQoJCQkJdGV4dC1kZWNvcmF0aW9uOm5vbmU7DQoJCQkJZm9udC1zaXplOiAxODAlOw0KCQkJfQ0KCQkJYnsNCgkJCQljb2xvcjogIzRkOTRmZjsNCgkJCQlmb250LXNpemU6IDIwMCU7DQoJCQl9DQoJCQlib2R5ew0KCQkJCWZvbnQtZmFtaWx5OiBSb2JvdG87DQoJCQl9DQoJCQkuY29udGV4dHsNCgkJCQliYWNrZ3JvdW5kLWNvbG9yOiAjMTIxMjEyOw0KCQkJCXdpZHRoOiA5MCU7DQoJCQkJaGVpZ2h0OiAxMDAlOw0KCQkJCXBhZGRpbmc6IDUwcHg7DQoJCQkJbWFyZ2luOiBhdXRvOw0KCQkJfQ0KCQkJLmNvbnRlbnR7DQoJCQkJd2lkdGg6IDYwJTsNCgkJCQlkaXNwbGF5OiBibG9jazsNCgkJCQltYXJnaW4tdG9wOiAxNSU7DQoJCQkJbWFyZ2luOiBhdXRvOw0KCQkJCXBvc2l0aW9uOiByZWFsdGl2ZTsNCgkJCQlwYWRkaW5nOiAxMHB4Ow0KCQkJCWJhY2tncm91bmQtY29sb3I6ICMxYjFkMjY7DQoJCQkJYm9yZGVyLXJhZGl1czogMTVweDsNCgkJCX0NCgkJCS5jb2Rlew0KCQkJCWJhY2tncm91bmQtY29sb3I6ICMzZjNmM2Y7DQoJCQl9DQoJCQlidXR0b257DQoJCQkJZm9udC1zaXplOiAxOHB4Ow0KCQkJCWN1cnNvcjogcG9pbnRlcjsNCgkJCQlwYWRkaW5nOiAxZW07DQoJCQkJY29sb3I6IHdoaXRlOw0KCQkJCWJvcmRlcjogbm9uZTsNCgkJCQlib3JkZXItcmFkaXVzOiAzMHB4Ow0KCQkJCWZvbnQtd2VpZ2h0OiA2MDA7DQoJCQkJd2lkdGg6IDEwMCU7DQoJCQkJYmFja2dyb3VuZDogIzAwNjZjYzsNCgkJCX0NCgkJPC9zdHlsZT4NCgk8L2hlYWQ+DQoJPGJvZHk+DQoJCTxkaXYgY2xhc3M9ImNvbnRleHQiPg0KCQkJPHAgY2xhc3M9InRpdGxlIj5EYXJrbmlnaHQgU29jaWFsPC9wPg0KCQkJPGRpdiBjbGFzcz0iY29udGFpbmVyIj4NCgkJCQk8ZGl2IGNsYXNzPSJ0cmFuc3BhcmVudF9ibG9jayI+DQoJCQkJCTxkaXYgY2xhc3M9ImNvbnRlbnQiPg');
+$GLOBALS['Mailer_Footer'] = base64_decode('DQoJCQkJCTwvZGl2Pg0KCQkJCTwvZGl2Pg0KCQkJPC9kaXY+DQoJCTwvZGl2Pg0KCTwvYm9keT4NCjwvaHRtbD4');
+
 $conn->query("set character_set_results='utf8'");
 $conn->query("SET NAMES 'utf8'");
 if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/')
 	if(!isset($_COOKIE['browser_id']))
 		_setcookie('browser_id',uniqid(),86400*365*15);
-function _setcookie($name, $value, $time){
+function _setcookie($name, $value, $time, $path = "/"){
 	$time = time() + $time;
-	setcookie($name, $value, $time);
+	setcookie($name, $value, $time, $path);
 }
 function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];
@@ -86,74 +88,8 @@ function validateDate($date, $format = 'Y-m-d') {
 }
 function SendVerifyMail($email, $name, $link){
 	$Mailer = $GLOBALS['Mailer'];
-	$MailBody = '<!DOCTYPE html>
-<html>
-	<head>
-		<title>Darknight</title>
-		<meta charset="UTF-8">
-		<style>
-			.title{
-				text-align: center;
-				color: #4d94ff;
-				font-size: 500%;
-			}
-			p{
-				color: white;
-				margin: 0;
-				font-size: 180%;
-			}
-			a{
-				color: cyan;
-				margin: 0;
-				text-decoration:none;
-				font-size: 180%;
-			}
-			b{
-				color: #4d94ff;
-				font-size: 200%;
-			}
-			body{
-				font-family: Roboto;
-			}
-			.context{
-				background-color: #121212;
-				width: 90%;
-				height: 100%;
-				padding: 50px;
-				margin: auto;
-			}
-			.content{
-				width: 60%;
-				display: block;
-				margin-top: 15%;
-				margin: auto;
-				position: realtive;
-				padding: 10px;
-				background-color: #1b1d26;
-				border-radius: 15px;
-			}
-			.code{
-				background-color: #3f3f3f;
-			}
-			button{
-				font-size: 18px;
-				cursor: pointer;
-				padding: 1em;
-				color: white;
-				border: none;
-				border-radius: 30px;
-				font-weight: 600;
-				width: 100%;
-				background: #0066cc;
-			}
-		</style>
-	</head>
-	<body>
-		<div class="context">
-			<p class="title">Darknight Social</p>
-			<div class="container">
-				<div class="transparent_block">
-					<div class="content">
+	$MailBody = $GLOBALS['Mailer_Header'].
+	'
 						<p>Hello '.$name.',</p>
 						<p>Follow this link to verify your email address.</p>
 						<br>
@@ -168,13 +104,8 @@ function SendVerifyMail($email, $name, $link){
 						<p>If you didn’t ask to verify this address, you can ignore this email.</p>
 						<br>
 						<p>Thanks</p>
-						<center><b>- DarkNightDev - </b></center>
-					</div>
-				</div>
-			</div>
-		</div>
-	</body>
-</html>';
+						<center><b>- DarkNightDev - </b></center>'
+	.$GLOBALS['Mailer_Footer'];
 	$Mailer->send(
 		$email,
 		"DarkNight - Verify",
@@ -609,8 +540,9 @@ function _is_same_browser($userID){
 		$conn->real_escape_string($_COOKIE['browser_id'])
 	);
 	$query = $conn->query($sql);
-	if($query->num_rows > 0)
-		return [true,$query->fetch_assoc()];
+	if($query)
+		if($query->num_rows > 0)
+			return [true,$query->fetch_assoc()];
 	return [false];
 }
 function new_session($time, $userID, $auth2FA){
@@ -640,7 +572,7 @@ function new_session($time, $userID, $auth2FA){
 	_setcookie("session_token", $session_token, $time);
 }
 function _is_session_valid($checkActive = true){
-	if(!isset($_COOKIE['token']) && !isset($_COOKIE['session_id']) && !isset($_COOKIE['session_token']) && !isset($_COOKIE['browser_id'])){
+	if(!isset($_COOKIE['token']) || !isset($_COOKIE['session_id']) || !isset($_COOKIE['session_token']) || !isset($_COOKIE['browser_id'])){
 		return false;
 	}
 	$add = ($checkActive) ? ' AND session_valid = 1' : '';
