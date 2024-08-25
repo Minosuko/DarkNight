@@ -112,11 +112,11 @@
 							<div class="setting__box">
 								<div class="index_input_box xsetting">
 									<label for="userabout"><lang lang="lang__035"></lang>:</label>
-									<textarea name="userabout" id="userabout" autocomplete="off" class="text_area"></textarea>
+									<textarea name="userabout" id="userabout" autocomplete="off" class="text_area" maxlength="255"></textarea>
 								</div>
 							</div>
 							<div class="xsetting">
-								<button class="s_button"><lang lang="lang__044"></lang> <i class="fa-regular fa-floppy-disk"></i></button>
+								<button class="s_button" onclick="_change_profile_infomation()"><lang lang="lang__044"></lang> <i class="fa-regular fa-floppy-disk"></i></button>
 							</div>
 							<div style="height: 48px"></div>
 						</div>

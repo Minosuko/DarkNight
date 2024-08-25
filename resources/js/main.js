@@ -805,7 +805,7 @@ function fetch_profile(){
 		a += '<br>';
 		a += '<div class="about_me">';
 		if(data['user_about'] != ''){
-			a += '<h2>'+window['lang__70']+':</h2>';
+			a += '<h2>'+window['lang__070']+':</h2>';
 			a += data['user_about'];
 		}
 		a += '<br>';
@@ -819,23 +819,24 @@ function fetch_profile(){
 		if(data['user_status'] != ''){
 		switch(data['user_status']){
 				case "S":
-					a += window['lang__71'];
+					a += window['lang__071'];
 					break;
 				case "E":
-					a += window['lang__72'];
+					a += window['lang__072'];
 					break;
 				case "M":
-					a += window['lang__73'];
+					a += window['lang__073'];
 					break;
 				case "L":
-					a += window['lang__74'];
+					a += window['lang__074'];
 					break;
 				case "D":
-					a += window['lang__75'];
+					a += window['lang__075'];
+					break;
+				case "U":
+					a += window['lang__076'];
 					break;
 				default:
-				case "U":
-					a += window['lang__76'];
 					break;
 			}
 			a += '<br>';
@@ -1235,6 +1236,48 @@ function _load_settings(){
 		verified.classList.add("fa-x");
 	}
 	changeUrlWork();
+}
+function _change_profile_infomation(){
+	var userfirstname = gebi("userfirstname").value;
+	var userlastname = gebi("userlastname").value;
+	var birthday = gebi("birthday").value;
+	var userhometown = gebi("userhometown").value;
+	var userabout = gebi("userabout").value;
+	var usergender = gebcn("usergender");
+	usergender = (usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U")));
+	d = new FormData();
+	d.append('type','ChangePofileInfomation');
+	d.append('userfirstname',userfirstname);
+	d.append('userlastname',userlastname);
+	d.append('birthday',birthday);
+	d.append('userhometown',userhometown);
+	d.append('userabout',userabout);
+	d.append('usergender',usergender);
+	$.ajax('/worker/change_account_infomation.php', {
+		method: "POST",
+		data: d,
+		processData: false,
+		contentType: false,
+		success: function (q) {
+			if(q['success'] != 1){
+				a = '';
+				switch(q['code']){
+					case 0:
+						a = window['lang__046'];
+						break;
+					case 1:
+						a = window['lang__78'];
+						break;
+					case 2:
+						a = window['lang__053'];
+						break;
+				}
+				alert(a);
+			}else{
+				alert(window['lang__079']);
+			}
+		}
+	});
 }
 function _change_infomation(c = null){
 	gebtn('body')[0].style.overflowY = "hidden";
