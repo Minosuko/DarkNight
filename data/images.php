@@ -32,6 +32,11 @@ if(isset($_GET['id']) && isset($_GET['h'])){
 		$fdate = filemtime("images/F.jpg");
 		$fsize = filesize("images/F.jpg");
 	}
+	if($type == "default_U"){
+		$etag = md5_file("images/U.jpg");
+		$fdate = filemtime("images/U.jpg");
+		$fsize = filesize("images/U.jpg");
+	}
 }
 $tsstring = gmdate('D, d M Y H:i:s ', $fdate) . 'GMT';
 $if_modified_since = isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) ? $_SERVER['HTTP_IF_MODIFIED_SINCE'] : false;
@@ -59,6 +64,14 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 			header("ETag: $md5");
 			header("Content-Length: $fsize");
 			readfile("images/F.jpg");
+		}elseif($type == "default_U"){
+			$md5 = md5_file("images/U.jpg");
+			header('Content-Disposition: filename="Default_U.jpg"');
+			header("Content-Type: image/jpeg");
+			header("Last-Modified: $tsstring");
+			header("ETag: $md5");
+			header("Content-Length: $fsize");
+			readfile("images/U.jpg");
 		}else{
 			if(isset($_GET['id']) && isset($_GET['h'])){
 				if(is_numeric($_GET['id'])){

@@ -1,7 +1,8 @@
-var default_male_pfp, default_female_pfp, pfp_cdn, media_cdn, video_cdn, supported_language;
+var default_male_pfp, default_female_pfp, default_user_pfp, pfp_cdn, media_cdn, video_cdn, supported_language;
 
 default_male_pfp = 'data/images.php?t=default_M';
 default_female_pfp = 'data/images.php?t=default_F';
+default_user_pfp = 'data/images.php?t=default_U';
 pfp_cdn = 'data/images.php?t=profile';
 media_cdn = 'data/images.php?t=media';
 video_cdn = 'data/videos.php?t=media';
@@ -35,6 +36,18 @@ function changeLanguage(lang = 'en-us'){
 	}).done(function() {
 		location.reload();
 	});
+}
+function getDefaultUserImage(g){
+	switch(g){
+		case "M":
+			return default_male_pfp;
+		case "F":
+			return default_female_pfp;
+		break;
+		case "U":
+		default:
+			return default_user_pfp;
+	}
 }
 function load_lang(){
 	var i = gebtn('lang');
@@ -321,7 +334,7 @@ function fetch_pfp_box(){
 	$.get("worker/profile_image.php", function(data) {
 		var b = gebi('pfp_box');
 		if(b != null)
-			b.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : (data['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+			b.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender'])
 	});
 }
 function fetch_post(loc) {
@@ -340,7 +353,7 @@ function fetch_post(loc) {
 				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
 				a += '<div class="header">';
 				a += '<img class="pfp" src="';
-				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : (s['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : getDefaultUserImage(s['user_gender']);
 				a += '" width="40px" height="40px">';
 				a += '<a class="fname profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'];
 				if(s['verified'] > 0)
@@ -408,7 +421,7 @@ function fetch_post(loc) {
 					if (pflag) {
 						a += '<div class="header">';
 						a += '<img class="pfp" src="'
-						a += (s['share']['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : ((s['share']['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+						a += (s['share']['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : getDefaultUserImage(s['share']['user_gender']);
 						a += '" width="40px" height="40px">';
 
 						a += '<a class="fname profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'];
@@ -567,7 +580,7 @@ function _load_comment(id, page){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="comment">';
 				a += '<img class="pfp comment-pfp" src="'
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : (data[i]['user_gender'] == 'M' ? default_male_pfp : default_female_pfp)
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
 				a += '" width="40px" height="40px">';
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if(data[i]['verified'] > 0)
@@ -697,7 +710,7 @@ function fetch_friend_list(loc){
 				a += '<center>';
 				a += '<div class="pfp-box">';
 				a += '<img class="pfp" src="'
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : (data[i]['user_gender'] == 'M' ? default_male_pfp : default_female_pfp);
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
 				a += '" width="168px" height="168px" id="pfp"/>';
 				a += '<div class="status-circle ' + ( (data[i]['is_online']) ? 'online' : 'offline') + '-status-circle"></div>';
 				a += '</div>';
@@ -731,7 +744,7 @@ function fetch_friend_request(loc){
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
 				a += '<div class="userquery">';
 				a += '<img class="pfp" src="'
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : ((data[i]['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
 				a += '" width="40px" height="40px">';
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] +'">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
@@ -769,7 +782,7 @@ function fetch_profile(){
 		a += '<center>';
 		a += '<div class="profile_head">';
 		a += '<img class="pfp" src="'
-		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 		a += '" width="200px" height="200px">';
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
@@ -786,34 +799,37 @@ function fetch_profile(){
 		a += '<br>';
 		a += '<div class="about_me">';
 		if(data['user_about'] != ''){
-			a += '<h2>About me:</h2>';
+			a += '<h2>'+window['lang__70']+':</h2>';
 			a += data['user_about'];
 		}
 		a += '<br>';
 		a += '<br>';
 		a += '<br>';
 		if(data['user_gender'] == "M")
-			a += 'Male';
+			a += window['lang__030'];
 		else if(data['user_gender'] == "F")
-			a += 'Female';
+			a += window['lang__031'];
 		a += '<br>';
 		if(data['user_status'] != ''){
-			switch(data['user_status']){
+		switch(data['user_status']){
 				case "S":
-					a += 'Single';
+					a += window['lang__71'];
 					break;
 				case "E":
-					a += 'Engaged';
+					a += window['lang__72'];
 					break;
 				case "M":
-					a += 'Married';
+					a += window['lang__73'];
 					break;
 				case "L":
-					a += 'In Love';
+					a += window['lang__74'];
+					break;
+				case "D":
+					a += window['lang__75'];
 					break;
 				default:
 				case "U":
-					a += 'Unknown';
+					a += window['lang__76'];
 					break;
 			}
 			a += '<br>';
@@ -1028,7 +1044,7 @@ function send_comment(){
 				var a = '';
 				a += '<div class="comment">';
 				a += '<img class="pfp comment-pfp" src="'
-				a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+				a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 				a += '" width="40px" height="40px">';
 				a += '<a class="profilelink cmt_user_name" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if(data['verified'] > 0)
@@ -1145,7 +1161,7 @@ function _load_settings(){
 			email.value = res['user_email'];
 			if(res['cover_media_id'] > 0)
 				setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
-			psrc = (res['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'] : (res['user_gender'] == 'M' ? default_male_pfp : default_female_pfp);
+			psrc = (res['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'] : getDefaultUserImage(res['user_gender']);
 			profile_picture.src = psrc;
 			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
 			if(res['user_gender'] == 'F')
