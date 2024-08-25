@@ -1,5 +1,3 @@
-var default_male_pfp, default_female_pfp, default_user_pfp, pfp_cdn, media_cdn, video_cdn, supported_language;
-
 default_male_pfp = 'data/images.php?t=default_M';
 default_female_pfp = 'data/images.php?t=default_F';
 default_user_pfp = 'data/images.php?t=default_U';
@@ -9,8 +7,8 @@ video_cdn = 'data/videos.php?t=media';
 supported_language = [['en-us','English'],['vi-vn','Tiếng Việt']];
 
 if (typeof(Storage) !== "undefined") {
-	var a = lsg("language");
-	var d = lsg("language_data");
+	a = lsg("language");
+	d = lsg("language_data");
 	if(a == null){
 		localStorage.setItem("language",'en-us');
 		a = 'en-us';
@@ -23,7 +21,7 @@ if (typeof(Storage) !== "undefined") {
 			location.reload();
 		});
 	}
-	var j = JSON.parse(d);
+	j = JSON.parse(d);
 	Object.keys(j).forEach(function(v){
 		window[v] = j[v];
 	});
@@ -43,23 +41,22 @@ function getDefaultUserImage(g){
 			return default_male_pfp;
 		case "F":
 			return default_female_pfp;
-		break;
 		case "U":
 		default:
 			return default_user_pfp;
 	}
 }
 function load_lang(){
-	var i = gebtn('lang');
+	i = gebtn('lang');
 	Object.keys(i).forEach(function (n){
-		var e = i[n];
-		var s = e.getAttribute('lang');
+		e = i[n];
+		s = e.getAttribute('lang');
 		if(e.getAttribute('lang_set') != 'true'){
-			var t = e.tagName.toLocaleLowerCase();
-			var l = window[s];
+			t = e.tagName.toLocaleLowerCase();
+			l = window[s];
 			switch(t){
 				case 'input':
-					var a = e.getAttribute('type');
+					a = e.getAttribute('type');
 					if(a == 'submit' || a == 'button'){
 						e.value = l;
 					}else{
@@ -71,13 +68,13 @@ function load_lang(){
 			e.setAttribute('lang_set','true');
 		}
 	});
-	var h = gebtn('input');
+	h = gebtn('input');
 	Object.keys(h).forEach(function (n){
-		var e = h[n];
-		var s = e.getAttribute('lang');
+		e = h[n];
+		s = e.getAttribute('lang');
 		if(e.getAttribute('lang_set') != 'true' && s != null){
-			var l = window[s];
-			var a = e.getAttribute('type');
+			l = window[s];
+			a = e.getAttribute('type');
 			if(a == 'submit' || a == 'button')
 				e.value = l;
 			else
@@ -103,69 +100,69 @@ function gebtn(i){
 }
 function preview(input){
 	if (input.files && input.files[0]) {
-		var reader = new FileReader();
-		reader.onload = function (event){
-			var match = reader.result.match(/^data:([^/]+)\/([^;]+);/) || [];
-			var type = match[1];
-			var format = match[2];
-			$('#preview_' + type).css('display', 'initial');
-			if(type == 'video'){
-				var video = gebi("preview_video");
-				video.setAttribute('src', event.target.result);
-				video.setAttribute('type', type + '/' + format);
+		r = new FileReader();
+		r.onload = function (e){
+			m = r.result.match(/^data:([^/]+)\/([^;]+);/) || [];
+			t = m[1];
+			f = m[2];
+			$('#preview_' + t).css('display', 'initial');
+			if(t == 'video'){
+				v = gebi("preview_video");
+				v.setAttribute('src', e.target.result);
+				v.setAttribute('type', t + '/' + f);
 			}else{
-				$('#preview_' + type).attr('src', event.target.result);
+				$('#preview_' + t).attr('src', e.target.result);
 			}
 		}
 		reader.readAsDataURL(input.files[0]);
 	}
 }
 function make_blob_url(c, f){
-	var blob = new Blob([c], { type: f });
-	var blobUrl = URL.createObjectURL(blob);
-	return blobUrl;
+	b = new Blob([c], { type: f });
+	u = URL.createObjectURL(b);
+	return u;
 }
 function load_video(i, h, f, e){
-	var url = video_cdn + '&id=' + i + '&h=' + h;
+	u = video_cdn + '&id=' + i + '&h=' + h;
 	$.ajax({
 		type: "HEAD",
 		async: true,
-		url: url,
-	}).done(function(message,text,jqXHR){
-		var ContentSize = Number(jqXHR.getResponseHeader('Content-Length'));
-		if(ContentSize > 33554432){
-			e.setAttribute("src",url);
+		url: u,
+	}).done(function(ms,tx,h){
+		s = Number(h.getResponseHeader('Content-Length'));
+		if(s > 33554432){
+			e.setAttribute("src",u);
 		}else{
 			$.ajax({
 				xhr: function(){
-					var xhr = new XMLHttpRequest();
-					xhr.rType = 'blob';
-					return xhr;
+					x = new XMLHttpRequest();
+					x.rType = 'blob';
+					return x;
 				},
-				url: url,
+				url: u,
 				type: 'GET',
 				async: true,
-				success: function(res) {
-					var blobUrl = make_blob_url(res, f);
-					e.setAttribute("src",blobUrl);
+				success: function(r) {
+					b = make_blob_url(r, f);
+					e.setAttribute("src",b);
 				}
 			});
 		}
     });
 }
 function showPath(){
-	var path = gebi("selectedFile").value;
-	path = path.replace(/^.*\\/, "");
-	gebi("path").innerHTML = path;
+	p = gebi("selectedFile").value;
+	p = p.replace(/^.*\\/, "");
+	gebi("path").innerHTML = p;
 }
 function validateNumber(){
-	var number = gebi("phonenum").value;
-	var required = gebcn("required");
-	if(number == ""){
-		required[0].innerHTML = window["lang__007"];
+	n = gebi("phonenum").value;
+	r = gebcn("required");
+	if(n == ""){
+		r[0].innerHTML = window["lang__007"];
 		return false;
-	} else if(isNaN(number)){
-		required[0].innerHTML = window["lang__008"];
+	} else if(isNaN(n)){
+		r[0].innerHTML = window["lang__008"];
 		return false;
 	}
 	return true;
@@ -179,46 +176,46 @@ function textAreaRework(){
 	});
 }
 function timeConverter(t){
-	var a = new Date(t);
-	var y = a.getFullYear();
-	var m = a.getMonth() + 1;
-	var d = a.getDate();
-	var h = a.getHours();
-	var i = a.getMinutes();
-	var s = a.getSeconds();
-	var r = d + '/' + m + '/' + y + ' ' + h + ':' + i + ':' + s ;
+	a = new Date(t);
+	y = a.getFullYear();
+	m = a.getMonth() + 1;
+	d = a.getDate();
+	h = a.getHours();
+	i = a.getMinutes();
+	s = a.getSeconds();
+	r = d + '/' + m + '/' + y + ' ' + h + ':' + i + ':' + s ;
 	return r;
 }
 function birthdateConverter(t){
-	var a = new Date(t);
-	var y = a.getFullYear();
-	var m = a.getMonth() + 1;
+	a = new Date(t);
+	y = a.getFullYear();
+	m = a.getMonth() + 1;
 	if(m.toString().length == 1)
 		m = '0' + m;
-	var d = a.getDate();
+	d = a.getDate();
 	if(d.toString().length == 1)
 		d = '0' + d;
-	var r = y + '-' + m + '-' + d;
+	r = y + '-' + m + '-' + d;
 	return r;
 }
-function timeSince(date) {
-	var seconds = Math.floor((new Date() - date) / 1000);
-	var interval = seconds / 31536000;
-	if (interval > 1)
-		return Math.floor(interval) + " y";
-	interval = seconds / 2592000;
-	if (interval > 1)
-		return Math.floor(interval) + " m";
-	interval = seconds / 86400;
-	if (interval > 1)
-		return Math.floor(interval) + " d";
-	interval = seconds / 3600;
-	if (interval > 1)
-		return Math.floor(interval) + " hr";
-	interval = seconds / 60;
-	if (interval > 1)
-		return Math.floor(interval) + " min";
-	return Math.floor(seconds) + " seconds";
+function timeSince(d) {
+	s = Math.floor((new Date() - d) / 1000);
+	i = s / 31536000;
+	if (i > 1)
+		return Math.floor(i) + " y";
+	i = s / 2592000;
+	if (i > 1)
+		return Math.floor(i) + " m";
+	i = s / 86400;
+	if (i > 1)
+		return Math.floor(i) + " d";
+	i = s / 3600;
+	if (i > 1)
+		return Math.floor(i) + " hr";
+	i = s / 60;
+	if (i > 1)
+		return Math.floor(i) + " min";
+	return Math.floor(s) + " seconds";
 }
 function _load_info(){
 	$.ajax({
@@ -231,18 +228,18 @@ function _load_info(){
 	});
 }
 function _like(id) {
-	$.get("worker/likes.php?post_id=" + id, function(data) {
-		var splt = data.split(";");
-		var post_like = gebi("post-like-" + id);
-		var class_l = "icon-heart fa-heart icon-click";
-		if (splt[0] === "1") {
-			post_like.className = class_l + " fa-solid p-heart";
-			post_like.classList.toggle("active");
+	$.get("worker/likes.php?post_id=" + id, function(d) {
+		s = d.split(";");
+		l = gebi("post-like-" + id);
+		c = "icon-heart fa-heart icon-click";
+		if (s[0] === "1") {
+			l.className = c + " fa-solid p-heart";
+			l.classList.toggle("active");
 		} else {
-			post_like.className = class_l + " fa-regular white-col";
+			l.className = c + " fa-regular white-col";
 		}
 		zTemplate(gebi("post-like-count-" + id), {
-			"counter": parseInt(splt[1])
+			"counter": parseInt(s[1])
 		});
 	});
 }
@@ -250,17 +247,17 @@ function loading_bar(percent){
 	gebi("loading_bar").style.width = percent + "%";
 }
 lss("cgurl",0);
-function changeUrl(url) {
+function changeUrl(u) {
 	window.scrollTo({top: 0, behavior: 'smooth'});
 	lss("cgurl",1);
 	loading_bar(70)
 	$.ajax({
-		url: url,
+		url: u,
 		type: 'GET',
-		success: function(res) {
+		success: function(r) {
 			_online();
 			loading_bar(100)
-			processAjaxData(res, url);
+			processAjaxData(r, u);
 			_load_info();
 			lss("cgurl",0);
 		},
@@ -270,32 +267,32 @@ function changeUrl(url) {
 	});
 }
 function processAjaxData(r, u) {
-	var el = document.createElement("html");
-	el.innerHTML = r;
-	var container = el.getElementsByClassName('container');
-	var style = el.getElementsByTagName('style');
-	var docStyle = gebtn('style');
-	var docHead = gebtn('head');
-	if(style.length > 0){
-		if(docStyle.length == 0){
-			var StyleNode = document.createElement("style");
-			StyleNode.innerHTML = style[0].innerHTML;
-			docHead[0].appendChild(StyleNode);
+	e = document.createElement("html");
+	e.innerHTML = r;
+	t = e.getElementsByTagName('title')[0].innerHTML;
+	c = e.getElementsByClassName('container');
+	s = e.getElementsByTagName('style');
+	d = gebtn('style');
+	h = gebtn('head');
+	if(s.length > 0){
+		if(d.length == 0){
+			n = document.createElement("style");
+			n.innerHTML = s[0].innerHTML;
+			h[0].appendChild(n);
 		}else{
-			docStyle[0].innerHTML = style[0].innerHTML;
+			d[0].innerHTML = s[0].innerHTML;
 		}
 	}else{
-		if(docStyle.length > 0){
-			docStyle[0].innerHTML = '';
+		if(d.length > 0){
+			d[0].innerHTML = '';
 		}
 	}
-	gebcn('container')[0].innerHTML = container[0].innerHTML;
+	gebcn('container')[0].innerHTML = c[0].innerHTML;
 	load_lang();
-	var title = el.getElementsByTagName('title')[0].innerHTML;
-	document.title = title;
+	document.title = t;
 	window.history.pushState({
 		"html": r,
-		"pageTitle": title
+		"pageTitle": t
 	}, "", u);
 	loading_bar(0);
 	if (u.substring(0,13) === "/settings.php" || u.substring(0,12) === "settings.php")
@@ -309,7 +306,7 @@ function processAjaxData(r, u) {
 	if (u === "/requests.php" || u === "requests.php")
 		fetch_friend_request('fetch_friend_request.php');
 	if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
-		var add_header = "";
+		add_header = "";
 		if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
 			add_header = "?id=" + get("id");
 		fetch_profile();
@@ -325,31 +322,40 @@ function processAjaxData(r, u) {
 	textAreaRework();
 }
 $(window).on("popstate", function () {
-	var url = new URL(window.location.href);
-	var u = url.pathname + url.search;
+	url = new URL(window.location.href);
+	u = url.pathname + url.search;
 	if(lsg("cgurl") == 0)
 		changeUrl(u);
 });
 function fetch_pfp_box(){
-	$.get("worker/profile_image.php", function(data) {
-		var b = gebi('pfp_box');
-		if(b != null)
-			b.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender'])
-	});
+	if (typeof(Storage) !== "undefined") {
+		b = gebi('pfp_box');
+		if(b != null){
+			i = lsg('pfp_media_id');
+			h = lsg('pfp_media_hash');
+			g = lsg('user_gender');
+			$.get("worker/profile_image.php", function(d) {
+				if(d["pfp_media_id"] != i) lss("pfp_media_id",d["pfp_media_id"]);
+				if(d["pfp_media_hash"] != i) lss("pfp_media_hash",d["pfp_media_hash"]);
+				if(d["user_gender"] != i) lss("user_gender",d["user_gender"]);
+			});
+			b.src = (i > 0) ? pfp_cdn + '&id=' + (i != null ? i : lsg('pfp_media_id')) + "&h=" + (h != null ? h : lsg('pfp_media_hash')) : getDefaultUserImage((g != null ? g : lsg('user_gender')));
+		}
+	}
 }
 function fetch_post(loc) {
 	fetch_pfp_box();
 	$.get("worker/" + loc, function(data) {
-		var f = '';
-		var l = Object.keys(data).length;
-		var page = gebi('page');
-		var e = false;
+		f = '';
+		l = Object.keys(data).length;
+		page = gebi('page');
+		e = false;
 		if (data["success"] == 1) {
 			for (let i = 0; i < (l - 1); i++) {
 				var s = data[i];
-				var share_id = 0;
-				var share_able = true;
-				var a = "";
+				share_id = 0;
+				share_able = true;
+				a = "";
 				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
 				a += '<div class="header">';
 				a += '<img class="pfp" src="';
@@ -415,7 +421,7 @@ function fetch_post(loc) {
 				}
 				a += '<br>';
 				if (s['is_share'] != 0) {
-					var pflag = false;
+					pflag = false;
 					pflag = s['share']["pflag"];
 					a += '<div class="share-post" id="post_id-' + s['share']['post_id'] + '">';
 					if (pflag) {
@@ -483,7 +489,7 @@ function fetch_post(loc) {
 
 				a += '<div class="bottom">';
 				a += '<div class="reaction-bottom">';
-				var liked = '';
+				liked = '';
 				if (s['is_liked'] == 1)
 					liked = 'p-heart fa-solid';
 				else
@@ -523,9 +529,9 @@ function fetch_post(loc) {
 			gebi("feed").innerHTML += f;
 			
 			for (let i = 0; i < (l - 1); i++) {
-				var s = data[i];
-				var _pvideo = gebi("video_pid-" + s['post_id']);
-				var _psvideo = gebi("video_pid-" + s['post_id'] + 's');
+				s = data[i];
+				_pvideo = gebi("video_pid-" + s['post_id']);
+				_psvideo = gebi("video_pid-" + s['post_id'] + 's');
 				if(_pvideo != null)
 					load_video(s['post_media'], s['media_hash'], s['media_format'], _pvideo);
 				if(_psvideo != null)
@@ -572,8 +578,8 @@ function modal_close() {
 }
 function _load_comment(id, page){
 	$.get("worker/fetch_comment.php?id=" + id + "&page=" + page, function(data) {
-		var b = gebi("comment-box");
-		var a = '';
+		b = gebi("comment-box");
+		a = '';
 		if(data['success'] == 2)
 			gebi('page').value = -1;
 		if(data['success'] == 1){
@@ -602,8 +608,8 @@ function _share(id) {
 	gebtn('body')[0].style.overflowY = "hidden";
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
 		gebi("modal").style.display = "block";
-		var s = data;
-		var a = "";
+		s = data;
+		a = "";
 		
 		a += '<div class="createpost_box">';
 		a += '<div>';
@@ -642,7 +648,7 @@ function _share(id) {
 					preview(this);
 				});
 			});
-		var textarea = gebtn("textarea")[0];
+		textarea = gebtn("textarea")[0];
 		textarea.oninput = function() {
 			textarea.style.height = "";
 			textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
@@ -652,7 +658,7 @@ function _share(id) {
 function make_post(){
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
-	var a = "";
+	a = "";
 	a += '<div class="createpost_box">';
 	a += '<div>';
 	a += '<br>';
@@ -685,7 +691,7 @@ function make_post(){
 				preview(this);
 			});
 		});
-	var textarea = gebtn("textarea")[0];
+	textarea = gebtn("textarea")[0];
 	textarea.oninput = function() {
 		textarea.style.height = "";
 		textarea.style.height = Math.min(textarea.scrollHeight, 1280) + "px";
@@ -697,8 +703,8 @@ function _open_post(id){
 }
 function fetch_friend_list(loc){
 	$.get("worker/" + loc, function(data) {
-		var friend_list = gebi("friend_list");
-		var a = '';
+		friend_list = gebi("friend_list");
+		a = '';
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="post">';
@@ -732,8 +738,8 @@ function fetch_friend_list(loc){
 }
 function fetch_friend_request(loc){
 	$.get("worker/" + loc, function(data) {
-		var friend_reqest_list = gebi("friend_reqest_list");
-		var a = '';
+		friend_reqest_list = gebi("friend_reqest_list");
+		a = '';
 		a += '<center>';
 		if(data['success'] == 2){
 			a += '<div class="userquery">';
@@ -769,16 +775,16 @@ function fetch_friend_request(loc){
 	});
 }
 function fetch_profile(){
-	var id = get("id");
-	var id_a = '';
+	id = get("id");
+	id_a = '';
 	if(typeof(id) != 'undefined')
 		id_a = '?id=' + id;
 	$.get("worker/fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
-		var profile = gebi("profile");
-		var profile_cover = gebi("profile_cover");
-		var a = '';
+		profile = gebi("profile");
+		profile_cover = gebi("profile_cover");
+		a = '';
 		a += '<center>';
 		a += '<div class="profile_head">';
 		a += '<img class="pfp" src="'
@@ -854,11 +860,11 @@ function fetch_profile(){
 		a += '</center>';
 		profile.innerHTML = a;
 		if(isMobile()){
-			var pfp_head = gebcn('profile_head')[0];
-			var user_name = gebcn('user_name')[0];
-			var about_me = gebcn('about_me')[0];
-			var nickname = gebcn('nickname')[0];
-			var feed = gebi('feed');
+			pfp_head = gebcn('profile_head')[0];
+			user_name = gebcn('user_name')[0];
+			about_me = gebcn('about_me')[0];
+			nickname = gebcn('nickname')[0];
+			feed = gebi('feed');
 			pfp_head.style.marginLeft = "auto";
 			pfp_head.style.marginTop = "0";
 			user_name.style.marginTop = "0";
@@ -880,22 +886,22 @@ function fetch_profile(){
 	});
 }
 function _load_post(post_id = null){
-	var id = (post_id != null) ? post_id : get('id');
+	id = (post_id != null) ? post_id : get('id');
 	if(typeof(id) == 'undefined')
 		window.history.go(-1);
 	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
 		if(data['success'] == 2)
 			window.history.go(-1);
-		var _content_left = gebi("_content_left");
-		var _content_right = gebi("_content_right");
-		var a = '';
+		_content_left = gebi("_content_left");
+		_content_right = gebi("_content_right");
+		a = '';
 		a += '<div class="rcf_box"></div>';
 		a += '<div class="header" style="margin: 15px">';
 		gebi("_content_left").style.height = ($(window).height() - 45) + "px";
 		_content_right.style.height = ($(window).height() - 45) + "px";
 		if(data['post_media'] > 0 || data['is_share'] > 0){
-			var picture = gebi("picture");
-			var video = gebi("video");
+			picture = gebi("picture");
+			video = gebi("video");
 			if(data['is_share'] > 0){
 				a += '<a style="text-align: center;" href="post.php?id='+data['is_share'] +'">View original post</a>';
 				a += '<hr>';
@@ -986,11 +992,11 @@ function _load_post(post_id = null){
 			gebcn('comment-form')[0].style.width = "100%";
 		}
 		$("#comment-box").scroll(function() {
-			var obj = this;
+			obj = this;
 			if(obj.scrollTop === (obj.scrollHeight - obj.offsetHeight)){
-				var page = gebi('page');
+				page = gebi('page');
 				if(page != -1){
-					var nextPage = Number(page.value) + 1;
+					nextPage = Number(page.value) + 1;
 					_load_comment(get('id'), nextPage);
 				}
 			}
@@ -1011,15 +1017,15 @@ function _load_post(post_id = null){
 	});
 }
 function _friend_request_toggle(id,accept){
-	var ac = '';
+	ac = '';
 	if(accept == 1)
 		ac = 'accept';
 	else
 		ac = 'ignore';
 	$.get("worker/friend_request_toggle.php?id=" + id + "&" + ac, function(data) {
 		if(data['success'] == 1){
-			var t = gebi('toggle-fr-' + data['id']);
-			var a = '';
+			t = gebi('toggle-fr-' + data['id']);
+			a = '';
 			a += '<center>';
 			a += 'accepted';
 			a += '</center>';
@@ -1028,8 +1034,8 @@ function _friend_request_toggle(id,accept){
 	});
 }
 function send_comment(){
-	var text = gebi("comment-form-text").value;
-	var f = new FormData();
+	text = gebi("comment-form-text").value;
+	f = new FormData();
 	f.append('comment', text);
 	$.ajax({
 		type: "POST",
@@ -1040,8 +1046,8 @@ function send_comment(){
 		data: f,
 		success: function (r) {
 			$.get("worker/fetch_profile_info.php", function(data) {
-				var b = gebi('comment-box');
-				var a = '';
+				b = gebi('comment-box');
+				a = '';
 				a += '<div class="comment">';
 				a += '<img class="pfp comment-pfp" src="'
 				a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
@@ -1064,8 +1070,8 @@ function send_comment(){
 	});
 }
 function _friend_toggle(){
-	var special = gebi("special");
-	var f = new FormData();
+	special = gebi("special");
+	f = new FormData();
 	f.append(special.name, '1');
 	$.ajax({
 		type: "POST",
@@ -1086,7 +1092,7 @@ function _friend_toggle(){
 	});
 }
 function showMore(id){
-	var cap = gebi('caption_box-' + id);
+	cap = gebi('caption_box-' + id);
 	cap.style.height = (cap.children[1].clientHeight + 15) + "px";
 	gebi('caption_box_shadow-' + id).style.display = "none";
 }
@@ -1115,9 +1121,9 @@ function _load_hljs(){
 		url: "/worker/hljs_lang_list.php",
 		type: 'GET',
 		success: function(res) {
-			var hljs_lang_list= gebi('hljs_lang_list');
+			hljs_lang_list= gebi('hljs_lang_list');
 			for(let i = 0; i < res.length; i++){
-				var ScriptLink = document.createElement("script");
+				ScriptLink = document.createElement("script");
 				ScriptLink.src = "/resources/js/highlight/"+res[i];
 				hljs_lang_list.appendChild(ScriptLink);
 			}
@@ -1126,82 +1132,114 @@ function _load_hljs(){
 	changeUrlWork();
 }
 function _load_settings(){
-	var tab = get("tab");
+	tab = get("tab");
 	if(tab == undefined)
 		tab = 'account';
-	var current_tab = gebi('tab-' + tab);
+	current_tab = gebi('tab-' + tab);
 	if(current_tab != null)
 		current_tab.classList.add("active");
-	var current_setting_tab = gebi('setting-tab-' + tab);
+	current_setting_tab = gebi('setting-tab-' + tab);
 	if(current_setting_tab != null)
 		current_setting_tab.style.display = "block";
+	l_user_about = lsg('user_about');
+	l_user_hometown = lsg('user_hometown');
+	l_usernickname = lsg('user_nickname');
+	l_userfirstname = lsg('userfirstname');
+	l_userlastname = lsg('userlastname');
+	l_user_email = lsg('user_email');
+	l_cover_media_id = lsg('cover_media_id');
+	l_cover_media_hash = lsg('cover_media_hash');
+	l_pfp_media_id = lsg('pfp_media_id');
+	l_pfp_media_hash = lsg('pfp_media_hash');
+	l_user_gender = lsg('user_gender');
+	l_user_birthdate = lsg('user_birthdate');
+	l_verified = lsg('verified');
 	$.ajax({
 		url: "/worker/fetch_profile_setting_info.php",
 		type: 'GET',
-		success: function(res) {
-			var usernickname = gebi('usernickname');
-			var userfirstname = gebi('userfirstname');
-			var userlastname = gebi('userlastname');
-			var malegender = gebi('malegender');
-			var femalegender = gebi('femalegender');
-			var othergender = gebi('femalegender');
-			var email = gebi('email');
-			var user_hometown = gebi('userhometown');
-			var user_about = gebi('userabout');
-			var verified = gebi('verified');
-			var verified_text = gebi('verified-text');
-			var birthday = gebi('birthday');
-			var profile_picture = gebi('profile_picture');
-			var setting_profile_cover = gebi('setting_profile_cover');
-			var psrc = '';
-			user_about.value = res['user_about'];
-			user_hometown.value = res['user_hometown'];
-			usernickname.value = res['user_nickname'];
-			userfirstname.value = res['user_firstname'];
-			userlastname.value = res['user_lastname'];
-			email.value = res['user_email'];
-			if(res['cover_media_id'] > 0)
-				setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + res['cover_media_id'] + '&h=' + res['cover_media_hash'] + '")';
-			psrc = (res['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + res['pfp_media_id'] + "&h=" + res['pfp_media_hash'] : getDefaultUserImage(res['user_gender']);
-			profile_picture.src = psrc;
-			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
-			if(res['user_gender'] == 'F')
-				femalegender.checked = true;
-			else if(res['user_gender'] == 'M')
-				malegender.checked = true;
-			else
-				othergender.checked = true;
-			if(res['verified'] > 0){
-				switch(Number(res['verified'])){
-					case 1:
-						verified_text.innerText = "Standard Verified";
-						break;
-					case 2:
-						verified_text.innerText = "Moderator Verified";
-						break;
-					case 20:
-						verified_text.innerText = "Admin Verified";
-						break;
-					default:
-						verified_text.innerText = "Special Verified";
-						break;
-				}
-				verified.classList.add("fa-solid");
-				verified.classList.add("fa-badge-check");
-				verified.classList.add('verified_color_' + res['verified']);
-			}else{
-				verified_text.innerText = "Not Verified";
-				verified.classList.add("fa-solid");
-				verified.classList.add("fa-x");
-			}	
+		success: function(r) {
+			if(l_user_about != r['user_about']) lss('user_about', r['user_about']);
+			if(l_user_hometown != r['user_hometown']) lss('user_hometown', r['user_hometown']);
+			if(l_usernickname != r['user_nickname']) lss('user_nickname', r['user_nickname']);
+			if(l_userfirstname != r['user_firstname']) lss('user_firstname', r['user_firstname']);
+			if(l_userlastname != r['user_lastname']) lss('user_lastname', r['user_lastname']);
+			if(l_user_email != r['user_email']) lss('user_email', r['user_email']);
+			if(l_cover_media_id != r['cover_media_id']) lss('cover_media_id', r['cover_media_id']);
+			if(l_cover_media_hash != r['cover_media_hash']) lss('cover_media_hash', r['cover_media_hash']);
+			if(l_pfp_media_id != r['pfp_media_id']) lss('pfp_media_id', r['pfp_media_id']);
+			if(l_pfp_media_hash != r['pfp_media_hash']) lss('pfp_media_hash', r['pfp_media_hash']);
+			if(l_user_gender != r['user_gender']) lss('user_gender', r['user_gender']);
+			if(l_user_birthdate != r['user_birthdate']) lss('user_birthdate', r['user_birthdate']);
+			if(l_verified != r['verified']) lss('verified', r['verified']);
 		}
 	});
+	usernickname = gebi('usernickname');
+	userfirstname = gebi('userfirstname');
+	userlastname = gebi('userlastname');
+	malegender = gebi('malegender');
+	femalegender = gebi('femalegender');
+	othergender = gebi('femalegender');
+	email = gebi('email');
+	user_hometown = gebi('userhometown');
+	user_about = gebi('userabout');
+	verified = gebi('verified');
+	verified_text = gebi('verified-text');
+	birthday = gebi('birthday');
+	profile_picture = gebi('profile_picture');
+	setting_profile_cover = gebi('setting_profile_cover');
+	psrc = '';
+	user_about.value = l_user_about != null ? l_user_about : lsg('user_about');
+	user_hometown.value = l_user_hometown != null ? l_user_hometown : lsg('user_hometown');
+	usernickname.value = l_usernickname != null ? l_usernickname : lsg('user_nickname');
+	userfirstname.value = l_userfirstname != null ? l_userfirstname : lsg('user_firstname');
+	userlastname.value = l_userlastname != null ? l_userlastname : lsg('user_lastname');
+	email.value = l_user_email != null ? l_user_email : lsg('user_email');
+	l_cover_media_id = l_cover_media_id != null ? l_cover_media_id : lsg('cover_media_id');
+	l_cover_media_hash = l_cover_media_hash != null ? l_cover_media_hash : lsg('cover_media_hash');
+	l_pfp_media_id = l_pfp_media_id != null ? l_pfp_media_id : lsg('pfp_media_id');
+	l_pfp_media_hash = l_pfp_media_hash != null ? l_pfp_media_hash : lsg('pfp_media_hash');
+	user_gender = l_user_gender != null ? l_user_gender : lsg('user_gender');
+	l_verified = l_verified != null ? l_verified : lsg('verified');
+	if(l_cover_media_id > 0)
+		setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + l_cover_media_id + '&h=' + l_cover_media_hash + '")';
+	psrc = (l_pfp_media_id > 0) ? pfp_cdn + '&id=' + l_pfp_media_id + "&h=" + l_pfp_media_hash : getDefaultUserImage(l_user_gender != null ? l_user_gender : lsg('user_gender'));
+	profile_picture.src = psrc;
+	birthday.value = birthdateConverter((l_user_birthdate != null ? l_user_birthdate : lsg('user_birthdate')) * 1000);
+	if(user_gender == 'F')
+		femalegender.checked = true;
+	else if(user_gender == 'M')
+		malegender.checked = true;
+	else
+		othergender.checked = true;
+	if(l_verified > 0){
+		switch(Number(l_verified)){
+			case 1:
+				verified_text.innerText = "Standard Verified";
+				break;
+			case 2:
+				verified_text.innerText = "Moderator Verified";
+				break;
+			case 20:
+				verified_text.innerText = "Admin Verified";
+				break;
+			default:
+				verified_text.innerText = "Special Verified";
+				break;
+		}
+		verified.classList.add("fa-solid");
+		verified.classList.add("fa-badge-check");
+		verified.classList.add('verified_color_' + l_verified);
+	}else{
+		verified_text.innerText = "Not Verified";
+		verified.classList.add("fa-solid");
+		verified.classList.add("fa-x");
+	}
 	changeUrlWork();
 }
 function _change_infomation(c = null){
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
-	var v=p=t=m=a=s=l=f=d=i= '';
+	m=a= '';
 	a += '<div class="createpost_box">';
 	switch(c){
 		case 0:
@@ -1290,10 +1328,10 @@ function _change_infomation(c = null){
 	a += '</div>';
 	gebi("modal_content").innerHTML = a;
 	load_lang();
-	var r = gebcn('required');
+	r = gebcn('required');
 	if(c == 2){
 		$('#getCode').click(function(){
-			var p = $(this);
+			p = $(this);
 			v = gebi('newemail');
 			if(v.value == '')
 				r[0].innerHTML = window['lang__046'];
@@ -1328,7 +1366,7 @@ function _change_infomation(c = null){
 						}
 					}
 				});
-				var b = gebi('gcb');
+				b = gebi('gcb');
 				b.classList.add('disabled');
 				p.prop('disabled', true);
 				setTimeout(function(){
@@ -1477,7 +1515,7 @@ function _change_infomation(c = null){
 function _change_picture(isCover = 0){	
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
-	var a = "";
+	a = "";
 	a += '<div class="createpost_box">';
 	a += '<div class="createpostbuttons">';
 	a += '<h1>' + ((isCover == 1) ? window['lang__041'] : window['lang__042']) + '</h1>';
@@ -1496,29 +1534,29 @@ function _change_picture(isCover = 0){
 	gebi("modal_content").innerHTML = a;
 	gebcn("createpost_box")[0].style.padding = "10px 0px";
 	gebcn("createpost_box")[0].style.width = "680px";
-	var canvas	= $("#canvas"),
+	canvas	= $("#canvas"),
 	context = canvas.get(0).getContext("2d"),
 	$result = $('#imgresult');
 	$('#btnSavePicture').css('display','none');
 	$('#fileInput').on( 'change', function(){
 		if (this.files && this.files[0]) {
 			if(this.files[0].type.match(/^image\//) ) {
-				var reader = new FileReader();
+				reader = new FileReader();
 				reader.onload = function(evt) {
 					$('#fileInputIcon').css('display','none');
-					var img = new Image();
+					img = new Image();
 					img.onload = function() {
 						context.canvas.height = img.height;
 						context.canvas.width	= img.width;
 						context.drawImage(img, 0, 0);
-						var cropper = canvas.cropper({
+						cropper = canvas.cropper({
 							aspectRatio: (isCover == 1) ? (16 / 9) : (1 / 1),
 							viewMode: 2,
 							dragMode: 'move'
 						});
 						$('#btnCrop').click(function() {
-							var croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
-							var append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture") : $('<img>').attr('src', croppedImageDataURL);
+							croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 
+							append = (isCover == 0) ? $('<img>').attr('src', croppedImageDataURL).attr('class', "setting_profile_picture") : $('<img>').attr('src', croppedImageDataURL);
 							$result.append(append.attr('width', "680px"));
 							canvas.css('display','none');
 							$('#btnCrop').css('display','none');
@@ -1526,7 +1564,7 @@ function _change_picture(isCover = 0){
 							$('#cropper_box').css('display','none');
 							canvas.cropper('getCroppedCanvas').toBlob(function (blob) {
 								$('#btnSavePicture').click(function() {
-									var formData = new FormData();
+									formData = new FormData();
 									formData.append('fileUpload', blob, 'media_cropped.jpg');
 									formData.append('type', (isCover == 1) ? 'cover' :'profile');
 									$.ajax('/worker/change_picture.php', {
@@ -1557,9 +1595,9 @@ function _change_picture(isCover = 0){
 	});
 }
 function _f(){
-	var file_data = gebi("imagefile");
-	var is_private = gebi('private').value;
-	var f = new FormData();
+	file_data = gebi("imagefile");
+	is_private = gebi('private').value;
+	f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("caption", gebtn("textarea")[0].value);
@@ -1579,10 +1617,10 @@ function _f(){
 	});
 }
 function _share_feed(){
-	var file_data = gebi("imagefile");
-	var is_private = gebi('private').value;
-	var post_id = gebi('post_id').value;
-	var f = new FormData();
+	file_data = gebi("imagefile");
+	is_private = gebi('private').value;
+	post_id = gebi('post_id').value;
+	f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("post_id", post_id);
@@ -1597,8 +1635,8 @@ function _share_feed(){
 		contentType: false,
 		data: f,
 		success: function (r) {
-			var id = gebi('post_id').value;
-			var splt = data.split(";");
+			id = gebi('post_id').value;
+			splt = data.split(";");
 			zTemplate(gebi("post-share-count-" + id), {
 				"counter": parseInt(splt[1])
 			});
@@ -1609,8 +1647,8 @@ function _share_feed(){
 }
 
 function validatePost(type){
-	var required = gebcn("required");
-	var caption = gebtn("textarea")[0].value;
+	required = gebcn("required");
+	caption = gebtn("textarea")[0].value;
 	required[0].style.display = "none";
 	if(type == 0)
 		_f();
@@ -1648,22 +1686,22 @@ function isMobile() {
 };
 function changeUrlWork(){
 	if(isMobile()){
-		var cpost_box = gebcn('createpost_box');
+		cpost_box = gebcn('createpost_box');
 		if(cpost_box != null){
 			if(cpost_box.length > 0){
 				cpost_box[0].style.width = "90%";
-				var ipb = gebcn('input_box');
+				ipb = gebcn('input_box');
 				ipb[0].style.height = "80px";
 				ipb[0].style.marginLeft = "88px";
 				ipb[0].style.marginTop = "-90px";
 				ipb[0].style.width = "88%";
-				var pfp_box = gebi('pfp_box');
+				pfp_box = gebi('pfp_box');
 				pfp_box.style.height = "80px";
 				pfp_box.style.width = "80px";
 			}
 		}
 		gebcn('usernav')[0].style.fontSize = "150%";
-		var container = gebcn('container');
+		container = gebcn('container');
 		if(container != null){
 			container[0].style.width = "100%";
 		}
@@ -1685,10 +1723,10 @@ function changeUrlWork(){
 window.addEventListener ("resize", onResizeEvent, true);
 function onResizeEvent() {
 	if(!isMobile()){
-		var bodyElement = gebtn("BODY")[0];
+		bodyElement = gebtn("BODY")[0];
 		newWidth = bodyElement.offsetWidth;
-		var feed = gebi('feed');
-		var custom_style = gebi('custom_style');
+		feed = gebi('feed');
+		custom_style = gebi('custom_style');
 		if(feed != null && custom_style != null) feed.style.marginTop = "-230px";
 		if(custom_style != null) custom_style.innerHTML = "<style>#feed>.post{margin-right:20% !important;}</style>";
 		if(newWidth < 1708 && newWidth < 1350 && newWidth < 1670){
@@ -1702,8 +1740,8 @@ function onResizeEvent() {
 }
 
 function validateField(){
-	var query = document.getElementById("query");
-	var button = document.getElementById("querybutton");
+	query = document.getElementById("query");
+	button = document.getElementById("querybutton");
 	if(query.value == "") {
 		query.placeholder = 'Type something!';
 		return false;
@@ -1711,19 +1749,19 @@ function validateField(){
 	return true;
 }
 function isBottom() {
-	var calc = $(window).scrollTop()*2.15 + $(window).height() > $(document).height() - 200;
+	calc = $(window).scrollTop()*2.15 + $(window).height() > $(document).height() - 200;
 	return calc;
 }
 $(window).scroll(function() {
-	var u = window.location.pathname;
+	u = window.location.pathname;
 	if($(window).height() != $(document).height()){
 		if((($(window).scrollTop() + $(window).height() > $(document).height() - 100) && !isMobile()) || (isBottom() && isMobile())) {
 			if ((u === "/home.php" || u === "home.php") || (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php")){
-				var page = gebi('page');
+				page = gebi('page');
 				if(page.value != -1){
-					var nextPage = Number(page.value) + 1;
+					nextPage = Number(page.value) + 1;
 					if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
-						var add_header = "";
+						add_header = "";
 						if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
 							add_header = "&id=" + get("id");
 						fetch_post("fetch_profile_post.php?page=" + nextPage + add_header);
@@ -1733,16 +1771,16 @@ $(window).scroll(function() {
 					page.value = nextPage;
 				}
 			} else if(u === "/friends.php" || u === "friends.php"){
-				var page = gebi('page');
+				page = gebi('page');
 				if(page.value != -1){
-					var nextPage = Number(page.value) + 1;
+					nextPage = Number(page.value) + 1;
 					fetch_friend_list('fetch_friend_list.php?page=' + nextPage);
 					page.value = nextPage;
 				}
 			}else if(u === "/requests.php" || u === "requests.php"){
-				var page = gebi('page');
+				page = gebi('page');
 				if(page.value != -1){
-					var nextPage = Number(page.value) + 1;
+					nextPage = Number(page.value) + 1;
 					fetch_friend_request('fetch_friend_request.php?page=' + nextPage);
 					page.value = nextPage;
 				}
