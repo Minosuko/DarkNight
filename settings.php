@@ -98,6 +98,9 @@
 									<br>
 									<input type="radio" name="usergender" value="F" id="femalegender" class="usergender">
 									<label><lang lang="lang__031"></lang></label>
+									<br>
+									<input type="radio" name="usergender" value="U" id="othergender" class="usergender">
+									<label><lang lang="lang__077"></lang></label>
 								</div>
 							</div>
 							<div class="setting__box">
@@ -112,6 +115,10 @@
 									<textarea name="userabout" id="userabout" autocomplete="off" class="text_area"></textarea>
 								</div>
 							</div>
+							<div class="xsetting">
+								<button class="s_button"><lang lang="lang__044"></lang> <i class="fa-regular fa-floppy-disk"></i></button>
+							</div>
+							<div style="height: 48px"></div>
 						</div>
 						<div class="setting_tab" id="setting-tab-about">
 							<div class="setting__box">

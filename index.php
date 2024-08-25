@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$usergender     = $_POST['usergender'];
 		$userabout      = '';
 		$user_token     = _generate_token();
-		
+		$usergender 	= in_array($usergender,["F","M","U"]) ? $usergender : "U";
 		if(!validateDate($_POST['birthday'])) header("Location:?err=invalid_date");
 		if(!_is_username_valid($usernickname)) header("Location:?err=invalid_nickname");
 		if(!filter_var($email, FILTER_VALIDATE_EMAIL)) header("Location:?err=invalid_email");
@@ -194,6 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 								<label><lang lang="lang__030"></lang></label>
 								<input type="radio" name="usergender" value="F" id="femalegender" class="usergender">
 								<label><lang lang="lang__031"></lang></label>
+								<input type="radio" name="usergender" value="U" id="othergender" class="usergender">
+								<label><lang lang="lang__077"></lang></label>
 							</div>
 							<br><br>
 							<input type="submit" value="Create Account" lang="lang__040" name="register">

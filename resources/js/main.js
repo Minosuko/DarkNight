@@ -1144,6 +1144,7 @@ function _load_settings(){
 			var userlastname = gebi('userlastname');
 			var malegender = gebi('malegender');
 			var femalegender = gebi('femalegender');
+			var othergender = gebi('femalegender');
 			var email = gebi('email');
 			var user_hometown = gebi('userhometown');
 			var user_about = gebi('userabout');
@@ -1166,8 +1167,10 @@ function _load_settings(){
 			birthday.value = birthdateConverter(res['user_birthdate'] * 1000);
 			if(res['user_gender'] == 'F')
 				femalegender.checked = true;
-			else
+			else if(res['user_gender'] == 'M')
 				malegender.checked = true;
+			else
+				othergender.checked = true;
 			if(res['verified'] > 0){
 				switch(Number(res['verified'])){
 					case 1:
@@ -1190,9 +1193,7 @@ function _load_settings(){
 				verified_text.innerText = "Not Verified";
 				verified.classList.add("fa-solid");
 				verified.classList.add("fa-x");
-			}
-			
-				
+			}	
 		}
 	});
 	changeUrlWork();
