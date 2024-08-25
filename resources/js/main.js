@@ -779,37 +779,44 @@ function fetch_profile(){
 	id_a = '';
 	if(typeof(id) != 'undefined')
 		id_a = '?id=' + id;
+	
+	a = '';
+	a += '<center>';
+	a += '<div class="profile_head">';
+	a += '<img class="pfp" src="'+getDefaultUserImage("U")+'" width="200px" height="200px" id="profile_image">';
+	a += "<div class='user_name' id='user_name'>";
+	a += "Userfullname";
+	a += '<span class="nickname">@username</span>';
+	a += "</div>";
+	a += '</div>';
+	a += '<br>';
+	a += '<br>';
+	a += '<div class="about_me" id="about_me">';
+	a += '</div>';
+	a += '</center>';
+	profile.innerHTML = a;
 	$.get("worker/fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
 		profile = gebi("profile");
 		profile_cover = gebi("profile_cover");
-		a = '';
-		a += '<center>';
-		a += '<div class="profile_head">';
-		a += '<img class="pfp" src="'
-		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
-		a += '" width="200px" height="200px">';
+		profile_image = gebi("profile_image");
+		user_name = gebi("user_name");
+		about_me = gebi("about_me");
+		profile_image.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
-		
-		a += "<div class='user_name'>";
+		a = '';
 		a += data['user_firstname'] + ' ' + data['user_lastname'];
-		
 		if(data['verified'] > 0)
 			a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
 		a += '<span class="nickname">@' + data['user_nickname'] + '</span>';
-		a += "</div>";
-		a += '</div>';
-		a += '<br>';
-		a += '<br>';
-		a += '<div class="about_me">';
+		user_name.innerHTML = a;
+		a = '';
 		if(data['user_about'] != ''){
 			a += '<h2>'+window['lang__070']+':</h2>';
 			a += data['user_about'];
 		}
-		a += '<br>';
-		a += '<br>';
 		a += '<br>';
 		if(data['user_gender'] == "M")
 			a += window['lang__030'];
@@ -858,8 +865,7 @@ function fetch_profile(){
 				a += '</div>';
 			}
 		}
-		a += '</center>';
-		profile.innerHTML = a;
+		about_me.innerHTML = a;
 		if(isMobile()){
 			pfp_head = gebcn('profile_head')[0];
 			user_name = gebcn('user_name')[0];
