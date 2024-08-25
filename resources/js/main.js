@@ -269,7 +269,7 @@ function changeUrl(u) {
 function processAjaxData(r, u) {
 	e = document.createElement("html");
 	e.innerHTML = r;
-	t = e.getElementsByTagName('title')[0].innerHTML;
+	tl = e.getElementsByTagName('title')[0].innerHTML;
 	c = e.getElementsByClassName('container');
 	s = e.getElementsByTagName('style');
 	d = gebtn('style');
@@ -289,10 +289,10 @@ function processAjaxData(r, u) {
 	}
 	gebcn('container')[0].innerHTML = c[0].innerHTML;
 	load_lang();
-	document.title = t;
+	document.title = tl;
 	window.history.pushState({
 		"html": r,
-		"pageTitle": t
+		"pageTitle": tl
 	}, "", u);
 	loading_bar(0);
 	if (u.substring(0,13) === "/settings.php" || u.substring(0,12) === "settings.php")
