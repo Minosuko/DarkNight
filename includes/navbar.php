@@ -11,7 +11,7 @@ if ((($if_none_match && $if_none_match == $md5) || (!$if_none_match)) && ($if_mo
 	header("Last-Modified: $tsstring");
 	header("ETag: $md5");
 }
-if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die($_SERVER['REQUEST_URI']);
+if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
 ?>
 <script src="resources/js/jquery.js"></script>
 		<script src="resources/js/highlight.js"></script>
