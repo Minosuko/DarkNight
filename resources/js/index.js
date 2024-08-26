@@ -120,7 +120,7 @@ function validateLogin() {
 				if(q['success'] == 0){
 					error(q['err']);
 				}else{
-					//location.href = q['go'];
+					location.href = q['go'];
 				}
 			}
 		});
