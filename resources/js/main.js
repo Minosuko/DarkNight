@@ -794,11 +794,11 @@ function fetch_profile(){
 	a += '<div class="about_me" id="about_me">';
 	a += '</div>';
 	a += '</center>';
+	profile = gebi("profile");
 	profile.innerHTML = a;
 	$.get("worker/fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
-		profile = gebi("profile");
 		profile_cover = gebi("profile_cover");
 		profile_image = gebi("profile_image");
 		user_name = gebi("user_name");
@@ -1540,6 +1540,9 @@ function _change_infomation(c = null){
 									break;
 								case 2:
 									r[0].innerHTML = window['lang__050'];
+									break;
+								case 3:
+									r[2].innerHTML = window['lang__081'];
 									break;
 							}
 							break;

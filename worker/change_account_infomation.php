@@ -131,7 +131,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 						<p>Hello '.$name.',</p>
 						<p>Seem like you want to change your email addess</p>
 						<br>
-						<p>Your verification code is <span class="code">'.$code.'</span>, this code valid for 15 minutes</p>
+						<p>Your verification code is <span class="code">'.$code.'</span>, this code valid for few minutes</p>
 						<br>
 						<br>
 						<p>If you didn’t ask to change your email, you can ignore this email.</p>
