@@ -77,5 +77,6 @@
 	"lang__076":"Unknown",
 	"lang__077":"Other",
 	"lang__078":"The user's hometown cannot exceed 255 characters",
-	"lang__079":"Saved"
+	"lang__079":"Saved",
+	"lang__080":"Invalid captcha"
 }

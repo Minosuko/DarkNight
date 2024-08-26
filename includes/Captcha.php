@@ -1,10 +1,18 @@
 <?php
 class Captcha
 {
-	public function phpcaptcha($textColor,$backgroundColor,$imgWidth,$imgHeight,$noiceLines=0,$noiceDots=0,$noiceColor='#162453')
+	public function newCode(){
+		$text = $this->random();
+		if(isset($_SESSION)){
+			$_SESSION['captcha_code'] = $text;
+			$_SESSION['refresh_captcha'] = 0;
+		}
+		return $text;
+	}
+	public function phpcaptcha($textColor,$backgroundColor,$imgWidth,$imgHeight,$noiceLines=0,$noiceDots=0,$noiceColor='#162453', $text = null)
 	{
 		header('Content-Type: image/jpeg');
-		$text=$this->random();
+		$text = $text != null ? $text : $this->newCode();
 		$font = __DIR__ .'/../resources/font/monofont.ttf';
 		$textColor=$this->hexToRGB($textColor);
 		$fontSize = $imgHeight * 0.75;
@@ -32,9 +40,6 @@ class Captcha
 		imagettftext($im, $fontSize, 0, $x, $y, $textColor, $font, $text);
 		imagejpeg($im,NULL,90);
 		imagedestroy($im);
-		if(isset($_SESSION)){
-			$_SESSION['captcha_code'] = $text;
-		}
 	}
 	protected function random($characters=6,$letters = '1234567890abcdfghjkmnpqrstvwxyz'){
 		$str='';

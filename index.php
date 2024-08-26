@@ -9,6 +9,7 @@ if(_is_session_valid(false)){
 	else
 		header("Location: home.php");
 }
+$_SESSION['refresh_captcha'] = 1;
 ?>
 <!DOCTYPE html>
 <html>
@@ -47,7 +48,7 @@ if(_is_session_valid(false)){
 						<input type="checkbox" name="remember_me" id="remember-me">
 						<br>
 						<div class="index_input_box">
-							<img src="data/captcha.php" alt='captchaimg'>
+							<img src="data/captcha.php" alt='captchaimg' id="captchaimg0">
 							<div class="required" id="required_0"></div>
 							<br>
 							<input type="text" name="captcha" id="captcha_0" placeholder="CAPCHA">
@@ -114,7 +115,7 @@ if(_is_session_valid(false)){
 						</div>
 						<br>
 						<div class="index_input_box">
-							<img src="data/captcha.php" alt='captchaimg'>
+						<img src="data/captcha.php" alt='captchaimg' id="captchaimg1">
 							<div  class="required" id="required_1"></div>
 							<br>
 							<input type="text" name="captcha" id="captcha_1" placeholder="CAPCHA">

@@ -1,12 +1,17 @@
 <?php
 session_start();
 require_once '../includes/functions.php';
-if(!isset($_POST['capcha']) || !isset($_SESSION['captcha_code']))
+require_once("../includes/Captcha.php");
+if(!isset($_POST['captcha']) || !isset($_SESSION['captcha_code']))
 	die();
 if(_is_session_valid(false))
 	die();
 header("content-type: application/json");
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+	if($_POST['captcha'] != $_SESSION['captcha_code'])
+		die('{"success":0,"err":"invalid_captcha_'.(isset($_POST['login']) ? 0 : (isset($_POST['register']) ? 1 : 0)).'"}');
+	$Captcha = new Captcha();
+	$Captcha->newCode();
 	if (isset($_POST['login'])) {
 		$userlogin  = $_POST['userlogin'];
 		$userpass   = $_POST['userpass'];

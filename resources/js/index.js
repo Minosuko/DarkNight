@@ -81,6 +81,11 @@ function openTab(evt, choice) {
 	}
 }
 
+function refreshCaptcha(x){
+	v = document.getElementById('captchaimg'+ x);
+	v.src = "data/captcha.php";
+}
+
 function validateLogin() {
 	clearRequiredFields();
 	var required = document.getElementsByClassName("required");
@@ -102,7 +107,7 @@ function validateLogin() {
 		d.append('login','1');
 		d.append('userlogin',useremail);
 		d.append('userpass',userpass);
-		d.append('capcha',capcha);
+		d.append('captcha',capcha);
 		if(rememberme)
 			d.append('remember_me','1');
 		$.ajax('/worker/login_register.php', {
@@ -111,10 +116,11 @@ function validateLogin() {
 			processData: false,
 			contentType: false,
 			success: function (q) {
+				refreshCaptcha(0);
 				if(q['success'] == 0){
 					error(q['err']);
 				}else{
-					location.href = q['go'];
+					//location.href = q['go'];
 				}
 			}
 		});
@@ -181,13 +187,14 @@ function validateRegister() {
 		d.append('useremail',useremail);
 		d.append('birthday',birthday);
 		d.append('usergender',(usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U"))));
-		d.append('capcha',capcha);
+		d.append('captcha',capcha);
 		$.ajax('/worker/login_register.php', {
 			method: "POST",
 			data: d,
 			processData: false,
 			contentType: false,
 			success: function (q) {
+				refreshCaptcha(1);
 				if(q['success'] == 0){
 					error(q['err']);
 				}else{
@@ -230,23 +237,29 @@ function get(n){
 function error(e){
 	switch(e){
 		case "exist_email":
-			document.getElementsByClassName("required")[7].innerHTML = window["lang__50"];
+			document.getElementsByClassName("required")[7].innerHTML = window["lang__050"];
 			break;
 		case "exist_nickname":
-			document.getElementsByClassName("required")[4].innerHTML = window["lang__51"];
+			document.getElementsByClassName("required")[4].innerHTML = window["lang__051"];
 			break;
 		case "invalid_nickname":
-			document.getElementsByClassName("required")[4].innerHTML = window["lang__52"];
+			document.getElementsByClassName("required")[4].innerHTML = window["lang__052"];
 			break;
 		case "invalid_date":
-			document.getElementsByClassName("required")[8].innerHTML = window["lang__53"];
+			document.getElementsByClassName("required")[8].innerHTML = window["lang__053"];
 			break;
 		case "invalid_email":
-			document.getElementsByClassName("required")[7].innerHTML = window["lang__54"];
+			document.getElementsByClassName("required")[7].innerHTML = window["lang__054"];
 			break;
 		case "invalid_login":
-			document.getElementsByClassName("required")[0].innerHTML = window["lang__55"];
-			document.getElementsByClassName("required")[1].innerHTML = window["lang__55"];
+			document.getElementsByClassName("required")[0].innerHTML = window["lang__055"];
+			document.getElementsByClassName("required")[1].innerHTML = window["lang__055"];
+			break;
+		case "invalid_captcha_0":
+			document.getElementById('required_0').innerHTML = window['lang__080'];
+			break;
+		case "invalid_captcha_1":
+			document.getElementById('required_1').innerHTML = window['lang__080'];
 			break;
 	}
 }
@@ -261,7 +274,7 @@ for(let x = 0; x < 2; x++){
 		clearTimeout(l);
 		l = setTimeout(() => {
 			d = new FormData();
-			d.append('capcha',e.target.value);
+			d.append('captcha',e.target.value);
 			$.ajax('/worker/checkCaptcha.php', {
 				method: "POST",
 				data: d,
@@ -270,7 +283,7 @@ for(let x = 0; x < 2; x++){
 				success: function (q) {
 					z = document.getElementById('required_' + x);
 					if(q == 0){
-						m = 'Invalid captcha';
+						m = window['lang__080'];
 					}else{
 						m = '';
 					}
