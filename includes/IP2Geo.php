@@ -26,6 +26,7 @@ class IP2Geo{
 		$query = $this->queryIP($IPAddress);
 		$this->validQuery = is_array(@json_decode($query, true));
 		$this->query = $this->validQuery ? json_decode($query,true) : null;
+		return $this->validQuery;
 	}
 	function getTimeZone(){
 		if(!$this->validQuery) return false;
