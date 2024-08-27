@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS `comments` (
   PRIMARY KEY (`comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `follows` (
+  `user1_id` int(11) NOT NULL,
+  `user2_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
 CREATE TABLE IF NOT EXISTS `friendship` (
   `user1_id` int(11) NOT NULL,
   `user2_id` int(11) NOT NULL,
@@ -85,9 +90,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `user_gender` char(1) NOT NULL,
   `user_birthdate` int(11) NOT NULL,
   `user_create_date` int(11) NOT NULL,
-  `user_status` char(1) DEFAULT 'U',
-  `user_about` text NOT NULL DEFAULT '',
-  `user_hometown` varchar(255) NOT NULL DEFAULT '',
+  `user_status` char(1) DEFAULT 'N',
+  `user_about` text NOT NULL,
+  `user_hometown` varchar(255) NOT NULL,
   `user_token` varchar(255) NOT NULL,
   `pfp_media_id` int(11) NOT NULL,
   `cover_media_id` int(11) NOT NULL,

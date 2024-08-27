@@ -18,6 +18,13 @@ $sql = "SELECT posts.post_caption, posts.post_time, posts.post_public, users.use
 		WHERE posts.post_public = 2 OR users.user_id = {$data['user_id']}
 		UNION SELECT posts.post_caption, posts.post_time, posts.post_public, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, posts.post_id, posts.post_media, posts.is_share, users.pfp_media_id, users.user_nickname, users.verified 
 		FROM posts
+		JOIN follows
+		ON posts.post_by = follows.user1_id
+		JOIN users
+		ON posts.post_by = users.user_id
+		WHERE posts.post_public = 2 AND follows.user1_id = {$data['user_id']}
+		UNION SELECT posts.post_caption, posts.post_time, posts.post_public, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, posts.post_id, posts.post_media, posts.is_share, users.pfp_media_id, users.user_nickname, users.verified 
+		FROM posts
 		JOIN users
 		ON posts.post_by = users.user_id 
 		JOIN (SELECT friendship.user1_id AS user_id 

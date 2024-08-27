@@ -79,5 +79,7 @@
 	"lang__078":"The user's hometown cannot exceed 255 characters",
 	"lang__079":"Saved",
 	"lang__080":"Invalid captcha",
-	"lang__081":"Invalid verify code"
+	"lang__081":"Invalid verify code",
+	"lang__082":"Follow",
+	"lang__083":"Unfollow"
 }

@@ -822,9 +822,11 @@ function fetch_profile(){
 			a += window['lang__030'];
 		else if(data['user_gender'] == "F")
 			a += window['lang__031'];
-		a += '<br>';
+		if(data['user_gender'] != "U") a += ' | ';
+		a += birthdateConverter(data['user_birthdate'] * 1000);
 		if(data['user_status'] != ''){
-		switch(data['user_status']){
+			a += ' | ';
+			switch(data['user_status']){
 				case "S":
 					a += window['lang__071'];
 					break;
@@ -846,9 +848,7 @@ function fetch_profile(){
 				default:
 					break;
 			}
-			a += '<br>';
 		}
-		a += birthdateConverter(data['user_birthdate'] * 1000);
 		if(data['user_hometown'] == ''){
 			a += '<br>';
 			a += data['user_hometown'];
@@ -864,6 +864,12 @@ function fetch_profile(){
 				a += '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__006"] + '" name="request" id="special" class="fr_button">';
 				a += '</div>';
 			}
+		}
+		if(data['is_followed'] < 2){
+			a += '<br>';
+			a += '<div>';
+			a += '<input type="submit" onclick="_follow_toggle()" value="' + ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]) + '" name="' + ((data['is_followed'] == 0) ? 'f' : 'u')+'" id="special" class="fr_button">';
+			a += '</div>';
 		}
 		about_me.innerHTML = a;
 		if(isMobile()){
@@ -1094,6 +1100,28 @@ function _friend_toggle(){
 			}else{
 				special.name = "request";
 				special.value = window["lang__006"];
+			}
+		}
+	});
+}
+function _follow_toggle(){
+	follow = gebi("follow");
+	f = new FormData();
+	f.append('id',get("id"));
+	$.ajax({
+		type: "POST",
+		url: "/worker/follow_toggle.php",
+		processData: false,
+		mimeType: "multipart/form-data",
+		contentType: false,
+		data: f,
+		success: function (r) {
+			if(follow.name == "f"){
+				follow.name = "u";
+				follow.value = window["lang__005"];
+			}else{
+				follow.name = "f";
+				follow.value = window["lang__006"];
 			}
 		}
 	});
