@@ -4,5 +4,5 @@ $IFI = 1;
 $host = 'localhost';//database host
 $username = 'root';//database user name
 $dbpassword = '';//database password
-$dbdata = 'FDS';//database
+$dbdatabase = 'FDS';//database
 ?>

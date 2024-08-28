@@ -10,7 +10,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 $timestamp = time();
-$conn = new mysqli($host, $username, $dbpassword, $dbdata);
+$conn = new mysqli($host, $username, $dbpassword, $dbdatabase);
 $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUsername, $mailPassword);
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
