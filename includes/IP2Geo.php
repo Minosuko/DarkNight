@@ -1,7 +1,8 @@
 <?php
 class IP2Geo{
-	function __construct($IPAddress){
-		$this->changeIP($IPAddress);
+	function __construct($IPAddress = null){
+		if($IPAddress != null)
+			$this->changeIP($IPAddress);
 	}
 	private function queryIP($IPAddress){
 		$options = 
