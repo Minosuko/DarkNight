@@ -21,21 +21,23 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		if(isset($_FILES['fileUpload']) || !empty($_POST['caption']))
 			$query = $conn->query($sql);
 		if($query){
+			$upload_allowed = false;
 			if (isset($_FILES['fileUpload'])) {
 				$last_id = $conn->insert_id;
 				$filename = basename($_FILES["fileUpload"]["name"]);
 				$filetype = pathinfo($filename, PATHINFO_EXTENSION);
 				$supported_ext = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "webm", "mp4", "mpeg"];
 				if(in_array(strtolower($filetype),$supported_ext)){
-					$upload_allowed = false;
 					$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
 					$media_format = mime_content_type($_FILES["fileUpload"]["tmp_name"]);
 					if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
+						$mediatype = 0;
 						$filepath = __DIR__ . "/../data/images/image/$media_hash.bin";
 						$upload_allowed = true;
 					}elseif(exif_videotype($_FILES["fileUpload"]["tmp_name"])){
 						$filepath = __DIR__ . "/../data/videos/video/$media_hash.bin";
 						$upload_allowed = true;
+						$mediatype = 1;
 					}
 					if($upload_allowed){
 						$sql = "SELECT * FROM media WHERE media_hash = '$media_hash'";
@@ -55,7 +57,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 					$query = $conn->query($sql);
 				}
 			}
-			echo "success";
+			$response = [];
+			$response['success'] = 1;
+			$response['post_id'] = $last_id;
+			$response['has_media'] = $upload_allowed;
+			if($upload_allowed){
+				$response['media_type'] = $mediatype;
+				$response['media_id'] = $media_id;
+				$response['media_hash'] = $media_hash;
+			}
+			echo json_encode($response);
 		}
 	}
 }

@@ -4,6 +4,7 @@ default_user_pfp = 'data/images.php?t=default_U';
 pfp_cdn = 'data/images.php?t=profile';
 media_cdn = 'data/images.php?t=media';
 video_cdn = 'data/videos.php?t=media';
+backend_url = "/worker/";
 supported_language = [['en-us','English'],['vi-vn','Tiếng Việt']];
 
 if (typeof(Storage) !== "undefined") {
@@ -219,7 +220,7 @@ function timeSince(d) {
 }
 function _load_info(){
 	$.ajax({
-		url: "/worker/fetch_profile_setting_info.php",
+		url: backend_url + "fetch_profile_setting_info.php",
 		type: 'GET',
 		success: function(res) {
 			gebi('online_status').value = res['online_status'];
@@ -228,7 +229,7 @@ function _load_info(){
 	});
 }
 function _like(id) {
-	$.get("worker/likes.php?post_id=" + id, function(d) {
+	$.get(backend_url + "likes.php?post_id=" + id, function(d) {
 		s = d.split(";");
 		l = gebi("post-like-" + id);
 		c = "icon-heart fa-heart icon-click";
@@ -334,7 +335,7 @@ function fetch_pfp_box(){
 			i = lsg('pfp_media_id');
 			h = lsg('pfp_media_hash');
 			g = lsg('user_gender');
-			$.get("worker/profile_image.php", function(d) {
+			$.get(backend_url + "profile_image.php", function(d) {
 				if(d["pfp_media_id"] != i) lss("pfp_media_id",d["pfp_media_id"]);
 				if(d["pfp_media_hash"] != i) lss("pfp_media_hash",d["pfp_media_hash"]);
 				if(d["user_gender"] != i) lss("user_gender",d["user_gender"]);
@@ -345,7 +346,7 @@ function fetch_pfp_box(){
 }
 function fetch_post(loc) {
 	fetch_pfp_box();
-	$.get("worker/" + loc, function(data) {
+	$.get(backend_url + loc, function(data) {
 		f = '';
 		l = Object.keys(data).length;
 		page = gebi('page');
@@ -577,7 +578,7 @@ function modal_close() {
 	gebtn('body')[0].style.overflowY = "scroll";
 }
 function _load_comment(id, page){
-	$.get("worker/fetch_comment.php?id=" + id + "&page=" + page, function(data) {
+	$.get(backend_url + "fetch_comment.php?id=" + id + "&page=" + page, function(data) {
 		b = gebi("comment-box");
 		a = '';
 		if(data['success'] == 2)
@@ -606,7 +607,7 @@ function _load_comment(id, page){
 }
 function _share(id) {
 	gebtn('body')[0].style.overflowY = "hidden";
-	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
+	$.get(backend_url + "fetch_post_info.php?id=" + id, function(data) {
 		gebi("modal").style.display = "block";
 		s = data;
 		a = "";
@@ -702,7 +703,7 @@ function _open_post(id){
 	_load_post(id);
 }
 function fetch_friend_list(loc){
-	$.get("worker/" + loc, function(data) {
+	$.get(backend_url + loc, function(data) {
 		friend_list = gebi("friend_list");
 		a = '';
 		a += '<center>';
@@ -737,7 +738,7 @@ function fetch_friend_list(loc){
 	});
 }
 function fetch_friend_request(loc){
-	$.get("worker/" + loc, function(data) {
+	$.get(backend_url + loc, function(data) {
 		friend_reqest_list = gebi("friend_reqest_list");
 		a = '';
 		a += '<center>';
@@ -796,7 +797,7 @@ function fetch_profile(){
 	a += '</center>';
 	profile = gebi("profile");
 	profile.innerHTML = a;
-	$.get("worker/fetch_profile_info.php" + id_a, function(data) {
+	$.get(backend_url + "fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
 		profile_cover = gebi("profile_cover");
@@ -902,7 +903,7 @@ function _load_post(post_id = null){
 	id = (post_id != null) ? post_id : get('id');
 	if(typeof(id) == 'undefined')
 		window.history.go(-1);
-	$.get("worker/fetch_post_info.php?id=" + id, function(data) {
+	$.get(backend_url + "fetch_post_info.php?id=" + id, function(data) {
 		if(data['success'] == 2)
 			window.history.go(-1);
 		_content_left = gebi("_content_left");
@@ -1035,7 +1036,7 @@ function _friend_request_toggle(id,accept){
 		ac = 'accept';
 	else
 		ac = 'ignore';
-	$.get("worker/friend_request_toggle.php?id=" + id + "&" + ac, function(data) {
+	$.get(backend_url + "friend_request_toggle.php?id=" + id + "&" + ac, function(data) {
 		if(data['success'] == 1){
 			t = gebi('toggle-fr-' + data['id']);
 			a = '';
@@ -1052,13 +1053,13 @@ function send_comment(){
 	f.append('comment', text);
 	$.ajax({
 		type: "POST",
-		url: "/worker/comment.php?id=" + get("id"),
+		url: backend_url + "comment.php?id=" + get("id"),
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
 		data: f,
 		success: function (r) {
-			$.get("worker/fetch_profile_info.php", function(data) {
+			$.get(backend_url + "fetch_profile_info.php", function(data) {
 				b = gebi('comment-box');
 				a = '';
 				a += '<div class="comment">';
@@ -1088,7 +1089,7 @@ function _friend_toggle(){
 	f.append(special.name, '1');
 	$.ajax({
 		type: "POST",
-		url: "/worker/friend_toggle.php?id=" + get("id"),
+		url: backend_url + "friend_toggle.php?id=" + get("id"),
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -1110,7 +1111,7 @@ function _follow_toggle(){
 	f.append('id',get("id"));
 	$.ajax({
 		type: "POST",
-		url: "/worker/follow_toggle.php",
+		url: backend_url + "follow_toggle.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -1133,7 +1134,7 @@ function showMore(id){
 }
 function _online(){
 	$.ajax({
-		url: "/worker/online.php",
+		url: backend_url + "online.php",
 		type: 'GET',
 		success: function(res) {
 			if(res == 0)
@@ -1144,7 +1145,7 @@ function _online(){
 }
 function _fr_count(){
 	$.ajax({
-		url: "/worker/friend_request_count.php",
+		url: backend_url + "friend_request_count.php",
 		type: 'GET',
 		success: function(res) {
 			gebi('friend_req_count').innerHTML = res;
@@ -1153,7 +1154,7 @@ function _fr_count(){
 }
 function _load_hljs(){
 	$.ajax({
-		url: "/worker/hljs_lang_list.php",
+		url: backend_url + "hljs_lang_list.php",
 		type: 'GET',
 		success: function(res) {
 			hljs_lang_list= gebi('hljs_lang_list');
@@ -1190,7 +1191,7 @@ function _load_settings(){
 	l_user_birthdate = lsg('user_birthdate');
 	l_verified = lsg('verified');
 	$.ajax({
-		url: "/worker/fetch_profile_setting_info.php",
+		url: backend_url + "fetch_profile_setting_info.php",
 		type: 'GET',
 		success: function(r) {
 			if(l_user_about != r['user_about']) lss('user_about', r['user_about']);
@@ -1287,7 +1288,7 @@ function _change_profile_infomation(){
 	d.append('userhometown',userhometown);
 	d.append('userabout',userabout);
 	d.append('usergender',usergender);
-	$.ajax('/worker/change_account_infomation.php', {
+	$.ajax(backend_url + 'change_account_infomation.php', {
 		method: "POST",
 		data: d,
 		processData: false,
@@ -1417,7 +1418,7 @@ function _change_infomation(c = null){
 				d.append('type','RequestEmailCode');
 				d.append('CurrentPassword',gebi('currentpassword').value);
 				d.append('NewEmail',v.value);
-				$.ajax('/worker/change_account_infomation.php', {
+				$.ajax(backend_url + 'change_account_infomation.php', {
 					method: "POST",
 					data: d,
 					processData: false,
@@ -1462,7 +1463,7 @@ function _change_infomation(c = null){
 			l = setTimeout(() => {
 				d = new FormData();
 				d.append(t,e.target.value);
-				$.ajax('/worker/' + t + '_check.php', {
+				$.ajax(backend_url + t + '_check.php', {
 					method: "POST",
 					data: d,
 					processData: false,
@@ -1526,7 +1527,7 @@ function _change_infomation(c = null){
 				return 0;
 		}
 		
-		$.ajax('/worker/change_account_infomation.php', {
+		$.ajax(backend_url + 'change_account_infomation.php', {
 			method: "POST",
 			data: f,
 			processData: false,
@@ -1647,7 +1648,7 @@ function _change_picture(isCover = 0){
 									formData = new FormData();
 									formData.append('fileUpload', blob, 'media_cropped.jpg');
 									formData.append('type', (isCover == 1) ? 'cover' :'profile');
-									$.ajax('/worker/change_picture.php', {
+									$.ajax(backend_url + 'change_picture.php', {
 										method: "POST",
 										data: formData,
 										processData: false,
@@ -1685,13 +1686,13 @@ function _f(){
 		f.append("fileUpload", file_data.files[0]);
 	$.ajax({
 		type: "POST",
-		url: "/worker/post.php",
+		url: backend_url + "post.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
 		data: f,
 		success: function (r) {
-			if(r == "success")
+			if(r["success"] == 1)
 				fetch_post("fetch_post.php");
 		}
 	});
@@ -1709,7 +1710,7 @@ function _share_feed(){
 		f.append("fileUpload", file_data.files[0]);
 	$.ajax({
 		type: "POST",
-		url: "/worker/share.php",
+		url: backend_url + "share.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
