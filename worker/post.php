@@ -3,6 +3,7 @@ require_once '../includes/functions.php';
 if (!_is_session_valid())
     header("location:../index.php");
 $data = _get_data_from_token();
+header("content-type: application/json");
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
 	if(isset($_POST['private']) && isset($_POST['caption'])){
 		$caption = $_POST['caption'];

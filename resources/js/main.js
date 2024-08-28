@@ -344,9 +344,9 @@ function fetch_pfp_box(){
 		}
 	}
 }
-function fetch_post(loc) {
+function fetch_post(loc, from_blob = false) {
 	fetch_pfp_box();
-	$.get(backend_url + loc, function(data) {
+	$.get((from_blob ? '' : backend_url) + loc, function(data) {
 		f = '';
 		l = Object.keys(data).length;
 		page = gebi('page');
@@ -702,8 +702,8 @@ function _open_post(id){
 	changeUrl("post.php?id=" + id);
 	_load_post(id);
 }
-function fetch_friend_list(loc){
-	$.get(backend_url + loc, function(data) {
+function fetch_friend_list(loc, from_blob = false){
+	$.get((from_blob ? '' : backend_url) + loc, function(data) {
 		friend_list = gebi("friend_list");
 		a = '';
 		a += '<center>';
@@ -1710,6 +1710,98 @@ function _f(){
 		success: function (r) {
 			if(r["success"] == 1)
 				fetch_post("fetch_post.php");
+		}
+	});
+}
+function _search(page = 0){
+	type = gebi('searchtype').value;
+	query = gebi('query').value;
+	search = gebi('search');
+	f = new FormData();
+	f.append("type", type);
+	f.append("query", query);
+	f.append("page", page);
+	$.ajax({
+		type: "POST",
+		url: backend_url + "search.php",
+		processData: false,
+		mimeType: "multipart/form-data",
+		contentType: false,
+		data: f,
+		success: function (r) {
+			b = make_blob_url(r, 'application/json');
+			r = JSON.parse(r);
+			a = '';
+			if(r['success'] == 2){
+				a += '<div class="post" style="font-size: 400%">';
+				a += window["lang__084"];
+				a += '</div>';
+				search.innerHTML = a;
+			} else if(r['success'] == 1){
+				if(type == 0){
+					friend_list = gebi("friend_list");
+					for (let i = 0; i < (Object.keys(r).length - 1); i++) {
+						a += '<div class="search_user">';
+						a += '<div class="search_user_cover" id="search_user_cover"'+((r[i]['cover_media_id'] > 0) ? ' style="background-image: url(\'' + pfp_cdn + '&id=' + r[i]['cover_media_id'] + '&h=' + r[i]['cover_media_hash'] + '\')"': '')+'></div>';
+						a += '<img class="pfp" src="'
+						a += (r[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + r[i]['pfp_media_id'] + "&h=" + r[i]['pfp_media_hash'] : getDefaultUserImage(r[i]['user_gender']);
+						a += '" width="168px" height="168px" id="pfp"/>';
+						a += '<a class="flist_link search_link" href="profile.php?id=' + r[i]['user_id'] + '">' + r[i]['user_firstname'] + ' ' + r[i]['user_lastname'];
+						if(r[i]['verified'] > 0)
+							a += ' <i class="fa-solid fa-badge-check verified_color_' + r[i]['verified'] + '" title="' + window["lang__016"] + '"></i>'; 
+						a += '<span class="nickname">@' + r[i]['user_nickname'] + '</span>';
+						a += '</a>';
+						a += '<div class="search_info_about">';
+						if(r[i]['user_about'] != ''){
+							a += '<h2>'+window['lang__070']+':</h2>';
+							a += r[i]['user_about'];
+						}
+						a += '<br>';
+						if(r[i]['user_gender'] == "M")
+							a += window['lang__030'];
+						else if(r[i]['user_gender'] == "F")
+							a += window['lang__031'];
+						if(r[i]['user_gender'] != "U") a += ' | ';
+						a += birthdateConverter(r[i]['user_birthdate'] * 1000);
+						if(r[i]['user_status'] != '' && r[i]['user_status'] != 'N'){
+							a += ' | ';
+							switch(r[i]['user_status']){
+								case "S":
+									a += window['lang__071'];
+									break;
+								case "E":
+									a += window['lang__072'];
+									break;
+								case "M":
+									a += window['lang__073'];
+									break;
+								case "L":
+									a += window['lang__074'];
+									break;
+								case "D":
+									a += window['lang__075'];
+									break;
+								case "U":
+									a += window['lang__076'];
+									break;
+								default:
+									break;
+							}
+						}
+						if(r[i]['user_hometown'] == ''){
+							a += '<br>';
+							a += r[i]['user_hometown'];
+						}
+						a += '</div>';
+						a += '</div>';
+					}
+					search.innerHTML = a;
+				}
+				else if(type == 1){
+					search.innerHTML = '<div id="feed"></div>';
+					fetch_post(b,true);
+				}
+			}
 		}
 	});
 }

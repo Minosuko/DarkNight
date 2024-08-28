@@ -11,8 +11,19 @@
 	<body>
 		<?php include 'includes/navbar.php'; ?>
 		<div class="container">
+			<input type="hidden" id="page" value="0">
 			<h1><lang lang="lang__019"></lang></h1>
-			<h1>Currently disabled until search fontend is done</h1>
+			<div class="globalsearch">
+				<select name="searchtype" title="searchtype" id="searchtype">
+					<option value="0">User</option>
+					<option value="1">Posts</option>
+				</select>
+				<div class="gsinput_box">
+					<input type="text" placeholder="Search" name="query" id="query">
+				</div>
+				<input type="submit" value="Search" id="querybutton" onclick="_search()">
+			</div>
+			<br>
 			<div id="search"></div>
 		</div>
 	</body>

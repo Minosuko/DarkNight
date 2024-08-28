@@ -122,45 +122,41 @@ ul a {
 	animation: hoverinput_box 0.5s 1;
 }
 
-.usernav .globalsearch {
-	padding-top: 4px;
-	margin: 0;
+.globalsearch {
+	margin: auto;
 	width: 60%;
-	background-color: #0a0a0a;
+	border: 1px solid #cce6ff;
+	border-radius: 15px;
+	padding: 5px;
+	backdrop-filter: blur(3.7px);
+	-webkit-backdrop-filter: blur(3.7px);
 }
-
-.usernav .globalsearch input[type=text] {
-	background-color: #2c2c2c;
+.globalsearch input[type="text"]{
+	background-color: transparent;
 	border: none;
-	width: auto;
-	padding: 3px 6px;
+	outline: none;
+	color: #fff;
+	width: 100%;
 }
-
-.usernav .globalsearch input[type=submit] {
-	background-color: #3f3f3f;
-	color: #ffffff;
-	border: none;
-	margin: 5px 5px 5px 0;
-	padding: 3px 6px;
-	width: auto;
+.globalsearch .gsinput_box{
+	border-radius: 15px;
+	display: inline-block;
+	padding: 18px 0px;
+	width: 73%;
 }
-
-.usernav .globalsearch input[type=submit]:hover {
-	color: #ffffff;
-	background-color: #4f4f4f;
-	color: white;
+.globalsearch .gsinput_box:hover{
+	background-color:rgba(255,255,255,0.2);
+	animation: hoverinput_box 0.5s 1;
 }
-
-.usernav .globalsearch select {
-	color: #ffffff;
-	background-color: #2c2c2c;
-	font-family: Fontin;
-	font-size: 18px;
-	margin-left: 5px;
-	padding: 2px 0px 1px;
-	vertical-align: -1px;
+.globalsearch #querybutton{
+	width: 20%;
 }
-
+.globalsearch select{
+	all: unset;
+}
+.globalsearch option{
+	color: #000;
+}
 .white-col{
 	color: #ffffff;
 }
@@ -1263,4 +1259,39 @@ input:-webkit-autofill:active{
 	position: relative;
 	width: 100%;
 	max-height: 680px;
+}
+.search_user{
+	margin: auto;
+	width: 60%;
+	display: block;
+	backdrop-filter: blur(3.7px);
+	-webkit-backdrop-filter: blur(3.7px);
+	border-top: 1px solid rgba(255, 255, 255, 0.34);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
+	border-left: 60px solid transparent;
+	border-right: 60px solid transparent;
+	padding: 10px;
+}
+.search_link{
+	margin-left: 15px;
+    position: absolute;
+    top: 15px;
+    font-size: 150%;
+}
+.search_info_about{
+	position: absolute;
+	top: 55px;
+	margin-left: 185px;
+}
+.search_user_cover{
+	background-image: url("/data/cover.jpg");
+	background-blend-mode: darken;
+    background-color: rgba(0, 0, 0, 0.25);
+    background-size: cover;
+    background-position-y: 30%;
+    margin: -10px;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
 }
