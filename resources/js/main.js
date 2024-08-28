@@ -149,7 +149,7 @@ function load_video(i, h, f, e){
 				}
 			});
 		}
-    });
+	});
 }
 function showPath(){
 	p = gebi("selectedFile").value;
@@ -1272,6 +1272,22 @@ function _load_settings(){
 	}
 	changeUrlWork();
 }
+function _success_modal(t = "success"){
+	gebi("modal").style.display = "block";
+	a = '';
+	a += '<div class="createpost_box">';
+	a += '<div class="success-checkmark">';
+	a += '<div class="check-icon">';
+	a += '<span class="icon-line line-tip"></span>';
+	a += '<span class="icon-line line-long"></span>';
+	a += '<div class="icon-circle"></div>';
+	a += '<div class="icon-fix"></div>';
+	a += '</div>';
+	a += '</div>';
+	a +=  '<h1>' + t + '<h1>';
+	a += '</div>';
+	gebi("modal_content").innerHTML = a;
+}
 function _change_profile_infomation(){
 	var userfirstname = gebi("userfirstname").value;
 	var userlastname = gebi("userlastname").value;
@@ -1309,7 +1325,7 @@ function _change_profile_infomation(){
 				}
 				alert(a);
 			}else{
-				alert(window['lang__079']);
+				_success_modal(window['lang__079']);
 			}
 		}
 	});
@@ -1580,11 +1596,7 @@ function _change_infomation(c = null){
 							return 0;
 					}
 				}else{
-					a = '';
-					a += '<div class="createpostbuttons">';
-					a +=  '<h1>Success<h1>';
-					a += '</div>';
-					gebi("modal_content").innerHTML = a;
+					_success_modal();
 					setTimeout(function(){
 						location.reload();
 					},3000);
@@ -1609,6 +1621,7 @@ function _change_picture(isCover = 0){
 	a += '<canvas id="canvas">'+window['lang__045']+'</canvas>';
 	a += '</div>';
 	a += '<div id="imgresult"></div>';
+	a += '<br>';
 	a += '<button id="btnCrop" class="s_button">'+window['lang__043']+'</button>';
 	a += '<button id="btnSavePicture" class="s_button">'+window['lang__044']+'</button>';
 	a += '</div>';
@@ -1633,7 +1646,10 @@ function _change_picture(isCover = 0){
 						cropper = canvas.cropper({
 							aspectRatio: (isCover == 1) ? (16 / 9) : (1 / 1),
 							viewMode: 2,
-							dragMode: 'move'
+							dragMode: 'move',
+							background: false,
+							autoCropArea: 1,
+							modal: false
 						});
 						$('#btnCrop').click(function() {
 							croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png"); 

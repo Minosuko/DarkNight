@@ -171,7 +171,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$data['user_id']
 			);
 			$conn->query($sql);
-			echo '{"success":1,"sql":"'.$sql.'"}';
+			echo '{"success":1}';
 			break;
 		default:
 			echo '{"success":-1}';
