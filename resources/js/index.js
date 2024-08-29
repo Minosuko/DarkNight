@@ -195,7 +195,7 @@ function validateRegister() {
 		d.append('useremail',useremail);
 		d.append('birthday',birthday);
 		d.append('usergender',(usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U"))));
-		d.append('captcha',capcha);
+		d.append('captcha',captcha);
 		$.ajax('/worker/login_register.php', {
 			method: "POST",
 			data: d,
