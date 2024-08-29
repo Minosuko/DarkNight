@@ -146,7 +146,7 @@ function validateRegister() {
 	var birthday = document.getElementById("birthday").value;
 	var useremail = document.getElementById("useremail").value;
 	var usergender = document.getElementsByClassName("usergender");
-	var captcha = document.getElementById("captcha_0").value;
+	var captcha = document.getElementById("captcha_1").value;
 	usergender[2].checked = true;
 	var result = true;
 	if (userfirstname == "") {
