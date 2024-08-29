@@ -800,6 +800,24 @@ function total_comment($post_id){
 	$query = $conn->query($sql);
 	return $query->fetch_assoc()['count'];
 }
+function total_following($user_id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT COUNT(*) as count FROM follows WHERE user1_id = %d",
+		$conn->real_escape_string($user_id)
+	);
+	$query = $conn->query($sql);
+	return $query->fetch_assoc()['count'];
+}
+function total_follower($user_id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT COUNT(*) as count FROM follows WHERE user2_id = %d",
+		$conn->real_escape_string($user_id)
+	);
+	$query = $conn->query($sql);
+	return $query->fetch_assoc()['count'];
+}
 function convertDate($datetime, $full = false) {
 	$now = new DateTime;
 	$ago = new DateTime($datetime);
