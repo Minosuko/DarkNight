@@ -50,6 +50,8 @@ if($total_rows == 0){
 	$row_d["user_about"] = _about_trim($row_d['user_about']);
 	$row_d["flag"] = $flag;
 	$row_d["is_followed"] = $data['user_id'] != $row_d['user_id'] ? (is_follow($data['user_id'], $row_d['user_id']) ? 1 : 0) : 2;
+	$row_d["total_following"] = total_following($row_d['user_id']);
+	$row_d["total_follower"] = total_follower($row_d['user_id']);
 	$row_d["success"] = 1;
 	echo json_encode($row_d);
 }

@@ -8,7 +8,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 	if(isset($_POST['type']) && isset($_POST['query'])){
 		$type = $_POST['type'];
 		$key = $conn->real_escape_string($_POST['query']);
-		$xoff = ($type == 0) ? 20 : 30;
+		$xoff = in_array($type,[0,2,3]) ? 20 : 30;
 		$off = 0;
 		$esql = '';
 		if(isset($_GET['page']))
@@ -16,15 +16,48 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$off = $xoff*$_GET['page'];
 		if($off != 0)
 			$esql = " OFFSET $off";
-		if($type == 0){
-			$sql =
-					"SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified FROM users WHERE users.user_firstname LIKE '%$key%' OR users.user_lastname LIKE '%$key%' OR users.user_email LIKE '%$key%' OR users.user_hometown LIKE '%$key%' LIMIT 20$esql";
+		if(in_array($type,[0,2,3])){
+			if($type == 0)
+				$sql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified FROM users WHERE users.user_firstname LIKE '%$key%' OR users.user_lastname LIKE '%$key%' OR users.user_email LIKE '%$key%' OR users.user_hometown LIKE '%$key%' LIMIT 20$esql";
+			else if($type == 2)
+			$sql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
+			FROM users
+			JOIN follows
+			ON posts.post_by = follows.user1_id
+			WHERE
+			(
+				users.user_firstname LIKE '%$key%' OR
+				users.user_lastname LIKE '%$key%' OR
+				users.user_email LIKE '%$key%' OR
+				users.user_hometown LIKE '%$key%'
+			) AND
+			follows.user1_id = {$data['user_id']} LIMIT 20$esql";
+			else if($type == 3)
+				$sql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
+				FROM users
+				JOIN follows
+				ON posts.post_by = follows.user1_id
+				WHERE
+				(
+					users.user_firstname LIKE '%$key%' OR
+					users.user_lastname LIKE '%$key%' OR
+					users.user_email LIKE '%$key%' OR
+					users.user_hometown LIKE '%$key%'
+				) AND
+				follows.user2_id = {$data['user_id']} LIMIT 20$esql";
 		}else{
 			$sql = "SELECT posts.post_caption, posts.post_time, posts.post_public, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, posts.post_id, posts.post_media, posts.is_share, users.pfp_media_id, users.user_nickname, users.verified
 					FROM posts
 					JOIN users
 					ON posts.post_by = users.user_id
 					WHERE (posts.post_public = 2 OR users.user_id = {$data['user_id']}) AND posts.post_caption LIKE '%$key%'
+					UNION SELECT posts.post_caption, posts.post_time, posts.post_public, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, posts.post_id, posts.post_media, posts.is_share, users.pfp_media_id, users.user_nickname, users.verified 
+					FROM posts
+					JOIN follows
+					ON posts.post_by = follows.user1_id
+					JOIN users
+					ON posts.post_by = users.user_id
+					WHERE posts.post_public = 2 AND follows.user1_id = {$data['user_id']} AND posts.post_caption LIKE '%$key%'
 					UNION
 					SELECT posts.post_caption, posts.post_time, posts.post_public, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, posts.post_id, posts.post_media, posts.is_share, users.pfp_media_id, users.user_nickname, users.verified
 					FROM posts
@@ -50,7 +83,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		}else{
 			$row_d = [];
 			$rows = $query->fetch_all(MYSQLI_ASSOC);
-			if($type == 0){
+			if(in_array($type,[0,2,3])){
 				$r = ($total_rows < 20) ? $total_rows : 20;
 				for($i = 0; $i < $r; $i++){
 					$row_d[$i] = $rows[$i];
@@ -58,6 +91,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 						$row_d[$i]['pfp_media_hash'] = _get_hash_from_media_id($row_d[$i]['pfp_media_id']);
 					if($row_d[$i]['cover_media_id'] > 0)
 						$row_d[$i]['cover_media_hash'] = _get_hash_from_media_id($row_d[$i]['cover_media_id']);
+					$row_d[$i]["total_following"] = total_following($row_d[$i]['user_id']);
+					$row_d[$i]["total_follower"] = total_follower($row_d[$i]['user_id']);
 				}
 			}else{
 				$r = ($total_rows < 30) ? $total_rows : 30;

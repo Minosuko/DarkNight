@@ -47,6 +47,25 @@ function getDefaultUserImage(g){
 			return default_user_pfp;
 	}
 }
+function in_array(a,s){
+	return a.includes(s);
+}
+function round_number(n){
+	s = '';
+	r = n;
+	f = false;
+	if(n > 1000 && n < 999999){
+		r = n / 1000;
+		s = 'K';
+		f = true;
+	}
+	if(n > 999999 && n < 999999999){
+		r = n / 1000;
+		s = 'M';
+		f = true;
+	}
+	return ((f) ? Number((r).toFixed(1)) : r) + s;
+}
 function load_lang(){
 	i = gebtn('lang');
 	Object.keys(i).forEach(function (n){
@@ -825,7 +844,7 @@ function fetch_profile(){
 			a += window['lang__031'];
 		if(data['user_gender'] != "U") a += ' | ';
 		a += birthdateConverter(data['user_birthdate'] * 1000);
-		if(data['user_status'] != ''){
+		if(data['user_status'] != '' && data['user_status'] != 'N'){
 			a += ' | ';
 			switch(data['user_status']){
 				case "S":
@@ -850,10 +869,12 @@ function fetch_profile(){
 					break;
 			}
 		}
-		if(data['user_hometown'] == ''){
+		if(data['user_hometown'] != ''){
 			a += '<br>';
 			a += data['user_hometown'];
 		}
+		a += '<br>';
+		a += '<p>Following: '+round_number(data['total_following'])+' | Follower: '+round_number(data['total_follower'])+'</p>';
 		if(data['flag'] == 1){
 			a += '<br>';
 			if(data['friendship_status'] != null) {
@@ -1738,7 +1759,7 @@ function _search(page = 0){
 				a += '</div>';
 				search.innerHTML = a;
 			} else if(r['success'] == 1){
-				if(type == 0){
+				if(in_array([0,2,3],Number(type))){
 					friend_list = gebi("friend_list");
 					for (let i = 0; i < (Object.keys(r).length - 1); i++) {
 						a += '<div class="search_user">';
@@ -1788,10 +1809,12 @@ function _search(page = 0){
 									break;
 							}
 						}
-						if(r[i]['user_hometown'] == ''){
+						if(r[i]['user_hometown'] != ''){
 							a += '<br>';
 							a += r[i]['user_hometown'];
 						}
+						a += '<br>';
+						a += '<p>Following: '+round_number(r[i]['total_following'])+' | Follower: '+round_number(r[i]['total_follower'])+'</p>';
 						a += '</div>';
 						a += '</div>';
 					}

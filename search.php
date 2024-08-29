@@ -17,6 +17,8 @@
 				<select name="searchtype" title="searchtype" id="searchtype">
 					<option value="0">User</option>
 					<option value="1">Posts</option>
+					<option value="2">Following</option>
+					<option value="3">Follower</option>
 				</select>
 				<div class="gsinput_box">
 					<input type="text" placeholder="Search" name="query" id="query">
