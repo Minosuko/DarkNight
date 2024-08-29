@@ -188,7 +188,7 @@ function validateRegister() {
 	if(result){
 		d = new FormData();
 		d.append('register','1');
-		d.append('userfirstname',useremail);
+		d.append('userfirstname',userfirstname);
 		d.append('userlastname',userlastname);
 		d.append('usernickname',usernickname);
 		d.append('userpass',userpass);
