@@ -9,6 +9,8 @@ if (typeof(Storage) !== "undefined") {
 		$.get("resources/language/" + a + ".json", function(r) {
 			localStorage.setItem("language_data",JSON.stringify(r));
 			d = JSON.stringify(r);
+		}).done(function() {
+			location.reload();
 		});
 	}
 	var j = JSON.parse(d);
