@@ -53,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$userabout      = '';
 		$user_token     = _generate_token();
 		$usergender 	= in_array($usergender,["F","M","U"]) ? $usergender : "U";
-		if(!validateDate($_POST['birthday'])) header("Location:?err=invalid_date");
-		if(!_is_username_valid($usernickname)) header("Location:?err=invalid_nickname");
-		if(!filter_var($email, FILTER_VALIDATE_EMAIL)) header("Location:?err=invalid_email");
+		if(!validateDate($_POST['birthday'])) die('{"success":0,"err":"invalid_date"}');
+		if(!_is_username_valid($usernickname)) die('{"success":0,"err":"invalid_nickname"}');
+		if(!filter_var($email, FILTER_VALIDATE_EMAIL)) die('{"success":0,"err":"invalid_email"}');
 			
 		$userstatus = isset($_POST['userstatus']) ? $_POST['userstatus'] : 'U';
 		
