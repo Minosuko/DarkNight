@@ -3,7 +3,8 @@ require_once "includes/functions.php";
 if(_is_session_valid(false)){
 	$data = _get_data_from_token();
 	$has2FA = Has2FA($data['user_id']);
-	if(!$has2FA)
+	$checkActive = checkActive();
+	if(!$has2FA && $checkActive)
 		header("Location: home.php");
 }
 ?>

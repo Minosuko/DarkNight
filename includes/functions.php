@@ -572,6 +572,16 @@ function new_session($time, $userID, $auth2FA){
 	_setcookie("session_id", $session_id, $time);
 	_setcookie("session_token", $session_token, $time);
 }
+function checkActive(){
+	$conn = $GLOBALS['conn'];
+	$token = $_COOKIE['token'];
+	$sql = sprintf(
+		"SELECT * FROM users WHERE user_token = '%s' AND active = 1",
+		$conn->real_escape_string($token)
+	);
+	$query = $conn->query($sql);
+	return ($query->num_rows == 1);
+}
 function _is_session_valid($checkActive = true){
 	if(!isset($_COOKIE['token']) || !isset($_COOKIE['session_id']) || !isset($_COOKIE['session_token']) || !isset($_COOKIE['browser_id'])){
 		return false;
@@ -588,7 +598,10 @@ function _is_session_valid($checkActive = true){
 	);
 	$query = $conn->query($sql);
 	if($query->num_rows > 0){
-		$userID = _get_data_from_token($token)['user_id'];
+		$data = $query->fetch_assoc();
+		if($checkActive && $data['active'] == 0)
+			return false;
+		$userID = $data['user_id'];
 		$sql = sprintf(
 			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s' AND browser_id = '%s'%s",
 			$userID,

@@ -4,10 +4,15 @@ require_once 'includes/functions.php';
 if(_is_session_valid(false)){
 	$data = _get_data_from_token();
 	$has2FA = Has2FA($data['user_id']);
-	if($has2FA)
-		header("Location: verify.php?t=2FA");
-	else
-		header("Location: home.php");
+	$checkActive = checkActive();
+	if(!$checkActive){
+		header("Location: verify.php?t=registered");
+	}else{
+		if($has2FA)
+			header("Location: verify.php?t=2FA");
+		else
+			header("Location: home.php");
+	}
 }
 $_SESSION['refresh_captcha'] = 1;
 ?>
