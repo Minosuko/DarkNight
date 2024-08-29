@@ -98,7 +98,7 @@ function validateLogin() {
 	var required = document.getElementsByClassName("required");
 	var useremail = document.getElementById("loginuseremail").value;
 	var userpass = document.getElementById("loginuserpass").value;
-	var capcha = document.getElementById("captcha_0").value;
+	var captcha = document.getElementById("captcha_0").value;
 	var rememberme = document.getElementById("remember-me").checked;
 	var result = true;
 	if (useremail == "") {
@@ -114,7 +114,7 @@ function validateLogin() {
 		d.append('login','1');
 		d.append('userlogin',useremail);
 		d.append('userpass',userpass);
-		d.append('captcha',capcha);
+		d.append('captcha',captcha);
 		if(rememberme)
 			d.append('remember_me','1');
 		$.ajax('/worker/login_register.php', {
@@ -146,6 +146,7 @@ function validateRegister() {
 	var birthday = document.getElementById("birthday").value;
 	var useremail = document.getElementById("useremail").value;
 	var usergender = document.getElementsByClassName("usergender");
+	var captcha = document.getElementById("captcha_0").value;
 	usergender[2].checked = true;
 	var result = true;
 	if (userfirstname == "") {
