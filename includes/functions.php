@@ -757,8 +757,8 @@ function _about_trim($about){
 function _caption_trim($caption){
 	$html = htmlspecialchars($caption);
 	$html = preg_replace('/\[color=([0-9a-fA-F]{6})\](.*?)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
-	$html = preg_replace('/\[code\](.+)\[\/code\]/', "<code>$1</code>", $html);
-	$html = preg_replace('/\[code=(\w+)\](.+)\[\/code\]/', "<code class='language-$1'>$2</code>", $html);
+	$html = preg_replace('/\[code\]([\s\S]+?)\[\/code\]/', "<code>$1</code>", $html);
+	$html = preg_replace('/\[code=(\w+)\]([\s\S]+?)\[\/code\]/', "<code class='language-$1'>$2</code>", $html);
 	$html = preg_replace('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', '<a class="post-link" href="$0" target="_blank">$0</a>', $html);
 	return $html;
 }
@@ -774,24 +774,24 @@ function is_friend($user_id, $target_id){
 		return true;
 	return false;
 }
-function is_follow($user1_id, $user2_id){
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT * FROM follows WHERE user1_id = %d AND user2_id = %d",
-		$conn->real_escape_string($user1_id),
-		$conn->real_escape_string($user2_id)
-	);
-	$query = $conn->query($sql);
-	if($query->num_rows > 0)
-		return true;
-	return false;
-}
 function is_liked($user_id, $post_id){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
 		"SELECT * FROM likes WHERE user_id = %d AND post_id = %d",
 		$conn->real_escape_string($user_id),
 		$conn->real_escape_string($post_id)
+	);
+	$query = $conn->query($sql);
+	if($query->num_rows > 0)
+		return true;
+	return false;
+}
+function is_follow($user1_id, $user2_id){
+	$conn = $GLOBALS['conn'];
+	$sql = sprintf(
+		"SELECT * FROM follows WHERE user1_id = %d AND user2_id = %d",
+		$conn->real_escape_string($user1_id),
+		$conn->real_escape_string($user2_id)
 	);
 	$query = $conn->query($sql);
 	if($query->num_rows > 0)
