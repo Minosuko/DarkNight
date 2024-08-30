@@ -14,7 +14,7 @@ if(isset($_GET['id'])){
 			if($postinfo['allow_comment'] == 0) die('{"success":-1}');
 			$cf = $GLOBALS['commandfunc'];
 			$cf->setUserData($data);
-			$isCommand = $cf->parse_command();
+			$isCommand = $cf->parse_command($comment);
 			if($isCommand){
 				switch(strtolower($isCommand[0])){
 					case 'verify':
