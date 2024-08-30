@@ -77,6 +77,5 @@
 	</body>
 	<script>
 	fetch_profile("fetch_profile_info.php");
-	fetch_post("fetch_profile_post.php");
 	</script>
 </html>

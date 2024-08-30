@@ -919,6 +919,7 @@ function fetch_profile(){
 		changeUrlWork();
 		onResizeEvent();
 	});
+	fetch_post("fetch_profile_post.php"+id_a);
 }
 function _load_post(post_id = null){
 	id = (post_id != null) ? post_id : get('id');
