@@ -31,7 +31,7 @@ class CommandFunc{
 			case 'verify':
 				if(!in_array($data['verified'],$CommandAllowedVerified))
 					return false;
-				if($data['user_id'] != $target)
+				if($data['user_id'] == $target)
 					return false;
 				if($argument >= $data['verified'])
 					return false;
