@@ -18,7 +18,7 @@ if($total_rows == 0){
 		$row_d['pfp_media_hash'] = _get_hash_from_media_id($row_d['pfp_media_id']);
 	if($row_d['cover_media_id'] > 0)
 		$row_d['cover_media_hash'] = _get_hash_from_media_id($row_d['cover_media_id']);
-	$row_d["user_about"] = _about_trim($row_d['user_about']);
+	$row_d["user_about"] = htmlspecialchars($row_d['user_about']);
 	$row_d["success"] = 1;
 	echo json_encode($row_d);
 }
