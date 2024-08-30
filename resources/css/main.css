@@ -1282,9 +1282,10 @@ input:-webkit-autofill:active{
 	font-size: 150%;
 }
 .search_info_about{
-	position: relative;
+	margin-top: 30px;
 	display: inline-block;
 	margin-left: 15px;
+	height: max-content;
 }
 .search_user_cover{
 	background-image: url("/data/cover.jpg");
