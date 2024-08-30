@@ -14,17 +14,19 @@ if(isset($_GET['id'])){
 			if($postinfo['allow_comment'] == 0) die('{"success":-1}');
 			$cf = $GLOBALS['commandfunc'];
 			$cf->setUserData($data);
-			$isCommand = $cf->parse_command($comment);
-			if(is_array($isCommand)){
-				switch(strtolower($isCommand[0])){
-					case 'verify':
-						$cf->execute($isCommand[0],$isCommand[1],$postinfo['post_by']);
-						break;
-					case 'allow_comment':
-						$cf->execute($isCommand[0],$isCommand[1],$post_id);
-						break;
+			if($cf->allowUseCommand()){
+				$isCommand = $cf->parse_command($comment);
+				if(is_array($isCommand)){
+					switch(strtolower($isCommand[0])){
+						case 'verify':
+							$c = $cf->execute($isCommand[0],$isCommand[1],$postinfo['post_by']);
+							break;
+						case 'allow_comment':
+							$c = $cf->execute($isCommand[0],$isCommand[1],$post_id);
+							break;
+					}
+					die('{"success":1,"c":'.($c ? 1 : 0).'}');
 				}
-				die('{"success":1}');
 			}
 			$sql = sprintf(
 				"INSERT INTO `comments` (`post_id`, `user_id`, `comment`, `comment_time`) VALUES ('$post_id', '$user_id', '$comment', '$timestamp')",

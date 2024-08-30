@@ -13,6 +13,12 @@ class CommandFunc{
 		if(!$preg) return false;
 		return [$match[1],$match[2]];
 	}
+	public function allowUseCommand(){
+		if($this->userData == null)
+			return false;
+		$data = $this->userData;
+		return in_array($data['verified'],$CommandAllowedVerified);
+	}
 	public function execute($command, $argument, $target){
 		if($this->userData == null)
 			return false;
