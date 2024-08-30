@@ -87,6 +87,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$r = ($total_rows < 20) ? $total_rows : 20;
 				for($i = 0; $i < $r; $i++){
 					$row_d[$i] = $rows[$i];
+					$row_d[$i]["user_about"] = _about_trim($row_d[$i]['user_about']);
 					if($row_d[$i]['pfp_media_id'] > 0)
 						$row_d[$i]['pfp_media_hash'] = _get_hash_from_media_id($row_d[$i]['pfp_media_id']);
 					if($row_d[$i]['cover_media_id'] > 0)
