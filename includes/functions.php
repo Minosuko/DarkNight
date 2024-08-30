@@ -749,16 +749,16 @@ function _generate_token($start = 'Auth_'){
 }
 function _about_trim($about){
 	$html = htmlspecialchars($about);
-	$html = str_replace("\n","<br>",$html);
-	$html = preg_replace('/\[color=#(\w+|\d+)\](.+)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
+	preg_match_all('', $input_lines, $output_array);
+	$html = preg_replace('/\[color=#(\w+|\d+)\]([\w\d\s]+)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
 	$html = preg_replace('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', '<a class="post-link" href="$0" target="_blank">$0</a>', $html);
 	return $html;
 }
 function _caption_trim($caption){
 	$html = htmlspecialchars($caption);
-	$html = preg_replace('/\[color=#(\w+|\d+)\](.+)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
-	$html = preg_replace('/\[code\]([\s\S]+)\[\/code\]/', "<code>$1</code>", $html);
-	$html = preg_replace('/\[code=(\w+)\]([\s\S]+)\[\/code\]/', "<code class='language-$1'>$2</code>", $html);
+	$html = preg_replace('/\[color=#(\w+|\d+)\]([\w\d\s]+)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
+	$html = preg_replace('/\[code\]([\w\d\s]+)\[\/code\]/', "<code>$1</code>", $html);
+	$html = preg_replace('/\[code=(\w+)\]([\w\d\s]+)\[\/code\]/', "<code class='language-$1'>$2</code>", $html);
 	$html = preg_replace('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', '<a class="post-link" href="$0" target="_blank">$0</a>', $html);
 	return $html;
 }
