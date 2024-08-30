@@ -14,6 +14,7 @@ class CommandFunc{
 		return [$match[1],$match[2]];
 	}
 	public function allowUseCommand(){
+		$CommandAllowedVerified = $this->AllowCommand;
 		if($this->userData == null)
 			return false;
 		$data = $this->userData;
