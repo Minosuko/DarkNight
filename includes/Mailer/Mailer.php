@@ -31,7 +31,8 @@ class Mailer{
 		$mail->Password   = $smtp['password'];
 		$mail->AddAddress($to, $header['to']);
 		$mail->SetFrom($smtp['username'], $header['From']);
-		$mail->Subject = $subject;
+		$mail->Subject    = $subject;
+		$mail->CharSet    = "UTF-8";
 		$content = $body;
 		if($header['isHTML'] == true){
 			$mail->IsHTML($header['isHTML']);
