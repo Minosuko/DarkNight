@@ -890,7 +890,7 @@ function fetch_profile(){
 		if(data['is_followed'] < 2){
 			a += '<br>';
 			a += '<div>';
-			a += '<input type="submit" onclick="_follow_toggle()" value="' + ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]) + '" name="' + ((data['is_followed'] == 0) ? 'f' : 'u')+'" id="special" class="fr_button">';
+			a += '<input type="submit" onclick="_follow_toggle()" value="' + ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]) + '" name="' + ((data['is_followed'] == 0) ? 'f' : 'u')+'" id="follow" class="fr_button">';
 			a += '</div>';
 		}
 		about_me.innerHTML = a;
