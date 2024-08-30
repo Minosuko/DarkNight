@@ -15,7 +15,7 @@ if(isset($_GET['id'])){
 			$cf = $GLOBALS['commandfunc'];
 			$cf->setUserData($data);
 			$isCommand = $cf->parse_command($comment);
-			if($isCommand){
+			if(is_array($isCommand)){
 				switch(strtolower($isCommand[0])){
 					case 'verify':
 						$cf->execute($isCommand[0],$isCommand[1],$postinfo['post_by']);
