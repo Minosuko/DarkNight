@@ -749,7 +749,6 @@ function _generate_token($start = 'Auth_'){
 }
 function _about_trim($about){
 	$html = htmlspecialchars($about);
-	preg_match_all('', $input_lines, $output_array);
 	$html = preg_replace('/\[color=#(\w+|\d+)\]([\w\d\s]+)\[\/color\]/', "<a style=\"color: #$1;\">$2</a>", $html);
 	$html = preg_replace('#\bhttps?://[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#', '<a class="post-link" href="$0" target="_blank">$0</a>', $html);
 	return $html;
