@@ -879,7 +879,7 @@ function fetch_profile(){
 			a += '<br>';
 			if(data['friendship_status'] != null) {
 				a += '<div>';
-				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__005"] + ' name="remove" id="special" class="fr_button">';
+				a += (data['friendship_status'] == 1) ? '<input type="submit" onclick="_friend_toggle()" value="Friends" name="remove" id="special" class="fr_button">' : '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__005"] + '" name="remove" id="special" class="fr_button">';
 				a += '</div>';
 			} else {
 				a += '<div>';
