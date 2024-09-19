@@ -47,19 +47,8 @@
 			#feed>.post{
 				margin-right: 20%;
 			}
-			.about_me{
-				margin-left: 5%;
-				width: 400px;
-				border-top: 1px solid rgba(255, 255, 255, 0.34);
-				border-bottom: 1px solid rgba(255, 255, 255, 0.34);
-				border-left: 60px solid transparent;
-				border-right: 60px solid transparent;
-				border-radius: 30px;
-				backdrop-filter: blur(3.7px);
-				-webkit-backdrop-filter: blur(3.7px);
-			}
 			#feed{
-				margin-top: -200px;
+				margin-top: -100px;
 			}
 		</style>
 	</head>

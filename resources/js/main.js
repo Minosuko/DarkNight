@@ -118,6 +118,12 @@ function gebcn(i){
 function gebtn(i){
 	return document.getElementsByTagName(i);
 }
+function gebiwe(e,i){
+	return e.querySelectorAll('#'+i)[0];
+}
+function gebcnwe(e,i){
+	return e.getElementsByClassName(i);
+}
 function preview(input){
 	if (input.files && input.files[0]) {
 		r = new FileReader();
@@ -134,7 +140,7 @@ function preview(input){
 				$('#preview_' + t).attr('src', e.target.result);
 			}
 		}
-		reader.readAsDataURL(input.files[0]);
+		r.readAsDataURL(input.files[0]);
 	}
 }
 function make_blob_url(c, f){
@@ -307,7 +313,13 @@ function processAjaxData(r, u) {
 			d[0].innerHTML = '';
 		}
 	}
-	gebcn('container')[0].innerHTML = c[0].innerHTML;
+	if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
+		window['xel'] = e;
+		fetch_profile(e);
+		gebcn('container')[0].innerHTML = c[0].innerHTML;
+	}else{
+		gebcn('container')[0].innerHTML = c[0].innerHTML;
+	}
 	load_lang();
 	document.title = tl;
 	window.history.pushState({
@@ -325,13 +337,6 @@ function processAjaxData(r, u) {
 		fetch_friend_list('fetch_friend_list.php');
 	if (u === "/requests.php" || u === "requests.php")
 		fetch_friend_request('fetch_friend_request.php');
-	if (u.substring(0,12) === "/profile.php" || u.substring(0,11) === "profile.php"){
-		add_header = "";
-		if(u.substring(0,16) === "/profile.php?id=" || u.substring(0,15) === "profile.php?id=")
-			add_header = "?id=" + get("id");
-		fetch_profile();
-		fetch_post("fetch_profile_post.php" + add_header);
-	}
 	if (u.substring(0,9) === "/post.php" || u.substring(0,8) === "post.php"){
 		if(u.substring(0,13) === "/post.php?id=" || u.substring(0,12) === "post.php?id=")
 			_load_post(get("id"));
@@ -794,7 +799,8 @@ function fetch_friend_request(loc){
 		changeUrlWork();
 	});
 }
-function fetch_profile(){
+function fetch_profile(e = null){
+	$.ajaxSetup({async:false});
 	id = get("id");
 	id_a = '';
 	if(typeof(id) != 'undefined')
@@ -814,15 +820,15 @@ function fetch_profile(){
 	a += '<div class="about_me" id="about_me">';
 	a += '</div>';
 	a += '</center>';
-	profile = gebi("profile");
+	profile = e == null ? gebi("profile") : gebiwe(e, "profile");
 	profile.innerHTML = a;
 	$.get(backend_url + "fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
-		profile_cover = gebi("profile_cover");
-		profile_image = gebi("profile_image");
-		user_name = gebi("user_name");
-		about_me = gebi("about_me");
+		profile_cover = null ? gebi("profile_cover") : gebiwe(e, "profile_cover");
+		profile_image = null ? gebi("profile_image") : gebiwe(e, "profile_image");
+		user_name = null ? gebi("user_name") : gebiwe(e, "user_name");
+		about_me = null ? gebi("about_me") : gebiwe(e, "about_me");
 		profile_image.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
@@ -895,11 +901,11 @@ function fetch_profile(){
 		}
 		about_me.innerHTML = a;
 		if(isMobile()){
-			pfp_head = gebcn('profile_head')[0];
-			user_name = gebcn('user_name')[0];
-			about_me = gebcn('about_me')[0];
-			nickname = gebcn('nickname')[0];
-			feed = gebi('feed');
+			pfp_head = e == null ? gebcn('profile_head')[0] : gebcnwe(e, 'profile_head');
+			user_name = e == null ? gebcn('user_name')[0] : gebcnwe(e, 'user_name');
+			about_me = e == null ? gebcn('about_me')[0] : gebcnwe(e, 'about_me');
+			nickname = e == null ? gebcn('nickname')[0] : gebcnwe(e, 'nickname');
+			feed =  e == null ? gebi('feed') : gebiwe(e, 'feed');
 			pfp_head.style.marginLeft = "auto";
 			pfp_head.style.marginTop = "0";
 			user_name.style.marginTop = "0";
@@ -919,6 +925,7 @@ function fetch_profile(){
 		changeUrlWork();
 		onResizeEvent();
 	});
+	$.ajaxSetup({async:true});
 	fetch_post("fetch_profile_post.php"+id_a);
 }
 function _load_post(post_id = null){
