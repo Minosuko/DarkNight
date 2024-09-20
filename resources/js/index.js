@@ -79,9 +79,7 @@ function openTab(evt, choice) {
 				tabcontent[i].style.display = "none";
 			}
 		}, 800);
-		console.log("Margin");
 		tabcon.style.marginLeft = (choice == 'signup') ? "-100%" : "100%";
-		console.log("opacity");
 		tabcon.style.opacity = "0";
 	}
 	var tablink = document.getElementsByClassName("tablink");
@@ -92,7 +90,6 @@ function openTab(evt, choice) {
 		document.getElementById(choice).style.display = "block";
 		document.getElementById(choice).style.marginLeft = "0%";
 		document.getElementById(choice).style.opacity = "1";
-		console.log("choice",document.getElementById(choice).style.display,document.getElementById(choice));
 	}, 800);
 	evt.currentTarget.classList.add("active");
 	if (typeof(Storage) !== "undefined") {
