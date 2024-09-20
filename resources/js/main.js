@@ -11,16 +11,18 @@ if (typeof(Storage) !== "undefined") {
 	a = lsg("language");
 	d = lsg("language_data");
 	if(a == null){
-		localStorage.setItem("language",'en-us');
+		lss("language",'en-us');
 		a = 'en-us';
 	}
 	if(d == null){
+		$.ajaxSetup({async:false});
 		$.get("resources/language/" + a + ".json", function(r) {
 			lss("language_data",JSON.stringify(r));
 			d = JSON.stringify(r);
 		}).done(function() {
 			location.reload();
 		});
+		$.ajaxSetup({async:true});
 	}
 	j = JSON.parse(d);
 	Object.keys(j).forEach(function(v){
@@ -605,6 +607,7 @@ function _load_comment(id, page){
 	$.get(backend_url + "fetch_comment.php?id=" + id + "&page=" + page, function(data) {
 		b = gebi("comment-box");
 		a = '';
+		h = false;
 		if(data['success'] == 2)
 			gebi('page').value = -1;
 		if(data['success'] == 1){
@@ -623,9 +626,12 @@ function _load_comment(id, page){
 				a += '</div>';
 				a += '<hr/>';
 			}
+			if((Object.keys(data).length - 1))
+				h = true;
 		}
 		b.innerHTML += a;
-		b.style.height = (Math.max(document.documentElement.clientHeight, window.innerHeight || 0) + 55) + "px";
+		if(h)
+			b.style.height = ((Math.max(document.documentElement.clientHeight, window.innerHeight || 0) + 55) + gebcn('comment-form')[0].clientHeight) + "px";
 		changeUrlWork();
 	});
 }
@@ -724,7 +730,6 @@ function make_post(){
 }
 function _open_post(id){
 	changeUrl("post.php?id=" + id);
-	_load_post(id);
 }
 function fetch_friend_list(loc, from_blob = false){
 	$.get((from_blob ? '' : backend_url) + loc, function(data) {
@@ -1034,17 +1039,6 @@ function _load_post(post_id = null){
 			_content_right.style.position = 'relative';
 			gebcn('comment-form')[0].style.width = "100%";
 		}
-		$("#comment-box").scroll(function() {
-			obj = this;
-			if(obj.scrollTop === (obj.scrollHeight - obj.offsetHeight)){
-				page = gebi('page');
-				if(page != -1){
-					nextPage = Number(page.value) + 1;
-					_load_comment(get('id'), nextPage);
-				}
-			}
-		});
-		
 		$("textarea").each(function() {
 			this.setAttribute("style", "height:" + (this.scrollHeight*2.1) + "px;overflow-y:hidden;");
 		}).on("input", function() {
@@ -1057,6 +1051,16 @@ function _load_post(post_id = null){
 		});
 		HighLightHLJS();
 		changeUrlWork();
+		$("#comment-box").scroll(function() {
+			obj = this;
+			if(obj.scrollTop === (obj.scrollHeight - obj.offsetHeight)){
+				page = gebi('page');
+				if(page != -1){
+					nextPage = Number(page.value) + 1;
+					_load_comment(get('id'), nextPage);
+				}
+			}
+		});
 	});
 }
 function _friend_request_toggle(id,accept){

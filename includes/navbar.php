@@ -33,6 +33,7 @@ if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
 		<script src="resources/js/zTemplate.js"></script>
 		<script src="resources/js/cropper.js"></script>
 		<script src="resources/js/jquery-cropper.js"></script>
+		<script src="resources/js/secureLib.js"></script>
 		<script src="resources/js/main.js"></script>
 		<input id='fullname' value='Unkown' type='hidden'>
 		<input id='online_status' value='1' type='hidden'>

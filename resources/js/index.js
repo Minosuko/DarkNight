@@ -6,12 +6,14 @@ if (typeof(Storage) !== "undefined") {
 		a = 'en-us';
 	}
 	if(d == null){
+		$.ajaxSetup({async:false});
 		$.get("resources/language/" + a + ".json", function(r) {
 			localStorage.setItem("language_data",JSON.stringify(r));
 			d = JSON.stringify(r);
 		}).done(function() {
 			location.reload();
 		});
+		$.ajaxSetup({async:true});
 	}
 	var j = JSON.parse(d);
 	Object.keys(j).forEach(function(v,n){
@@ -69,14 +71,29 @@ if(isMobile()){
 document.getElementsByClassName('container')[0].style.zoom = "0.75";
 function openTab(evt, choice) {
 	var tabcontent = document.getElementsByClassName("tabcontent");
-	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
+	var tabcon;
+	for (var i = 0; i < tabcontent.length; i++) {
+		tabcon = tabcontent[i];
+		setTimeout(function () {
+			for (var i = 0; i < tabcontent.length; i++) {
+				tabcontent[i].style.display = "none";
+			}
+		}, 800);
+		console.log("Margin");
+		tabcon.style.marginLeft = (choice == 'signup') ? "-100%" : "100%";
+		console.log("opacity");
+		tabcon.style.opacity = "0";
 	}
 	var tablink = document.getElementsByClassName("tablink");
 	for (i = 0; i < tablink.length; i++) {
 		tablink[i].classList.remove("active");
 	}
-	document.getElementById(choice).style.display = "block";
+	setTimeout(function () {
+		document.getElementById(choice).style.display = "block";
+		document.getElementById(choice).style.marginLeft = "0%";
+		document.getElementById(choice).style.opacity = "1";
+		console.log("choice",document.getElementById(choice).style.display,document.getElementById(choice));
+	}, 800);
 	evt.currentTarget.classList.add("active");
 	if (typeof(Storage) !== "undefined") {
 		localStorage.recent = evt.currentTarget.getAttribute('id');
@@ -113,7 +130,7 @@ function validateLogin() {
 		d = new FormData();
 		d.append('login','1');
 		d.append('userlogin',useremail);
-		d.append('userpass',userpass);
+		d.append('userpass',encryptPassword(userpass));
 		d.append('captcha',captcha);
 		if(rememberme)
 			d.append('remember_me','1');
@@ -191,7 +208,7 @@ function validateRegister() {
 		d.append('userfirstname',userfirstname);
 		d.append('userlastname',userlastname);
 		d.append('usernickname',usernickname);
-		d.append('userpass',userpass);
+		d.append('userpass', encryptPassword(userpass));
 		d.append('useremail',useremail);
 		d.append('birthday',birthday);
 		d.append('usergender',(usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U"))));
@@ -221,22 +238,22 @@ function clearRequiredFields() {
 	}
 }
 if (typeof(Storage) !== "undefined") {
-var current = localStorage.recent;
-if (current) {
-	var tabcontent = document.getElementsByClassName("tabcontent");
-	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
+	var current = localStorage.recent;
+	if (current) {
+		var tabcontent = document.getElementsByClassName("tabcontent");
+		for (i = 0; i < tabcontent.length; i++) {
+			tabcontent[i].style.display = "none";
+		}
+		var tablink = document.getElementsByClassName("tablink");
+		for (i = 0; i < tablink.length; i++) {
+			tablink[i].classList.remove("active");
+		}
+		if (current == "link1")
+			document.getElementById("signin").style.display = "block";
+		else
+			document.getElementById("signup").style.display = "block";
+		document.getElementById(current).classList.add("active");
 	}
-	var tablink = document.getElementsByClassName("tablink");
-	for (i = 0; i < tablink.length; i++) {
-		tablink[i].classList.remove("active");
-	}
-	if (current == "link1")
-		document.getElementById("signin").style.display = "block";
-	else
-		document.getElementById("signup").style.display = "block";
-	document.getElementById(current).classList.add("active");
-}
 }
 function get(n){
 	if(n=(new RegExp('[?&]'+encodeURIComponent(n)+'=([^&]*)')).exec(location.search))

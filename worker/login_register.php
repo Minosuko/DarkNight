@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 	$_SESSION['refresh_captcha'] = 1;
 	if (isset($_POST['login'])) {
 		$userlogin  = $_POST['userlogin'];
-		$userpass   = $_POST['userpass'];
+		$userpass   = decryptPassword($_POST['userpass']);
 		$query = $conn->query(
 			sprintf(
 				"SELECT * FROM users WHERE user_email LIKE '%s' OR  user_nickname LIKE '%s'",
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$userfirstname  = $_POST['userfirstname'];
 		$userlastname   = $_POST['userlastname'];
 		$usernickname   = $_POST['usernickname'];
-		$userpassword   = password_hash($_POST['userpass'], PASSWORD_DEFAULT);
+		$userpassword   = password_hash(decryptPassword($_POST['userpass']), PASSWORD_DEFAULT);
 		$useremail      = $_POST['useremail'];
 		$userbirthdate  = strtotime($_POST['birthday']);
 		$usergender     = $_POST['usergender'];

@@ -114,7 +114,7 @@ ul a {
 .usernav {
 	top: 0;
 	position: sticky;
-	border-bottom: 1px solid var(--color-primary-300);
+	border-bottom: 1px solid var(--color-surface-mixed-600);
 	background: var(--color-surface-mixed-300);
 	overflow: auto;
 	z-index: 6;
@@ -765,8 +765,8 @@ a:visited{
 }
 .comment-form{
 	background-color: #121212;
-	position: fixed;
-	width: calc(30% - 10px);
+	position: sticky;
+	width: 100%;
 	bottom: 5px;
 }
 .comment-box{

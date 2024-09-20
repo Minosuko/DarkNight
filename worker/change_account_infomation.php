@@ -12,9 +12,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		case 'ChangePassword':
 			if(!isset($_POST['CurrentPassword']) && !isset($_POST['NewPassword']) && !isset($_POST['VerifyPassword']) && !isset($_POST['LogAllsDevice']))
 				die('{"success":-1}');
-			$CurrentPassword = $_POST['CurrentPassword'];
-			$NewPassword = $_POST['NewPassword'];
-			$VerifyPassword = $_POST['VerifyPassword'];
+			$CurrentPassword = decryptPassword($_POST['CurrentPassword']);
+			$NewPassword = decryptPassword($_POST['NewPassword']);
+			$VerifyPassword = decryptPassword($_POST['VerifyPassword']);
 			$LogAllsDevice = $_POST['LogAllsDevice'];
 			if($NewPassword != $VerifyPassword) die('{"success":0,"code":0}');
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');
@@ -50,7 +50,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		case 'ChangeUsername':
 			if(!isset($_POST['CurrentPassword']) && !isset($_POST['NewUsername']))
 				die('{"success":-1}');
-			$CurrentPassword = $_POST['CurrentPassword'];
+			$CurrentPassword = decryptPassword($_POST['CurrentPassword']);
 			$NewUsername = $_POST['NewUsername'];
 			if(!_is_username_valid($NewUsername)) die('{"success":0,"code":0}');
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');
@@ -82,7 +82,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		case 'ChangeEmail':
 			if(!isset($_POST['CurrentPassword']) && !isset($_POST['NewEmail']) && !isset($_POST['VerifyCode']))
 				die('{"success":-1}');
-			$CurrentPassword = $_POST['CurrentPassword'];
+			$CurrentPassword = decryptPassword($_POST['CurrentPassword']);
 			$NewEmail = $_POST['NewEmail'];
 			$VerifyCode = $_POST['VerifyCode'];
 			if(!filter_var($NewEmail, FILTER_VALIDATE_EMAIL)) die('{"success":0,"code":0}');
@@ -119,7 +119,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		case 'RequestEmailCode':
 			if(!isset($_POST['CurrentPassword']) && !isset($_POST['NewEmail']))
 				die('{"success":-1}');
-			$CurrentPassword = $_POST['CurrentPassword'];
+			$CurrentPassword = decryptPassword($_POST['CurrentPassword']);
 			$NewEmail = $_POST['NewEmail'];
 			if(!filter_var($NewEmail, FILTER_VALIDATE_EMAIL)) die('{"success":0,"code":0}');
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');

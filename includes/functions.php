@@ -3,19 +3,23 @@ if(substr($_SERVER['REQUEST_URI'],0,9) == '/include/') die();
 date_default_timezone_set('UTC');
 require_once __DIR__ . "/config/database.php";
 require_once __DIR__ . "/config/mail.php";
+require_once __DIR__ . "/config/secureStore.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
 require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 require_once __DIR__ . "/VideoStream.php";
 require_once __DIR__ . "/IP2Geo.php";
 require_once __DIR__ . "/command.php";
+require_once __DIR__ . "/LEA.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 $timestamp = time();
 $conn = new mysqli($host, $username, $dbpassword, $dbdatabase);
 $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUsername, $mailPassword);
+$LEA = new LEA($LEA_encryptionKey, $LEA_keyStorePass);
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
+$GLOBALS['LEA'] = $LEA;
 $GLOBALS['commandfunc'] = new CommandFunc();
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
 $GLOBALS['IP2Geo'] = new IP2Geo();
@@ -25,12 +29,29 @@ $GLOBALS['Mailer_Footer'] = base64_decode('DQoJCQkJCTwvZGl2Pg0KCQkJCTwvZGl2Pg0KC
 $conn->query("SET character_set_results='utf8mb4'");
 $conn->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_bin'");
 $conn->set_charset('utf8mb4');
-if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/')
-	if(!isset($_COOKIE['browser_id']))
-		_setcookie('browser_id',uniqid(),86400*365*15);
+if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/'){
+	if(!isset($_COOKIE['browser_id'])){
+		$id = uniqid();
+		_setcookie('browser_id',$id,86400*365*15);
+		$LEA->storePrivateKey($id, $LEA->createPrivateKey());
+	}
+}
+if(isset($_COOKIE['browser_id'])){
+	$id = $_COOKIE['browser_id'];
+	if(!$LEA->PrivateKeyExists($id)){
+		_setcookie('browser_id','',(86400*365*15*-1));
+		header("Location: ?refresh_key");
+	}
+}
 function _setcookie($name, $value, $time, $path = "/"){
 	$time = time() + $time;
 	setcookie($name, $value, $time, $path);
+}
+function decryptPassword($password){
+	$password = base64_decode($password);
+	$LEA = $GLOBALS['LEA'];
+	$privateKey = $LEA->getPrivateKey($_COOKIE['browser_id']);
+	return $LEA->decrypt($password, $privateKey);
 }
 function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];

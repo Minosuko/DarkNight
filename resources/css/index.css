@@ -7,6 +7,10 @@
 	padding: 30px;
 	border: 0px solid;
 	border-radius: 0px 0px 30px 30px;
+	overflow: hidden;
+}
+.tabcontent{
+	transition: all 0.3s ease 0.5s;
 }
 .tab{
 	border: 0px solid transparent;
@@ -60,12 +64,8 @@ div.tab button.active {
 	margin-top: 15%;
 	position: realtive;
 	padding: 10px;
-	background: rgba(255, 255, 255, 0);
-	box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-	backdrop-filter: blur(3.7px);
-	-webkit-backdrop-filter: blur(3.7px);
-	border-top: 1px solid rgba(255, 255, 255, 0.34);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
-	border-left: 60px solid transparent;
-	border-right: 60px solid transparent;
+	border-radius: 45px;
+	background: var(--color-surface-mixed-200);
+	overflow: none;
+	transition: all 0.3s ease 0.5s;
 }
