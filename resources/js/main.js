@@ -1465,7 +1465,7 @@ function _change_infomation(c = null){
 			if(!p.hasClass('disabled')){
 				d = new FormData();
 				d.append('type','RequestEmailCode');
-				d.append('CurrentPassword',gebi('currentpassword').value);
+				d.append('CurrentPassword',encryptPassword(gebi('currentpassword').value));
 				d.append('NewEmail',v.value);
 				$.ajax(backend_url + 'change_account_infomation.php', {
 					method: "POST",
@@ -1517,6 +1517,7 @@ function _change_infomation(c = null){
 					data: d,
 					processData: false,
 					contentType: false,
+					async: false,
 					success: function (q) {
 						a = false;
 						if(q['code'] == 1){
@@ -1553,9 +1554,9 @@ function _change_infomation(c = null){
 					return;
 				}
 				f.append('type','ChangePassword');
-				f.append('CurrentPassword',s);
-				f.append('NewPassword',p);
-				f.append('VerifyPassword',v);
+				f.append('CurrentPassword',encryptPassword(s));
+				f.append('NewPassword',encryptPassword(p));
+				f.append('VerifyPassword',encryptPassword(v));
 				f.append('LogAllsDevice',l);
 				break;
 			case 1:
@@ -1567,7 +1568,7 @@ function _change_infomation(c = null){
 				v = gebi('newemail').value;
 				p = gebi('verifyCode').value;
 				f.append('type','ChangeEmail');
-				f.append('CurrentPassword',s);
+				f.append('CurrentPassword',encryptPassword(s));
 				f.append('NewEmail',v);
 				f.append('VerifyCode',p);
 				break;
