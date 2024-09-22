@@ -126,7 +126,7 @@ function LEA_random_bits($n_bits) {
 	}
 
 	$max_value = (1 << $n_bits) - 1;
-	return strval(rand(0, $max_value));
+	return strval(rand_int(0, $max_value));
 }
 class LEA {
 	public function __construct($keyStorePassword) {
