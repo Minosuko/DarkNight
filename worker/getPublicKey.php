@@ -10,5 +10,5 @@ if(isset($_COOKIE['browser_id'])){
 	}
 }
 $pubKey = $LEA->privateKeyToPublicKey($LEA->getPrivateKey($id));
-echo json_encode(['PublicKey'=>$pubKey,"EncryptionKey"=>$LEA_encryptionKey]);
+echo json_encode(['PublicKey'=>$pubKey]);
 ?>
