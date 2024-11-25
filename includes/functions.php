@@ -15,10 +15,8 @@ ini_set('display_startup_errors', 1);
 $timestamp = time();
 $conn = new mysqli($host, $username, $dbpassword, $dbdatabase);
 $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUsername, $mailPassword);
-$LEA = new LEA($LEA_keyStorePass);
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
-$GLOBALS['LEA'] = $LEA;
 $GLOBALS['commandfunc'] = new CommandFunc();
 $GLOBALS['GoogleAuthenticator'] = new GoogleAuthenticator();
 $GLOBALS['IP2Geo'] = new IP2Geo();
@@ -32,15 +30,10 @@ if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/'){
 	if(!isset($_COOKIE['browser_id'])){
 		$id = uniqid();
 		_setcookie('browser_id',$id,86400*365*15);
-		$LEA->storePrivateKey($id, $LEA->generate_key()['private']);
 	}
 }
 if(isset($_COOKIE['browser_id'])){
 	$id = $_COOKIE['browser_id'];
-	if(!$LEA->PrivateKeyExists($id)){
-		_setcookie('browser_id','',(86400*365*15*-1));
-		header("Location: ?refresh_key");
-	}
 }
 function _setcookie($name, $value, $time, $path = "/"){
 	$time = time() + $time;
