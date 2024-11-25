@@ -65,6 +65,6 @@
 		</div>
 	</body>
 	<script>
-	fetch_profile("fetch_profile_info.php");
+	fetch_profile();
 	</script>
 </html>

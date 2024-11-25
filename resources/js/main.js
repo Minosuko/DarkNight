@@ -830,10 +830,10 @@ function fetch_profile(e = null){
 	$.get(backend_url + "fetch_profile_info.php" + id_a, function(data) {
 		if(data['success'] != 1) 
 			window.history.go(-1);
-		profile_cover = null ? gebi("profile_cover") : gebiwe(e, "profile_cover");
-		profile_image = null ? gebi("profile_image") : gebiwe(e, "profile_image");
-		user_name = null ? gebi("user_name") : gebiwe(e, "user_name");
-		about_me = null ? gebi("about_me") : gebiwe(e, "about_me");
+		profile_cover = e == null ? gebi("profile_cover") : gebiwe(e, "profile_cover");
+		profile_image = e == null ? gebi("profile_image") : gebiwe(e, "profile_image");
+		user_name = e == null ? gebi("user_name") : gebiwe(e, "user_name");
+		about_me = e == null ? gebi("about_me") : gebiwe(e, "about_me");
 		profile_image.src = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 		if(data['cover_media_id'] > 0)
 			profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] + '")';
