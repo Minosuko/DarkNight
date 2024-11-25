@@ -131,7 +131,6 @@ $_SESSION['refresh_captcha'] = 1;
 				</div>
 			</div>
 		</div>
-		<script src="resources/js/secureLib.js"></script>
 		<script src="resources/js/jquery.js"></script>
 		<script src="resources/js/index.js"></script>
 	</body>

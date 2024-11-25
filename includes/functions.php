@@ -9,7 +9,6 @@ require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 require_once __DIR__ . "/VideoStream.php";
 require_once __DIR__ . "/IP2Geo.php";
 require_once __DIR__ . "/command.php";
-require_once __DIR__ . "/LEA.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -48,10 +47,7 @@ function _setcookie($name, $value, $time, $path = "/"){
 	setcookie($name, $value, $time, $path);
 }
 function decryptPassword($password){
-	$password = base64_decode($password);
-	$LEA = $GLOBALS['LEA'];
-	$privateKey = $LEA->getPrivateKey($_COOKIE['browser_id']);
-	return $LEA->decrypt($password, $privateKey);
+	return base64_decode($password, $privateKey);
 }
 function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];

@@ -127,7 +127,7 @@ function validateLogin() {
 		d = new FormData();
 		d.append('login','1');
 		d.append('userlogin',useremail);
-		d.append('userpass',encryptPassword(userpass));
+		d.append('userpass',btoa(userpass));
 		d.append('captcha',captcha);
 		if(rememberme)
 			d.append('remember_me','1');
@@ -205,7 +205,7 @@ function validateRegister() {
 		d.append('userfirstname',userfirstname);
 		d.append('userlastname',userlastname);
 		d.append('usernickname',usernickname);
-		d.append('userpass', encryptPassword(userpass));
+		d.append('userpass', btoa(userpass));
 		d.append('useremail',useremail);
 		d.append('birthday',birthday);
 		d.append('usergender',(usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U"))));
