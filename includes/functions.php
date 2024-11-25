@@ -40,7 +40,7 @@ function _setcookie($name, $value, $time, $path = "/"){
 	setcookie($name, $value, $time, $path);
 }
 function decryptPassword($password){
-	return base64_decode($password, $privateKey);
+	return base64_decode($password);
 }
 function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];
