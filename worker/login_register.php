@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 						die('{"success":1,"go":"home.php"}');
 				}
 			}
-			die('{"success":0,"err":"invalid_login'.$userpass.'"}');
+			die('{"success":0,"err":"invalid_login"}');
 		}
 	}
 	if (isset($_POST['register'])) {
