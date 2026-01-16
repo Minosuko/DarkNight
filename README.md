@@ -1,7 +1,7 @@
 # DarkNight
 Open-source social network
 
-(still in beta, buggy and insecure)
+(still in beta, hav a lil buggy)
 
 
 ### note
