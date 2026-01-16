@@ -97,9 +97,11 @@ function openTab(evt, choice) {
 	}
 }
 
-function refreshCaptcha(x){
-	v = document.getElementById('captchaimg'+ x);
+function refreshCaptcha(){
+	v = document.getElementById('captchaimg0');
+	c = document.getElementById('captchaimg1');
 	v.src = "data/captcha.php";
+	c.src = "data/captcha.php";
 }
 function validateEmail(email) {
 	var emailformat = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\"[^\s@]+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -137,7 +139,7 @@ function validateLogin() {
 			processData: false,
 			contentType: false,
 			success: function (q) {
-				refreshCaptcha(0);
+				refreshCaptcha();
 				if(q['success'] == 0){
 					error(q['err']);
 				}else{
@@ -216,7 +218,7 @@ function validateRegister() {
 			processData: false,
 			contentType: false,
 			success: function (q) {
-				refreshCaptcha(1);
+				refreshCaptcha();
 				if(q['success'] == 0){
 					error(q['err']);
 				}else{
