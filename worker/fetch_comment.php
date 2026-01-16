@@ -1,39 +1,40 @@
 <?php
 require_once '../includes/functions.php';
-if (!_is_session_valid())
+
+if (!_is_session_valid()) {
     header("location:../index.php");
+    exit();
+}
+
 header("content-type: application/json");
 $data = _get_data_from_token();
-$off = 0;
+
 $id = -1;
-$esql = '';
-if(isset($_GET['id']))
-	if(is_numeric($_GET['id']))
-		$id = $_GET['id'];
-if(isset($_GET['page']))
-	if(is_numeric($_GET['page']))
-		$off = 10*$_GET['page'];
-if($off != 0)
-	$esql = " OFFSET $off";
-$sql = "SELECT comments.post_id, comments.comment, comments.comment_time, comments.user_id, users.pfp_media_id, users.user_nickname, users.user_firstname, users.user_lastname, users.user_id, users.user_gender, users.verified FROM comments JOIN users ON comments.user_id = users.user_id WHERE comments.post_id = $id ORDER BY comment_time LIMIT 10$esql";
-$query = $conn->query($sql);
-$total_rows = $query->num_rows;
-if($total_rows == 0){
-	echo '{"success":2}';
-}else{
-	$width = '40px'; // Profile Image Dimensions
-	$height = '40px';
-	$r = 10;
-	if($total_rows < 10)
-		$r = $total_rows;
-	$rows = $query->fetch_all(MYSQLI_ASSOC);
-	$row_d = [];
-	for($i = 0; $i < $r; $i++){
-		$row_d[$i] = $rows[$i];
-		if($row_d[$i]['pfp_media_id'] != 0)
-			$row_d[$i]["pfp_media_hash"] = _get_hash_from_media_id($row_d[$i]['pfp_media_id']);
-	}
-	$row_d["success"] = 1;
-	echo json_encode($row_d);
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $id = $_GET['id'];
+}
+
+$page = 0;
+if (isset($_GET['page']) && is_numeric($_GET['page'])) {
+    $page = $_GET['page'];
+}
+
+$comments = Comment::getComments($id, $page);
+
+if (empty($comments)) {
+    echo '{"success":2}';
+} else {
+    $formatted = [];
+    $i = 0;
+    foreach ($comments as $row) {
+        $formatted[$i] = $row; // The query already formats mostly correct, but let's check media hash
+        if ($formatted[$i]['pfp_media_id'] != 0) {
+             // In Comment.php we already joined media table to get pfp_media_hash
+             // So it's already there
+        }
+        $i++;
+    }
+    $formatted["success"] = 1;
+    echo json_encode($formatted);
 }
 ?>

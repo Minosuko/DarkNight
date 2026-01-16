@@ -34,6 +34,11 @@ if(isset($_GET['id'])){
 			);
 			$query = $conn->query($sql);
 			if($query){
+				// TRIGGER NOTIFICATION
+				require_once '../includes/classes/Notification.php';
+				$notif = new Notification();
+				$notif->create($postinfo['post_by'], $user_id, 'comment', $post_id);
+				
 				echo '{"success":1}';
 			}
 		}

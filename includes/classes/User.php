@@ -1,0 +1,121 @@
+<?php
+require_once __DIR__ . '/Database.php';
+
+class User {
+    public static function exists($id) {
+        $db = Database::getInstance();
+        $sql = sprintf("SELECT user_id FROM users WHERE user_id = %d", $db->escape($id));
+        $result = $db->query($sql);
+        return $result->num_rows > 0;
+    }
+
+    public static function usernameExists($username) {
+        $db = Database::getInstance();
+        $sql = sprintf("SELECT user_nickname FROM users WHERE user_nickname LIKE '%s'", $db->escape($username));
+        $result = $db->query($sql);
+        return $result->num_rows > 0;
+    }
+
+    public static function emailExists($email) {
+        $db = Database::getInstance();
+        $sql = sprintf("SELECT user_email FROM users WHERE user_email LIKE '%s'", $db->escape($email));
+        $result = $db->query($sql);
+        return $result->num_rows > 0;
+    }
+
+    public static function checkActive($token) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT user_id FROM users WHERE user_token = '%s' AND active = 1",
+            $db->escape($token)
+        );
+        $query = $db->query($sql);
+        return ($query->num_rows == 1);
+    }
+
+    public static function getDataByToken($token) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT * FROM users WHERE user_token = '%s'",
+            $db->escape($token)
+        );
+        $query = $db->query($sql);
+        return $query->fetch_assoc();
+    }
+
+    public static function getDataById($id) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT * FROM users WHERE user_id = %d",
+            $db->escape($id)
+        );
+        $query = $db->query($sql);
+        return $query->fetch_assoc();
+    }
+    
+    public static function verify($username, $email, $hash) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT * FROM users WHERE user_nickname LIKE '%s' AND user_email LIKE '%s' AND active = 0",
+            $db->escape($username),
+            $db->escape($email)
+        );
+        $query = $db->query($sql);
+        if ($query->num_rows > 0) {
+            $fetch = $query->fetch_assoc();
+            if (hash('sha256', ($fetch['user_password'] . $fetch['user_token'])) == $hash) {
+                $updateSql = sprintf(
+                    "UPDATE users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
+                    $db->escape($username),
+                    $db->escape($email)
+                );
+                $db->query($updateSql);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function findByLogin($login) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT * FROM users WHERE user_email LIKE '%s' OR user_nickname LIKE '%s'",
+            $db->escape($login),
+            $db->escape($login)
+        );
+        $result = $db->query($sql);
+        if ($result->num_rows == 1) {
+            return $result->fetch_assoc();
+        }
+        return null;
+    }
+
+    public static function create($firstname, $lastname, $nickname, $password, $email, $gender, $birthdate, $about, $token) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "INSERT INTO users(user_firstname, user_lastname, user_nickname, user_password, user_email, user_gender, user_birthdate, user_about, user_token, user_create_date) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
+            $db->escape($firstname),
+            $db->escape($lastname),
+            $db->escape($nickname),
+            $db->escape($password),
+            $db->escape($email),
+            $db->escape($gender),
+            $db->escape($birthdate),
+            $db->escape($about),
+            $db->escape($token),
+            time()
+        );
+        return $db->query($sql);
+    }
+
+    public static function findByNicknameOrEmail($nickname, $email) {
+        $db = Database::getInstance();
+        $sql = sprintf(
+            "SELECT user_nickname, user_email FROM users WHERE user_nickname LIKE '%s' OR user_email LIKE '%s'",
+            $db->escape($nickname),
+            $db->escape($email)
+        );
+        $result = $db->query($sql);
+        return $result->fetch_assoc();
+    }
+}

@@ -14,22 +14,25 @@
 		<div class="container">
 			<br>
 			<input type="hidden" id="page" value="0">
-			<div class="createpost_box">
-				<div>
-					<a href="/profile.php" title="Profiles">
-					<img class="pfp" src="data/blank.jpg" width="40px" height="40px" id="pfp_box">
-					</a>
-					<div class="input_box" onclick="make_post()">
-						<a><lang lang="lang__017"></lang></a>
-					</div>
+			
+            <div class="createpost_box">
+                <a href="/profile.php" title="My Profile">
+				    <img class="pfp" src="data/blank.jpg" id="pfp_box">
+                </a>
+				<div class="input_box" onclick="make_post()">
+					What's on your mind?
 				</div>
 			</div>
+            
 			<br>
 			<div id="feed">
+                <!-- Posts will be loaded here via JS -->
 			</div>
 			<br><br><br>
 		</div>
 		<script>
+            // Ensure fetch_post logic handles the new CSS structure if needed, 
+            // but mostly it generates HTML. We need to ensure that HTML matches main.css
 			fetch_post("fetch_post.php");
 		</script>
 	</body>

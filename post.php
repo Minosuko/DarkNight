@@ -27,8 +27,6 @@
 			<div id="image_content">
 				<center>
 					<div class="left_content" id="_content_left">
-						<img class="content-pic" id="picture" />
-						<video class="content-vid" id="video" controls></video>
 					</div>
 				</center>
 				<div class="right_content" id="_content_right"></div>

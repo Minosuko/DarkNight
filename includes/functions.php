@@ -3,17 +3,26 @@ if(substr($_SERVER['REQUEST_URI'],0,9) == '/include/') die();
 date_default_timezone_set('UTC');
 require_once __DIR__ . "/config/database.php";
 require_once __DIR__ . "/config/mail.php";
-require_once __DIR__ . "/config/secureStore.php";
+require_once __DIR__ . "/classes/Database.php";
+require_once __DIR__ . "/classes/User.php";
+require_once __DIR__ . "/classes/Post.php";
+require_once __DIR__ . "/classes/Search.php";
+require_once __DIR__ . "/classes/Comment.php";
+require_once __DIR__ . "/classes/Friend.php";
+require_once __DIR__ . "/classes/Utils.php";
+require_once __DIR__ . "/classes/QRCode.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
 require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 require_once __DIR__ . "/VideoStream.php";
 require_once __DIR__ . "/IP2Geo.php";
+require_once __DIR__ . "/Noftifications.php";
 require_once __DIR__ . "/command.php";
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 $timestamp = time();
-$conn = new mysqli($host, $username, $dbpassword, $dbdatabase);
+$db = Database::getInstance();
+$conn = $db->getConnection();
 $Mailer = new Mailer($mailHostname, $mailPort, $mailSecure, $mailAuth, $mailUsername, $mailPassword);
 $GLOBALS['conn'] = $conn;
 $GLOBALS['Mailer'] = $Mailer;
@@ -23,9 +32,10 @@ $GLOBALS['IP2Geo'] = new IP2Geo();
 $GLOBALS['Mailer_Header'] = base64_decode('PCFET0NUWVBFIGh0bWw+DQo8aHRtbD4NCgk8aGVhZD4NCgkJPHRpdGxlPkRhcmtuaWdodDwvdGl0bGU+DQoJCTxtZXRhIGNoYXJzZXQ9IlVURi04Ij4NCgkJPHN0eWxlPg0KCQkJLnRpdGxlew0KCQkJCXRleHQtYWxpZ246IGNlbnRlcjsNCgkJCQljb2xvcjogIzRkOTRmZjsNCgkJCQlmb250LXNpemU6IDUwMCU7DQoJCQl9DQoJCQlwew0KCQkJCWNvbG9yOiB3aGl0ZTsNCgkJCQltYXJnaW46IDA7DQoJCQkJZm9udC1zaXplOiAxODAlOw0KCQkJfQ0KCQkJYXsNCgkJCQljb2xvcjogY3lhbjsNCgkJCQltYXJnaW46IDA7DQoJCQkJdGV4dC1kZWNvcmF0aW9uOm5vbmU7DQoJCQkJZm9udC1zaXplOiAxODAlOw0KCQkJfQ0KCQkJYnsNCgkJCQljb2xvcjogIzRkOTRmZjsNCgkJCQlmb250LXNpemU6IDIwMCU7DQoJCQl9DQoJCQlib2R5ew0KCQkJCWZvbnQtZmFtaWx5OiBSb2JvdG87DQoJCQl9DQoJCQkuY29udGV4dHsNCgkJCQliYWNrZ3JvdW5kLWNvbG9yOiAjMTIxMjEyOw0KCQkJCXdpZHRoOiA5MCU7DQoJCQkJaGVpZ2h0OiAxMDAlOw0KCQkJCXBhZGRpbmc6IDUwcHg7DQoJCQkJbWFyZ2luOiBhdXRvOw0KCQkJfQ0KCQkJLmNvbnRlbnR7DQoJCQkJd2lkdGg6IDYwJTsNCgkJCQlkaXNwbGF5OiBibG9jazsNCgkJCQltYXJnaW4tdG9wOiAxNSU7DQoJCQkJbWFyZ2luOiBhdXRvOw0KCQkJCXBvc2l0aW9uOiByZWFsdGl2ZTsNCgkJCQlwYWRkaW5nOiAxMHB4Ow0KCQkJCWJhY2tncm91bmQtY29sb3I6ICMxYjFkMjY7DQoJCQkJYm9yZGVyLXJhZGl1czogMTVweDsNCgkJCX0NCgkJCS5jb2Rlew0KCQkJCWJhY2tncm91bmQtY29sb3I6ICMzZjNmM2Y7DQoJCQl9DQoJCQlidXR0b257DQoJCQkJZm9udC1zaXplOiAxOHB4Ow0KCQkJCWN1cnNvcjogcG9pbnRlcjsNCgkJCQlwYWRkaW5nOiAxZW07DQoJCQkJY29sb3I6IHdoaXRlOw0KCQkJCWJvcmRlcjogbm9uZTsNCgkJCQlib3JkZXItcmFkaXVzOiAzMHB4Ow0KCQkJCWZvbnQtd2VpZ2h0OiA2MDA7DQoJCQkJd2lkdGg6IDEwMCU7DQoJCQkJYmFja2dyb3VuZDogIzAwNjZjYzsNCgkJCX0NCgkJPC9zdHlsZT4NCgk8L2hlYWQ+DQoJPGJvZHk+DQoJCTxkaXYgY2xhc3M9ImNvbnRleHQiPg0KCQkJPHAgY2xhc3M9InRpdGxlIj5EYXJrbmlnaHQgU29jaWFsPC9wPg0KCQkJPGRpdiBjbGFzcz0iY29udGFpbmVyIj4NCgkJCQk8ZGl2IGNsYXNzPSJ0cmFuc3BhcmVudF9ibG9jayI+DQoJCQkJCTxkaXYgY2xhc3M9ImNvbnRlbnQiPg');
 $GLOBALS['Mailer_Footer'] = base64_decode('DQoJCQkJCTwvZGl2Pg0KCQkJCTwvZGl2Pg0KCQkJPC9kaXY+DQoJCTwvZGl2Pg0KCTwvYm9keT4NCjwvaHRtbD4');
 
-$conn->query("SET character_set_results='utf8mb4'");
-$conn->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_bin'");
-$conn->set_charset('utf8mb4');
+// Database connection is now handled by Database::getInstance()
+// $conn->query("SET character_set_results='utf8mb4'"); // Already done in Database class
+// $conn->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_bin'"); // Already done in Database class
+// $conn->set_charset('utf8mb4'); // Already done in Database class
 if(substr($_SERVER['REQUEST_URI'],0,8) != '/worker/'){
 	if(!isset($_COOKIE['browser_id'])){
 		$id = uniqid();
@@ -46,19 +56,36 @@ function _verify_2FA($code, $userID){
 	$conn = $GLOBALS['conn'];
 	$IP2Geo = $GLOBALS['IP2Geo'];
 	$sql = sprintf(
-		"SELECT * FROM `twofactorauth` WHERE user_id = %d",
+		"SELECT * FROM `twofactorauth` WHERE user_id = %d AND is_enabled = 1",
 		$conn->real_escape_string($userID)
 	);
 	$query = $conn->query($sql);
-	$rows = $query->fetch_all(MYSQLI_ASSOC);
-	foreach($rows as $row){
-		$IP2Geo->changeIP($row['session_ip']);
+	while($row = $query->fetch_assoc()){
+		$IP2Geo->changeIP(getUserIP());
 		$zone = $IP2Geo->getTimeZone();
+		if (!$zone) $zone = 'UTC';
 		$VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAtZone($row['auth_key'], $code, 1, $zone);
-		if($VerifyCode)
+		if($VerifyCode) {
+			_mark_session_valid($userID);
 			return true;
+		}
 	}
 	return false;
+}
+function _mark_session_valid($userID) {
+	$conn = $GLOBALS['conn'];
+	$session_id = $_COOKIE['session_id'] ?? '';
+	$session_token = $_COOKIE['session_token'] ?? '';
+	$browser_id = $_COOKIE['browser_id'] ?? '';
+	
+	$sql = sprintf(
+		"UPDATE session SET session_valid = 1 WHERE user_id = %d AND session_id = '%s' AND session_token = '%s' AND browser_id = '%s'",
+		$userID,
+		$conn->real_escape_string($session_id),
+		$conn->real_escape_string($session_token),
+		$conn->real_escape_string($browser_id)
+	);
+	return $conn->query($sql);
 }
 function video_stream($file_path){
 	$VidStream = new VideoStream($file_path);
@@ -515,13 +542,22 @@ function lunar_hash($str){
 }
 function Has2FA($userID){
 	$conn = $GLOBALS['conn'];
+	// Check TOTP
 	$sql = sprintf(
-		"SELECT * FROM twofactorauth WHERE user_id = %d",
+		"SELECT * FROM twofactorauth WHERE user_id = %d AND is_enabled = 1",
 		$conn->real_escape_string($userID)
 	);
 	$query = $conn->query($sql);
-	if($query->num_rows > 0)
-		return true;
+	if($query->num_rows > 0) return true;
+	
+	// Check WebAuthn
+	$sql = sprintf(
+		"SELECT * FROM webauthn_credentials WHERE user_id = %d",
+		$conn->real_escape_string($userID)
+	);
+	$query = $conn->query($sql);
+	if($query->num_rows > 0) return true;
+	
 	return false;
 }
 function _get_session_info(){

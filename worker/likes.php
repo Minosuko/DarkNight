@@ -13,6 +13,17 @@ if(isset($_GET['post_id'])){
 				echo "0;".total_like($id);
 			}else{
 				$query = $conn->query("INSERT INTO likes (user_id, post_id) VALUES ({$data['user_id']}, $id)");
+				
+				// TRIGGER NOTIFICATION
+				require_once '../includes/classes/Notification.php';
+				$notif = new Notification();
+				// Get post owner
+				$postOwnerQuery = $conn->query("SELECT post_by FROM posts WHERE post_id = $id");
+				if ($postOwnerQuery && $postOwnerQuery->num_rows > 0) {
+					$postOwnerId = $postOwnerQuery->fetch_assoc()['post_by'];
+					$notif->create($postOwnerId, $data['user_id'], 'like', $id);
+				}
+				
 				echo "1;".total_like($id);
 			}
 		}
