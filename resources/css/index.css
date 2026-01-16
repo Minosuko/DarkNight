@@ -1,145 +1,458 @@
-.container {
-	margin: 60px auto;
-	width: 100%;
-	max-width: 480px;
+:root {
+	--glass-bg: rgba(255, 255, 255, 0.05);
+	--glass-border: rgba(255, 255, 255, 0.1);
+	--glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+	--primary-color: #007bff;
+	--primary-gradient: linear-gradient(135deg, #007bff, #00d2ff);
+	--text-color: #ffffff;
+	--text-muted: #b3b3b3;
+	--error-color: #ff4d4d;
+	--success-color: #00cc66;
+	--input-bg: rgba(0, 0, 0, 0.2);
 }
 
-h1 {
-	text-align: center;
-	margin-bottom: 30px;
-	font-weight: 300;
-	letter-spacing: 2px;
-}
-
-.transparent_block {
-	background: var(--color-surface-card);
-	border: 1px solid var(--color-border);
-	border-radius: var(--border-radius-lg);
-	box-shadow: var(--shadow-md);
-	overflow: hidden;
+body {
+	margin: 0;
 	padding: 0;
-}
-
-/* Tabs */
-.tab {
+	font-family: 'Outfit', sans-serif;
+	color: var(--text-color);
+	background: #0f0f0f;
+	overflow-x: hidden;
+	min-height: 100vh;
 	display: flex;
-	border-bottom: 1px solid var(--color-border);
-	background: var(--color-surface);
+	justify-content: center;
+	align-items: center;
 }
 
-.tab button {
-	flex: 1;
-	background: transparent;
-	border: none;
-	border-bottom: 2px solid transparent;
-	border-radius: 0;
-	padding: 15px;
-	color: var(--color-text-secondary);
+/* Dynamic Background */
+.bg-animation {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: -1;
+	overflow: hidden;
+	background: radial-gradient(circle at 10% 20%, rgb(0, 0, 0) 0%, rgb(15, 15, 15) 90%);
+}
+
+.shape {
+	position: absolute;
+	filter: blur(80px);
+	opacity: 0.6;
+	animation: float 20s infinite ease-in-out;
+}
+
+.shape-1 {
+	top: -10%;
+	left: -10%;
+	width: 50vw;
+	height: 50vw;
+	background: radial-gradient(circle, #4a00e0, transparent 70%);
+}
+
+.shape-2 {
+	bottom: -10%;
+	right: -10%;
+	width: 40vw;
+	height: 40vw;
+	background: radial-gradient(circle, #8e2de2, transparent 70%);
+	animation-delay: -5s;
+}
+
+.shape-3 {
+	top: 40%;
+	left: 40%;
+	width: 30vw;
+	height: 30vw;
+	background: radial-gradient(circle, #00cdac, transparent 70%);
+	animation-delay: -10s;
+}
+
+@keyframes float {
+
+	0%,
+	100% {
+		transform: translate(0, 0);
+	}
+
+	33% {
+		transform: translate(30px, -50px);
+	}
+
+	66% {
+		transform: translate(-20px, 20px);
+	}
+}
+
+/* Glass Card */
+.glass-card {
+	background: var(--glass-bg);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+	border: 1px solid var(--glass-border);
+	box-shadow: var(--glass-shadow);
+	border-radius: 24px;
+	padding: 2.5rem;
+	width: 100%;
+	max-width: 450px;
+	margin: 1rem;
+	transition: all 0.3s ease;
+}
+
+.login-header {
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.login-header h1 {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin: 0;
+	background: var(--primary-gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	letter-spacing: -1px;
+}
+
+.login-header p {
+	color: var(--text-muted);
+	margin-top: 0.5rem;
 	font-size: 1rem;
-	transition: all 0.2s;
 }
 
-.tab button:hover {
-	background: var(--color-surface-hover);
-	color: var(--color-text-main);
-}
-
-.tab button.active {
-	color: var(--color-primary);
-	border-bottom: 2px solid var(--color-primary);
-}
-
-.content {
-	padding: 30px;
-}
-
-.tabcontent {
-	display: none;
-	animation: fadeEffect 0.5s;
-}
-
-@keyframes fadeEffect {
+@keyframes tabFadeIn {
 	from {
 		opacity: 0;
+		transform: translateY(10px);
 	}
 
 	to {
 		opacity: 1;
+		transform: translateY(0);
 	}
 }
 
-/* Input Boxes */
-.index_input_box {
-	margin-bottom: 20px;
+.tab-content {
+	display: none;
+	animation: tabFadeIn 0.4s ease forwards;
 }
 
-.index_input_box label {
+.tab-content.active {
 	display: block;
-	margin-bottom: 8px;
-	color: var(--color-text-secondary);
+}
+
+/* Tabs */
+.tab-switcher {
+	display: flex;
+	position: relative;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 50px;
+	padding: 0.25rem;
+	margin-bottom: 2rem;
+}
+
+.tab-btn {
+	flex: 1;
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	padding: 0.75rem;
+	border-radius: 50px;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	z-index: 1;
+	transition: color 0.3s ease;
+	text-align: center;
+}
+
+.tab-btn.active {
+	color: white;
+}
+
+.tab-indicator {
+	position: absolute;
+	top: 0.25rem;
+	left: 0.25rem;
+	/* Will be animated via JS ideally, but for CSS-only simple toggle, we can style .active directly or use JS to move. 
+                     Since we use onclick="openTab", we will leverage the .active class on buttons */
+	/* JS should actually handle indicator movement or we just style the active button background */
+	height: calc(100% - 0.5rem);
+	width: 50%;
+	background: var(--primary-gradient);
+	border-radius: 50px;
+	transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+	z-index: 0;
+}
+
+/* Fix for JS-less tab indicator: we will just style the active button background for now to be safe with existing JS */
+.tab-switcher {
+	overflow: hidden;
+}
+
+.tab-btn.active {
+	background: var(--primary-color);
+	box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+}
+
+.tab-indicator {
+	display: none;
+}
+
+/* Hide complex indicator, use simple active state */
+
+/* Forms */
+.input-group {
+	position: relative;
+	margin-bottom: 1.5rem;
+}
+
+.input-group input {
+	width: 100%;
+	padding: 0.8rem 1rem;
+	background: var(--input-bg);
+	border: 1px solid var(--glass-border);
+	border-radius: 12px;
+	color: white;
+	font-size: 1rem;
+	transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+	border-color: var(--primary-color);
+	background: rgba(0, 0, 0, 0.4);
+	box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+}
+
+/* Floating Label */
+.input-group label {
+	position: absolute;
+	left: 1rem;
+	top: 0.8rem;
+	color: var(--text-muted);
+	pointer-events: none;
+	transition: all 0.3s ease;
+	background: transparent;
+	padding: 0 0.25rem;
+}
+
+.input-group input:focus~label,
+.input-group input:not(:placeholder-shown)~label {
+	top: -0.6rem;
+	left: 0.8rem;
+	font-size: 0.8rem;
+	color: var(--primary-color);
+	background: #0f0f0f;
+	/* Match bg to hide line */
+	border-radius: 4px;
+}
+
+/* Static Label for Date/Select */
+.input-group label.static-label {
+	top: -0.6rem;
+	left: 0.8rem;
+	font-size: 0.8rem;
+	color: var(--text-muted);
+	background: #0f0f0f;
+}
+
+.row {
+	display: flex;
+	gap: 1rem;
+}
+
+.col {
+	flex: 1;
+}
+
+/* Buttons */
+.btn-primary {
+	width: 100%;
+	padding: 1rem;
+	border: none;
+	border-radius: 12px;
+	background: var(--primary-gradient);
+	color: white;
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 5px 20px rgba(0, 123, 255, 0.4);
+}
+
+.btn-primary:active {
+	transform: translateY(0);
+}
+
+/* Checkbox */
+.checkbox-group {
+	margin-bottom: 1.5rem;
+	display: flex;
+	align-items: center;
+}
+
+.custom-checkbox {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+	color: var(--text-muted);
 	font-size: 0.9rem;
 }
 
-.index_input_box input[type="text"],
-.index_input_box input[type="password"],
-.index_input_box input[type="date"] {
-	width: 100%;
-	padding: 12px;
-	background: var(--color-surface);
+.custom-checkbox input {
+	display: none;
 }
 
-.index_input_box span {
-	color: #e41e3f;
-	margin-left: 4px;
+.custom-checkbox .checkmark {
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--glass-border);
+	border-radius: 6px;
+	margin-right: 0.5rem;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	transition: all 0.2s;
 }
 
-input[type="submit"] {
-	width: 100%;
-	background: var(--color-primary);
+.custom-checkbox input:checked~.checkmark {
+	background: var(--primary-color);
+	border-color: var(--primary-color);
+}
+
+.custom-checkbox .checkmark::after {
+	content: '✓';
 	color: white;
-	padding: 12px;
-	border: none;
-	border-radius: var(--border-radius-md);
+	font-size: 14px;
+	display: none;
+}
+
+.custom-checkbox input:checked~.checkmark::after {
+	display: block;
+}
+
+/* Radio */
+.gender-group {
+	margin-bottom: 1.5rem;
+}
+
+.group-label {
+	display: block;
+	color: var(--text-muted);
+	font-size: 0.9rem;
+	margin-bottom: 0.5rem;
+}
+
+.radio-options {
+	display: flex;
+	gap: 1rem;
+}
+
+.custom-radio {
+	display: flex;
+	align-items: center;
 	cursor: pointer;
-	font-size: 1rem;
-	transition: background 0.2s;
-	margin-top: 10px;
+	color: var(--text-muted);
 }
 
-input[type="submit"]:hover {
-	background: var(--color-primary-hover);
+.custom-radio input {
+	display: none;
 }
 
-.name_input {
-	width: 48%;
-	display: inline-block;
+.radio-mark {
+	width: 18px;
+	height: 18px;
+	border: 2px solid var(--glass-border);
+	border-radius: 50%;
+	margin-right: 0.5rem;
+	position: relative;
 }
 
-.right_content_box {
-	float: right;
+.custom-radio input:checked~.radio-mark {
+	border-color: var(--primary-color);
 }
 
-.required {
-	color: #e41e3f;
-	font-size: 0.8rem;
-	height: 1.2em;
-	/* To keep space */
-}
-
-/* Gender Radio */
-.usergender {
-	width: auto !important;
-	margin-right: 5px;
-}
-
-.index_input_box label {
-	display: inline-block;
+.custom-radio input:checked~.radio-mark::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 10px;
+	height: 10px;
+	background: var(--primary-color);
+	border-radius: 50%;
 }
 
 /* Captcha */
-img[alt="captchaimg"] {
-	border-radius: var(--border-radius-md);
-	margin-bottom: 10px;
+.captcha-group {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 1.5rem;
+	align-items: stretch;
+}
+
+.captcha-img-wrapper {
+	position: relative;
+	flex: 0 0 120px;
+	height: 50px;
+	overflow: hidden;
+	border-radius: 12px;
+}
+
+.captcha-img-wrapper img {
 	width: 100%;
-	height: auto;
+	height: 100%;
+	object-fit: cover;
+}
+
+.refresh-captcha {
+	position: absolute;
+	right: 0;
+	top: 0;
+	height: 100%;
+	width: 30px;
+	background: rgba(0, 0, 0, 0.5);
+	color: white;
+	border: none;
+	cursor: pointer;
+	font-size: 1.2rem;
+	padding: 0;
+	line-height: 1;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+	.glass-card {
+		margin: 0;
+		border-radius: 0;
+		height: 100vh;
+		max-width: none;
+		padding: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	.row {
+		flex-direction: column;
+		gap: 0;
+	}
+}
+
+.required {
+	color: var(--error-color);
+	font-size: 0.8rem;
+	margin-top: 0.25rem;
+}
+
+.required:empty {
+	display: none;
 }
