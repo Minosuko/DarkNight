@@ -1,71 +1,145 @@
-.container{
-	margin: 40px auto;
-	width: 50%;
-}
-.content {
-	color: #ffffff;
-	padding: 30px;
-	border: 0px solid;
-	border-radius: 0px 0px 30px 30px;
-	overflow: hidden;
-}
-.tabcontent{
-	transition: all 0.3s ease 0.5s;
-}
-.tab{
-	border: 0px solid transparent;
+.container {
+	margin: 60px auto;
+	width: 100%;
+	max-width: 480px;
 }
 
-div.tab {
+h1 {
+	text-align: center;
+	margin-bottom: 30px;
+	font-weight: 300;
+	letter-spacing: 2px;
+}
+
+.transparent_block {
+	background: var(--color-surface-card);
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--shadow-md);
 	overflow: hidden;
-	margin: 0;
 	padding: 0;
 }
 
-div.tab button {
-	border-radius: 30px;
-	background-color: transparent;
+/* Tabs */
+.tab {
+	display: flex;
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-surface);
+}
+
+.tab button {
+	flex: 1;
+	background: transparent;
 	border: none;
-	outline: none;
-	color: white;
-	float: left;
-	padding: 10px;
-	cursor: pointer;
-	width: 50%;
-	border: 1px solid transparent;
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	padding: 15px;
+	color: var(--color-text-secondary);
+	font-size: 1rem;
+	transition: all 0.2s;
 }
 
-div.tab button:hover:not([class*="active"]){
-	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-	border-left: 60px solid transparent;
-	border-right: 60px solid transparent;
-	animation: hoverTab 0.5s 1;
+.tab button:hover {
+	background: var(--color-surface-hover);
+	color: var(--color-text-main);
 }
 
-div.tab button.active {
-	border-bottom: 1px solid rgba(255, 255, 255, 0.34);
-	border-left: 60px solid transparent;
-	border-right: 60px solid transparent;
+.tab button.active {
+	color: var(--color-primary);
+	border-bottom: 2px solid var(--color-primary);
 }
 
-@keyframes hoverTab {
-	0% {
-		border-bottom: 1px solid rgba(255, 255, 255, 0);
+.content {
+	padding: 30px;
+}
+
+.tabcontent {
+	display: none;
+	animation: fadeEffect 0.5s;
+}
+
+@keyframes fadeEffect {
+	from {
+		opacity: 0;
 	}
-	100% {
-		border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
+	to {
+		opacity: 1;
 	}
 }
-#userabout{
-	outline: none;
+
+/* Input Boxes */
+.index_input_box {
+	margin-bottom: 20px;
 }
-.transparent_block{
+
+.index_input_box label {
 	display: block;
-	margin-top: 15%;
-	position: realtive;
-	padding: 10px;
-	border-radius: 45px;
-	background: var(--color-surface-mixed-200);
-	overflow: none;
-	transition: all 0.3s ease 0.5s;
+	margin-bottom: 8px;
+	color: var(--color-text-secondary);
+	font-size: 0.9rem;
+}
+
+.index_input_box input[type="text"],
+.index_input_box input[type="password"],
+.index_input_box input[type="date"] {
+	width: 100%;
+	padding: 12px;
+	background: var(--color-surface);
+}
+
+.index_input_box span {
+	color: #e41e3f;
+	margin-left: 4px;
+}
+
+input[type="submit"] {
+	width: 100%;
+	background: var(--color-primary);
+	color: white;
+	padding: 12px;
+	border: none;
+	border-radius: var(--border-radius-md);
+	cursor: pointer;
+	font-size: 1rem;
+	transition: background 0.2s;
+	margin-top: 10px;
+}
+
+input[type="submit"]:hover {
+	background: var(--color-primary-hover);
+}
+
+.name_input {
+	width: 48%;
+	display: inline-block;
+}
+
+.right_content_box {
+	float: right;
+}
+
+.required {
+	color: #e41e3f;
+	font-size: 0.8rem;
+	height: 1.2em;
+	/* To keep space */
+}
+
+/* Gender Radio */
+.usergender {
+	width: auto !important;
+	margin-right: 5px;
+}
+
+.index_input_box label {
+	display: inline-block;
+}
+
+/* Captcha */
+img[alt="captchaimg"] {
+	border-radius: var(--border-radius-md);
+	margin-bottom: 10px;
+	width: 100%;
+	height: auto;
 }
