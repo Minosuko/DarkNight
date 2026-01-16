@@ -33,6 +33,64 @@ if (typeof (Storage) !== "undefined") {
 	Object.keys(j).forEach(function (v) {
 		window[v] = j[v];
 	});
+
+	// Theme initialization
+	var savedTheme = lsg("theme");
+	if (savedTheme) {
+		document.documentElement.setAttribute('data-theme', savedTheme);
+	}
+
+	// Primary Hue initialization
+	var savedHue = lsg("primaryHue");
+	if (savedHue) {
+		document.documentElement.style.setProperty('--primary-hue', savedHue);
+	}
+}
+
+// Appearance logic
+function setPrimaryHue(hue) {
+	document.documentElement.style.setProperty('--primary-hue', hue);
+	lss('primaryHue', hue);
+	updateColorPresetsUI();
+}
+
+function updateColorPresetsUI() {
+	var currentHue = lsg("primaryHue") || 210;
+	document.querySelectorAll('.color-preset').forEach(function (el) {
+		if (el.dataset.hue == currentHue) el.classList.add('active');
+		else el.classList.remove('active');
+	});
+}
+
+// Theme toggle function
+function toggleTheme() {
+	var currentTheme = document.documentElement.getAttribute('data-theme');
+	var newTheme = currentTheme === 'light' ? 'dark' : 'light';
+	document.documentElement.setAttribute('data-theme', newTheme);
+	lss('theme', newTheme);
+	updateThemeIcon();
+}
+
+function updateThemeIcon() {
+	var themeBtn = gebi('theme-toggle-btn');
+	var settingToggle = gebi('setting-theme-toggle');
+	var currentTheme = document.documentElement.getAttribute('data-theme');
+
+	if (themeBtn) {
+		themeBtn.innerHTML = currentTheme === 'light'
+			? '<i class="fa-solid fa-moon"></i>'
+			: '<i class="fa-solid fa-sun"></i>';
+	}
+
+	if (settingToggle) {
+		var slider = settingToggle.querySelector('.theme-switch-slider');
+		if (slider) {
+			slider.style.left = currentTheme === 'light' ? '2px' : '26px';
+			slider.innerHTML = currentTheme === 'light'
+				? '<i class="fa-solid fa-sun"></i>'
+				: '<i class="fa-solid fa-moon"></i>';
+		}
+	}
 }
 function getCFToken() {
 	return document.querySelector("[name='cf-turnstile-response']").value;
@@ -777,12 +835,12 @@ function modal_open(type, pid = null) {
 				h += '</div>';
 
 				// Gender
-				h += '<div style="margin-bottom:15px;">';
-				h += '<label class="input-label">Gender</label><br>';
-				h += '<div style="display:flex; gap:20px; margin-top:5px;">';
-				h += '<label><input type="radio" name="usergender" class="usergender" value="M" ' + (data.user_gender == 'M' ? 'checked' : '') + '> Male</label>';
-				h += '<label><input type="radio" name="usergender" class="usergender" value="F" ' + (data.user_gender == 'F' ? 'checked' : '') + '> Female</label>';
-				h += '<label><input type="radio" name="usergender" class="usergender" value="U" ' + (data.user_gender == 'U' ? 'checked' : '') + '> Other</label>';
+				h += '<div style="margin-bottom:20px;">';
+				h += '<label class="input-label">Gender</label>';
+				h += '<div style="display:flex; gap:25px; margin-top:8px;">';
+				h += '<label style="cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="radio" name="usergender" class="usergender" value="M" ' + (data.user_gender == 'M' ? 'checked' : '') + '> Male</label>';
+				h += '<label style="cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="radio" name="usergender" class="usergender" value="F" ' + (data.user_gender == 'F' ? 'checked' : '') + '> Female</label>';
+				h += '<label style="cursor:pointer; display:flex; align-items:center; gap:8px;"><input type="radio" name="usergender" class="usergender" value="U" ' + (data.user_gender == 'U' ? 'checked' : '') + '> Other</label>';
 				h += '</div>';
 				h += '</div>';
 
@@ -986,6 +1044,9 @@ function _share(id) {
 
 		// Multi-upload preview for share
 		a += '<div id="media-preview-container" class="media-preview-grid"></div>';
+
+		// Upload Progress
+		a += '<div id="upload-progress-container"><div id="upload-progress-bar"></div></div>';
 
 		// Original Post Preview
 		a += '<div class="share-original-preview">';
@@ -1285,16 +1346,73 @@ function _load_post(post_id = null) {
 		if (data['post_media_list'] || data['post_media'] != 0 || data['is_share'] > 0) {
 			if (_content_left) {
 				if (data['is_share'] > 0) {
-					if (data['share']['post_media_list']) {
-						_content_left.innerHTML = renderMedia(data['share']['post_media_list']);
-					} else if (data['share']['post_media'] != 0) {
-						_content_left.innerHTML = renderMedia(data['share']['post_media'] + ":" + data['share']['media_hash'] + ":" + data['share']['media_format']);
+					var mediaList = data['share']['post_media_list'] ? data['share']['post_media_list'] : (data['share']['post_media'] != 0 ? data['share']['post_media'] + ":" + data['share']['media_hash'] + ":" + data['share']['media_format'] : null);
+					if (mediaList) {
+						var items = mediaList.split(',').map(p => {
+							var d = p.split(':');
+							return { id: d[0], hash: d[1], format: d[2] };
+						});
+						var h = '<div id="post-media-viewer" style="position:relative; height:100%;">';
+						if (items.length > 1) {
+							h += '<div class="view-toggle-bar" style="position:absolute; top:10px; right:10px; z-index:100; display:flex; gap:10px;">';
+							h += '<button class="view-toggle-btn active" onclick="togglePostView(\'carousel\')" title="Carousel View"><i class="fa-solid fa-images"></i></button>';
+							h += '<button class="view-toggle-btn" onclick="togglePostView(\'grid\')" title="Grid View"><i class="fa-solid fa-grid-2"></i></button>';
+							h += '</div>';
+						}
+						h += '<div id="carousel-view-container" style="height:100%;">' + renderMedia(mediaList) + '</div>';
+						if (items.length > 1) {
+							h += '<div id="grid-view-container" style="display:none; height:100%; overflow-y:auto; padding:20px; background:var(--color-surface);">';
+							h += '<div class="media-detail-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:15px;">';
+							items.forEach((s, idx) => {
+								var url = media_cdn + '&id=' + s.id + '&h=' + s.hash;
+								var isVideo = s.format.startsWith('video');
+								h += '<div class="grid-item" style="aspect-ratio:1; cursor:pointer; overflow:hidden; border-radius:8px; background:#000;" onclick="viewFullImage(' + JSON.stringify(items).replace(/"/g, '&quot;') + ', ' + idx + ')">';
+								if (isVideo) {
+									h += '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:white;"><i class="fa-solid fa-play fa-2x"></i></div>';
+								} else {
+									h += '<img src="' + url + '" style="width:100%; height:100%; object-fit:cover;">';
+								}
+								h += '</div>';
+							});
+							h += '</div></div>';
+						}
+						h += '</div>';
+						_content_left.innerHTML = h;
 					} else {
 						_content_left.style.display = 'none';
 					}
 				} else {
 					if (data['post_media_list']) {
-						_content_left.innerHTML = renderMedia(data['post_media_list']);
+						var items = data['post_media_list'].split(',').map(p => {
+							var d = p.split(':');
+							return { id: d[0], hash: d[1], format: d[2] };
+						});
+						var h = '<div id="post-media-viewer" style="position:relative; height:100%;">';
+						if (items.length > 1) {
+							h += '<div class="view-toggle-bar" style="position:absolute; top:10px; right:10px; z-index:100; display:flex; gap:10px;">';
+							h += '<button class="view-toggle-btn active" onclick="togglePostView(\'carousel\')" title="Carousel View"><i class="fa-solid fa-images"></i></button>';
+							h += '<button class="view-toggle-btn" onclick="togglePostView(\'grid\')" title="Grid View"><i class="fa-solid fa-grid-2"></i></button>';
+							h += '</div>';
+						}
+						h += '<div id="carousel-view-container" style="height:100%;">' + renderMedia(data['post_media_list']) + '</div>';
+						if (items.length > 1) {
+							h += '<div id="grid-view-container" style="display:none; height:100%; overflow-y:auto; padding:20px; background:var(--color-surface);">';
+							h += '<div class="media-detail-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:15px;">';
+							items.forEach((s, idx) => {
+								var url = media_cdn + '&id=' + s.id + '&h=' + s.hash;
+								var isVideo = s.format.startsWith('video');
+								h += '<div class="grid-item" style="aspect-ratio:1; cursor:pointer; overflow:hidden; border-radius:8px; background:#000;" onclick="viewFullImage(' + JSON.stringify(items).replace(/"/g, '&quot;') + ', ' + idx + ')">';
+								if (isVideo) {
+									h += '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:white;"><i class="fa-solid fa-play fa-2x"></i></div>';
+								} else {
+									h += '<img src="' + url + '" style="width:100%; height:100%; object-fit:cover;">';
+								}
+								h += '</div>';
+							});
+							h += '</div></div>';
+						}
+						h += '</div>';
+						_content_left.innerHTML = h;
 					} else if (data['post_media'] != 0) {
 						_content_left.innerHTML = renderMedia(data['post_media'] + ":" + data['media_hash'] + ":" + data['media_format']);
 					}
@@ -1429,6 +1547,24 @@ function _load_post(post_id = null) {
 		HighLightHLJS();
 		changeUrlWork();
 	});
+}
+
+function togglePostView(view) {
+	var cv = gebi('carousel-view-container');
+	var gv = gebi('grid-view-container');
+	var btns = gebcn('view-toggle-btn');
+
+	if (view === 'carousel') {
+		if (cv) cv.style.display = 'block';
+		if (gv) gv.style.display = 'none';
+		if (btns.length > 0) btns[0].classList.add('active');
+		if (btns.length > 1) btns[1].classList.remove('active');
+	} else {
+		if (cv) cv.style.display = 'none';
+		if (gv) gv.style.display = 'block';
+		if (btns.length > 0) btns[0].classList.remove('active');
+		if (btns.length > 1) btns[1].classList.add('active');
+	}
 }
 function _friend_request_toggle(id, accept) {
 	ac = '';
@@ -1697,6 +1833,8 @@ function _load_settings() {
 			if (l_verified != r['verified']) lss('verified', r['verified']);
 		}
 	});
+	updateThemeIcon();
+	updateColorPresetsUI();
 	usernickname = gebi('usernickname');
 	userfirstname = gebi('userfirstname');
 	userlastname = gebi('userlastname');
@@ -1981,7 +2119,7 @@ function _bufferToBase64Url(buffer) {
 }
 
 function changeTab(t) {
-	var tabs = ['account', 'profile', 'about'];
+	var tabs = ['account', 'profile', 'appearance', 'about'];
 	for (var i = 0; i < tabs.length; i++) {
 		var x = tabs[i];
 		if (gebi('setting-tab-' + x)) gebi('setting-tab-' + x).style.display = 'none';
@@ -2508,14 +2646,23 @@ function renderMedia(mediaListStr) {
 	});
 
 	if (items.length === 0) return '';
+	var itemsJson = JSON.stringify(items).replace(/"/g, '&quot;');
 
 	if (items.length === 1) {
 		// Single Item
 		var s = items[0];
-		if (s.format.startsWith('video'))
-			return '<center><video style="max-height:500px; max-width: 100%" src="' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '" controls></video></center>';
-		else
-			return '<center><img src="' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '" style="max-width:100%;"></center>';
+		if (s.format.startsWith('video')) {
+			let mediaUrl = video_cdn + '&id=' + s.id + '&h=' + s.hash;
+			return '<center><div class="media-carousel-container" style="position:relative; overflow:hidden;">' +
+				'<div class="custom-video-container">' +
+				'<video src="' + mediaUrl + '" preload="metadata"></video>' +
+				'</div>' +
+				'</div></center>';
+		} else
+			return '<center><div class="media-carousel-container" style="position:relative; overflow:hidden;">' +
+				'<div class="media-backdrop" style="background-image: url(\'' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '\')"></div>' +
+				'<img src="' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '" onclick="viewFullImage(' + itemsJson + ', 0)" style="cursor:pointer; position:relative; z-index:2;">' +
+				'</div></center>';
 	} else {
 		// Carousel
 		var uid = Math.floor(Math.random() * 1000000);
@@ -2525,31 +2672,189 @@ function renderMedia(mediaListStr) {
 		items.forEach(function (s, idx) {
 			var active = (idx === 0) ? 'active' : '';
 			var content = '';
-			let mediaUrl = media_cdn + '&id=' + s.id + '&h=' + s.hash;
+			let mediaUrl = s.format.startsWith('video')
+				? video_cdn + '&id=' + s.id + '&h=' + s.hash
+				: media_cdn + '&id=' + s.id + '&h=' + s.hash;
 			if (s.format.startsWith('video')) {
-				content = '<video style="max-height:500px; max-width: 100%" src="' + mediaUrl + '" controls></video>';
+				content = '<div class="custom-video-container">' +
+					'<video src="' + mediaUrl + '" preload="metadata"></video>' +
+					'</div>';
 			} else {
-				content = '<img src="' + mediaUrl + '" style="max-width:100%;">';
+				content = '<div class="media-backdrop" style="background-image: url(\'' + mediaUrl + '\')"></div>';
+				content += '<img src="' + mediaUrl + '" onclick="viewFullImage(' + itemsJson + ', ' + idx + ')" style="cursor:pointer;">';
 			}
 			h += '<div class="carousel-slide ' + active + '" data-index="' + idx + '">' + content + '</div>';
 		});
 
-		// Nav
+		// Navigation Controls
 		h += '<button class="carousel-prev" onclick="moveSlide(\'' + uid + '\', -1)">&#10094;</button>';
 		h += '<button class="carousel-next" onclick="moveSlide(\'' + uid + '\', 1)">&#10095;</button>';
 
-		// Dots
-		h += '<div class="dots-container">';
-		items.forEach(function (s, idx) {
-			var active = (idx === 0) ? 'active' : '';
-			h += '<span class="dot ' + active + '" onclick="currentSlide(\'' + uid + '\', ' + idx + ')"></span>';
-		});
-		h += '</div>';
+		// Dots or Indicator
+		if (items.length > 5) {
+			h += '<div class="carousel-indicator">' +
+				'<span class="current-index">1</span> / <span class="total-count">' + items.length + '</span>' +
+				'</div>';
+		} else {
+			h += '<div class="dots-container">';
+			items.forEach(function (s, idx) {
+				var active = (idx === 0) ? 'active' : '';
+				h += '<span class="dot ' + active + '" onclick="currentSlide(\'' + uid + '\', ' + idx + ')"></span>';
+			});
+			h += '</div>';
+		}
 
-		h += '</div>';
-		return h;
+		h += '</div>'; // End container
+		return '<div class="media-carousel-container">' + h + '</div>';
 	}
 }
+
+/* --- Custom Video Player Logic --- */
+function initVideoPlayer(container) {
+	var video = container.querySelector('video');
+	if (!video || container.dataset.playerInit === 'true') return;
+	container.dataset.playerInit = 'true';
+	container.classList.add('video-paused');
+
+	// Create control elements
+	var controls = document.createElement('div');
+	controls.className = 'custom-video-controls';
+	controls.innerHTML = `
+		<button class="video-control-btn video-play-btn"><i class="fa-solid fa-play"></i></button>
+		<div class="video-progress-container">
+			<div class="video-buffer-bar"></div>
+			<div class="video-progress-bar"></div>
+		</div>
+		<div class="video-time-display">0:00 / 0:00</div>
+		<div class="video-volume-container">
+			<button class="video-control-btn video-mute-btn"><i class="fa-solid fa-volume-high"></i></button>
+			<input type="range" class="video-volume-slider" min="0" max="1" step="0.1" value="1">
+		</div>
+		<button class="video-control-btn video-fullscreen-btn"><i class="fa-solid fa-expand"></i></button>
+	`;
+	container.appendChild(controls);
+
+	// Create big play button
+	var bigPlay = document.createElement('div');
+	bigPlay.className = 'video-big-play';
+	bigPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+	container.appendChild(bigPlay);
+
+	// Get references
+	var playBtn = controls.querySelector('.video-play-btn');
+	var progressContainer = controls.querySelector('.video-progress-container');
+	var progressBar = controls.querySelector('.video-progress-bar');
+	var bufferBar = controls.querySelector('.video-buffer-bar');
+	var timeDisplay = controls.querySelector('.video-time-display');
+	var muteBtn = controls.querySelector('.video-mute-btn');
+	var volumeSlider = controls.querySelector('.video-volume-slider');
+	var fullscreenBtn = controls.querySelector('.video-fullscreen-btn');
+
+	function formatTime(seconds) {
+		if (isNaN(seconds)) return '0:00';
+		var mins = Math.floor(seconds / 60);
+		var secs = Math.floor(seconds % 60);
+		return mins + ':' + (secs < 10 ? '0' : '') + secs;
+	}
+
+	function updatePlayState() {
+		if (video.paused) {
+			container.classList.add('video-paused');
+			playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+			bigPlay.innerHTML = '<i class="fa-solid fa-play"></i>';
+		} else {
+			container.classList.remove('video-paused');
+			playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+		}
+	}
+
+	function togglePlay() {
+		if (video.paused) video.play();
+		else video.pause();
+	}
+
+	// Event bindings
+	video.addEventListener('play', updatePlayState);
+	video.addEventListener('pause', updatePlayState);
+	video.addEventListener('click', togglePlay);
+	playBtn.addEventListener('click', togglePlay);
+	bigPlay.addEventListener('click', togglePlay);
+
+	video.addEventListener('timeupdate', function () {
+		var percent = (video.currentTime / video.duration) * 100;
+		progressBar.style.width = percent + '%';
+		timeDisplay.innerText = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+	});
+
+	video.addEventListener('progress', function () {
+		if (video.buffered.length > 0) {
+			var buffered = (video.buffered.end(video.buffered.length - 1) / video.duration) * 100;
+			bufferBar.style.width = buffered + '%';
+		}
+	});
+
+	progressContainer.addEventListener('click', function (e) {
+		var rect = progressContainer.getBoundingClientRect();
+		var pos = (e.clientX - rect.left) / rect.width;
+		video.currentTime = pos * video.duration;
+	});
+
+	muteBtn.addEventListener('click', function () {
+		video.muted = !video.muted;
+		muteBtn.innerHTML = video.muted
+			? '<i class="fa-solid fa-volume-xmark"></i>'
+			: '<i class="fa-solid fa-volume-high"></i>';
+		volumeSlider.value = video.muted ? 0 : video.volume;
+	});
+
+	volumeSlider.addEventListener('input', function () {
+		video.volume = volumeSlider.value;
+		video.muted = volumeSlider.value == 0;
+		muteBtn.innerHTML = video.muted
+			? '<i class="fa-solid fa-volume-xmark"></i>'
+			: '<i class="fa-solid fa-volume-high"></i>';
+	});
+
+	fullscreenBtn.addEventListener('click', function () {
+		if (document.fullscreenElement) {
+			document.exitFullscreen();
+		} else {
+			container.requestFullscreen();
+		}
+	});
+
+	document.addEventListener('fullscreenchange', function () {
+		if (document.fullscreenElement === container) {
+			fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i>';
+		} else {
+			fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
+		}
+	});
+
+	video.addEventListener('loadedmetadata', function () {
+		timeDisplay.innerText = '0:00 / ' + formatTime(video.duration);
+	});
+}
+
+// Initialize all video players on page
+function initAllVideoPlayers() {
+	document.querySelectorAll('.custom-video-container').forEach(initVideoPlayer);
+}
+
+// MutationObserver to catch dynamically added videos
+var videoObserver = new MutationObserver(function (mutations) {
+	mutations.forEach(function (mutation) {
+		mutation.addedNodes.forEach(function (node) {
+			if (node.nodeType === 1) {
+				if (node.classList && node.classList.contains('custom-video-container')) {
+					initVideoPlayer(node);
+				}
+				node.querySelectorAll && node.querySelectorAll('.custom-video-container').forEach(initVideoPlayer);
+			}
+		});
+	});
+});
+videoObserver.observe(document.body, { childList: true, subtree: true });
 
 function moveSlide(uid, n) {
 	var container = gebi('carousel-' + uid);
@@ -2573,19 +2878,26 @@ function currentSlide(uid, n) {
 
 function showSlide(uid, n) {
 	var container = gebi('carousel-' + uid);
+	if (!container) return;
 	var slides = container.getElementsByClassName("carousel-slide");
 	var dots = container.getElementsByClassName("dot");
+	var indicator = container.querySelector(".carousel-indicator .current-index");
 
 	if (n >= slides.length) { n = 0 }
 	if (n < 0) { n = slides.length - 1 }
 
+	// Auto-pause videos
+	var allVideos = container.querySelectorAll('video');
+	allVideos.forEach(v => v.pause());
+
 	for (var i = 0; i < slides.length; i++) {
 		slides[i].className = slides[i].className.replace(" active", "");
-		if (dots.length > 0) dots[i].className = dots[i].className.replace(" active", "");
+		if (dots.length > i) dots[i].className = dots[i].className.replace(" active", "");
 	}
 
 	slides[n].className += " active";
-	if (dots.length > 0) dots[n].className += " active";
+	if (dots.length > n) dots[n].className += " active";
+	if (indicator) indicator.innerText = (n + 1);
 }
 
 /* --- Multi-Upload Preview Logic --- */
@@ -2593,10 +2905,93 @@ var dt = new DataTransfer(); // Holds selected files
 
 function handleFiles(files) {
 	// Merge new files into DataTransfer
+	if ((dt.items.length + files.length) > 60) {
+		alert("You can only upload a maximum of 60 files.");
+		return;
+	}
+
+	// Count existing videos
+	let videoCount = 0;
+	for (let i = 0; i < dt.files.length; i++) {
+		if (dt.files[i].type.startsWith('video/')) videoCount++;
+	}
+
 	for (let i = 0; i < files.length; i++) {
+		if (files[i].type.startsWith('video/')) {
+			if (videoCount >= 1) {
+				alert("Only one video is allowed per post.");
+				continue; // Skip additional videos
+			}
+			videoCount++;
+		}
 		dt.items.add(files[i]);
 	}
 	updatePreview();
+}
+
+/* Lightbox Logic */
+var currentLightboxItems = [];
+var currentLightboxIndex = 0;
+
+function viewFullImage(items, index = 0) {
+	if (typeof items === 'string') {
+		currentLightboxItems = [{ id: 0, hash: '', format: 'image', url: items }];
+		currentLightboxIndex = 0;
+	} else {
+		currentLightboxItems = items;
+		currentLightboxIndex = index;
+	}
+
+	var lb = gebi('lightbox-modal');
+	if (!lb) {
+		lb = document.createElement('div');
+		lb.id = 'lightbox-modal';
+		document.body.appendChild(lb);
+	}
+
+	updateLightbox();
+	lb.style.display = 'flex';
+	gebtn('body')[0].style.overflow = "hidden";
+}
+
+function updateLightbox() {
+	var lb = gebi('lightbox-modal');
+	var s = currentLightboxItems[currentLightboxIndex];
+	var url = s.url ? s.url : (media_cdn + '&id=' + s.id + '&h=' + s.hash);
+	var isVideo = s.format.startsWith('video');
+
+	var h = '';
+	h += '<div class="lightbox-close" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></div>';
+
+	if (currentLightboxItems.length > 1) {
+		h += '<button class="lightbox-nav lightbox-prev" onclick="moveLightbox(-1); event.stopPropagation();">&#10094;</button>';
+		h += '<button class="lightbox-nav lightbox-next" onclick="moveLightbox(1); event.stopPropagation();">&#10095;</button>';
+	}
+
+	if (isVideo) {
+		h += '<video src="' + url + '" controls autoplay style="max-width:95%; max-height:95%;"></video>';
+	} else {
+		h += '<img src="' + url + '" onclick="event.stopPropagation();">';
+	}
+
+	lb.innerHTML = h;
+	lb.onclick = closeLightbox;
+}
+
+function moveLightbox(n) {
+	currentLightboxIndex += n;
+	if (currentLightboxIndex >= currentLightboxItems.length) currentLightboxIndex = 0;
+	if (currentLightboxIndex < 0) currentLightboxIndex = currentLightboxItems.length - 1;
+	updateLightbox();
+}
+
+function closeLightbox() {
+	var lb = gebi('lightbox-modal');
+	if (lb) {
+		lb.style.display = 'none';
+		lb.innerHTML = '';
+	}
+	gebtn('body')[0].style.overflow = "auto";
 }
 
 function updatePreview() {
@@ -2615,7 +3010,7 @@ function updatePreview() {
 			if (file.type.startsWith('image/')) {
 				content = '<img src="' + reader.result + '">';
 			} else if (file.type.startsWith('video/')) {
-				content = '<video src="' + reader.result + '"></video>';
+				content = '<div class="video-preview-wrapper"><video src="' + reader.result + '"></video><div class="video-preview-overlay"><i class="fa-solid fa-video"></i></div></div>';
 			}
 
 			div.innerHTML = content + '<button class="preview-remove-btn" onclick="removeFile(' + i + ')">x</button>';
@@ -2662,6 +3057,9 @@ function make_post() {
 	// Multi-upload preview
 	a += '<div id="media-preview-container" class="media-preview-grid" style="margin-bottom:15px;"></div>';
 
+	// Upload Progress
+	a += '<div id="upload-progress-container"><div id="upload-progress-bar"></div></div>';
+
 	a += '<div class="createpostbuttons" style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--color-border); padding-top:20px;">';
 	a += '<div style="display:flex; gap:15px; align-items:center;">';
 	a += '<label style="cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'">';
@@ -2690,15 +3088,29 @@ function make_post() {
 
 function _f() {
 	is_private = gebi('private').value;
+	// Final Safety Check
+	if (typeof dt !== 'undefined' && dt.files.length > 60) {
+		alert("You can only upload a maximum of 60 files.");
+		return;
+	}
 	f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("caption", gebtn("textarea")[0].value);
 
+	let videoCount = 0;
 	// Append all files from DataTransfer
 	for (let i = 0; i < dt.files.length; i++) {
+		if (dt.files[i].type.startsWith('video/')) {
+			if (videoCount >= 1) continue;
+			videoCount++;
+		}
 		f.append("fileUpload[]", dt.files[i]);
 	}
+
+	var pContainer = gebi('upload-progress-container');
+	var pBar = gebi('upload-progress-bar');
+	if (pContainer) pContainer.style.display = 'block';
 
 	$.ajax({
 		type: "POST",
@@ -2707,9 +3119,27 @@ function _f() {
 		mimeType: "multipart/form-data",
 		contentType: false,
 		data: f,
+		xhr: function () {
+			var xhr = new window.XMLHttpRequest();
+			xhr.upload.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable && pBar) {
+					var percentComplete = (evt.loaded / evt.total) * 100;
+					pBar.style.width = percentComplete + '%';
+				}
+			}, false);
+			return xhr;
+		},
 		success: function (r) {
+			r = JSON.parse(r);
 			if (r["success"] == 1)
 				fetch_post("fetch_post.php");
+
+			// Close modal and clear logic handled by validatePost, but redundant safety:
+			if (pContainer) pContainer.style.display = 'none';
+		},
+		error: function () {
+			if (pContainer) pContainer.style.display = 'none';
+			alert("Upload failed. Please try again.");
 		}
 	});
 }
@@ -2797,6 +3227,11 @@ function _share_feed() {
 
 	is_private = gebi('private').value;
 	post_id = gebi('post_id').value;
+	// Final Safety Check
+	if (typeof dt !== 'undefined' && dt.files.length > 60) {
+		alert("You can only upload a maximum of 60 files.");
+		return;
+	}
 	// ... Keeping share simple for now to avoid complexity explosion, focus on Create Post.
 
 	f = new FormData();
@@ -2807,10 +3242,19 @@ function _share_feed() {
 
 	// Append all files from DataTransfer (multi-upload support)
 	if (typeof dt !== 'undefined' && dt.files.length > 0) {
+		let videoCount = 0;
 		for (let i = 0; i < dt.files.length; i++) {
+			if (dt.files[i].type.startsWith('video/')) {
+				if (videoCount >= 1) continue;
+				videoCount++;
+			}
 			f.append("fileUpload[]", dt.files[i]);
 		}
 	}
+
+	var pContainer = gebi('upload-progress-container');
+	var pBar = gebi('upload-progress-bar');
+	if (pContainer) pContainer.style.display = 'block';
 
 	$.ajax({
 		type: "POST",
@@ -2819,6 +3263,16 @@ function _share_feed() {
 		mimeType: "multipart/form-data",
 		contentType: false,
 		data: f,
+		xhr: function () {
+			var xhr = new window.XMLHttpRequest();
+			xhr.upload.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable && pBar) {
+					var percentComplete = (evt.loaded / evt.total) * 100;
+					pBar.style.width = percentComplete + '%';
+				}
+			}, false);
+			return xhr;
+		},
 		success: function (r) {
 			id = gebi('post_id').value;
 			splt = r.split(";"); // fixed data -> r
@@ -2827,6 +3281,11 @@ function _share_feed() {
 			});
 			setTimeout(null, 100);
 			fetch_post("fetch_post.php");
+			if (pContainer) pContainer.style.display = 'none';
+		},
+		error: function () {
+			if (pContainer) pContainer.style.display = 'none';
+			alert("Share failed. Please try again.");
 		}
 	});
 }
