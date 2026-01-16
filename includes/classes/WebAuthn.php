@@ -20,23 +20,6 @@ class WebAuthn {
         }
         $this->rpName = $rpName;
         $this->db = Database::getInstance();
-        $this->createTable();
-    }
-    
-    private function createTable() {
-        $sql = "CREATE TABLE IF NOT EXISTS webauthn_credentials (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            credential_id VARCHAR(512) NOT NULL,
-            public_key TEXT NOT NULL,
-            counter INT DEFAULT 0,
-            name VARCHAR(255) DEFAULT 'Security Key',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_used TIMESTAMP NULL,
-            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-            UNIQUE KEY unique_credential (credential_id(255))
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-        $this->db->query($sql);
     }
     
     /**

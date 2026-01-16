@@ -61,7 +61,7 @@ class Post {
                 ($sharesSub) as total_share,
                 ($isLikedSub) as is_liked,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.id ASC SEPARATOR ',') as post_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
                 
                 m_pfp.media_hash as pfp_media_hash,
                 
@@ -71,7 +71,7 @@ class Post {
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.id ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -163,7 +163,7 @@ class Post {
                 ($sharesSub) as total_share,
                 ($isLikedSub) as is_liked,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.id ASC SEPARATOR ',') as post_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
                 
                 m_pfp.media_hash as pfp_media_hash,
                 
@@ -173,7 +173,7 @@ class Post {
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.id ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -275,7 +275,7 @@ class Post {
                 ($sharesSub) as total_share,
                 ($isLikedSub) as is_liked,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.id ASC SEPARATOR ',') as post_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
                 
                 m_pfp.media_hash as pfp_media_hash,
                 
@@ -285,7 +285,7 @@ class Post {
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.id ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -355,11 +355,15 @@ class Post {
         }
         
         $lastId = $db->getLastId();
-        if ($hasMedia && $lastId) self::handleMediaUpload($lastId, $fileData);
+        $uploadedMedia = [];
+        if ($hasMedia && $lastId) {
+            $uploadedMedia = self::handleMediaUpload($lastId, $fileData);
+        }
 
         return [
             'success' => 1,
-            'post_id' => $lastId
+            'post_id' => $lastId,
+            'media_list' => $uploadedMedia
         ];
     }
 
@@ -404,8 +408,16 @@ class Post {
     private static function handleMediaUpload($postId, $fileData) {
         $db = Database::getInstance();
         $files = [];
+        $uploadedList = [];
+
+        // Early debug logging
+        error_log("handleMediaUpload called for post $postId");
+        error_log("fileData structure: " . print_r($fileData, true));
+
         if (is_array($fileData['name'])) {
             $count = count($fileData['name']);
+            error_log("File count received: $count");
+            if ($count > 60) $count = 60; // Limit to 60 files
             for($i=0; $i<$count; $i++) {
                 if(empty($fileData['name'][$i])) continue;
                 $files[] = [
@@ -419,25 +431,63 @@ class Post {
         } else {
             $files[] = $fileData;
         }
+
+        error_log("Processed files array count: " . count($files));
         
         $supported_ext = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "webm", "mp4", "mpeg"];
-        
-        foreach($files as $file) {
+        $hasVideo = false;
+
+        foreach($files as $index => $file) {
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                error_log("Upload error for file {$file['name']}: {$file['error']}");
+                continue;
+            }
+
             $filename = basename($file["name"]);
             $filetype = pathinfo($filename, PATHINFO_EXTENSION);
             
             if (in_array(strtolower($filetype), $supported_ext)) {
                 $mediaHash = md5_file($file["tmp_name"]);
-                $mediaFormat = mime_content_type($file["tmp_name"]);
+                
+                // MIME type detection with extension fallback
+                $ext = strtolower($filetype);
+                $mimeMap = [
+                    'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg',
+                    'gif' => 'image/gif', 'bmp' => 'image/bmp', 'webp' => 'image/webp',
+                    'webm' => 'video/webm', 'mp4' => 'video/mp4', 'mpeg' => 'video/mpeg',
+                    'mov' => 'video/quicktime', 'avi' => 'video/x-msvideo'
+                ];
+                
+                $mediaFormat = '';
+                if (function_exists('mime_content_type')) {
+                    $mediaFormat = mime_content_type($file["tmp_name"]);
+                }
+                
+                // Fallback to extension-based detection if MIME is generic or empty
+                if (empty($mediaFormat) || $mediaFormat === 'application/octet-stream') {
+                    $mediaFormat = isset($mimeMap[$ext]) ? $mimeMap[$ext] : 'application/octet-stream';
+                    echo("MIME fallback to extension for {$file['name']}: $mediaFormat");
+                }
+
                 $filePath = null;
                 $uploadAllowed = false;
                 
-                if (exif_imagetype($file["tmp_name"])) {
-                    $filePath = __DIR__ . "/../../../data/images/image/$mediaHash.bin";
+                // Debug logging
+                echo("Processing file: {$file['name']}, MIME: $mediaFormat, Hash: $mediaHash");
+                
+                if (strpos($mediaFormat, 'image/') === 0) {
+                    $filePath = __DIR__ . "/../../data/images/image/$mediaHash.bin";
                     $uploadAllowed = true;
-                } elseif (function_exists('exif_videotype') && exif_videotype($file["tmp_name"])) {
-                        $filePath = __DIR__ . "/../../../data/videos/video/$mediaHash.bin";
-                        $uploadAllowed = true;
+                } elseif (strpos($mediaFormat, 'video/') === 0) {
+                    if ($hasVideo) {
+                        echo("Extra video skipped for post $postId: " . $file['name']);
+                        continue;
+                    }
+                    $filePath = __DIR__ . "/../../data/videos/video/$mediaHash.bin";
+                    $uploadAllowed = true;
+                    $hasVideo = true;
+                } else {
+                    echo("Unrecognized MIME type for file {$file['name']}: $mediaFormat");
                 }
                 
                 if ($uploadAllowed) {
@@ -450,17 +500,44 @@ class Post {
                         $mediaId = $check->fetch_assoc()["media_id"];
                     }
                     
-                    if (file_exists($filePath) || move_uploaded_file($file["tmp_name"], $filePath)) {
-                            // Use the index in $files array as order
-                            $displayOrder = array_search($file, $files);
-                            $db->query("INSERT INTO post_media_mapping (post_id, media_id, display_order) VALUES ($postId, $mediaId, $displayOrder)");
+                    // Create directory if not exists
+                    $dir = dirname($filePath);
+                    if (!is_dir($dir)) {
+                        mkdir($dir, 0777, true);
+                    }
+
+                    $moveSuccess = false;
+                    if (file_exists($filePath)) {
+                        $moveSuccess = true; // Already exists, consider success (dedup)
+                    } elseif (php_sapi_name() === 'cli') {
+                         $moveSuccess = rename($file["tmp_name"], $filePath);
+                    } else {
+                         $moveSuccess = move_uploaded_file($file["tmp_name"], $filePath);
+                    }
+
+                    if ($moveSuccess) {
+                            // index in $files is correct order
+                            $db->query("INSERT INTO post_media_mapping (post_id, media_id, display_order) VALUES ($postId, $mediaId, $index)");
                             
                             // Legacy support: set first media as post_media
                             $db->query("UPDATE posts SET post_media = $mediaId WHERE post_id = $postId AND post_media IS NULL");
+
+                            $uploadedList[] = [
+                                'media_id' => $mediaId,
+                                'media_hash' => $mediaHash,
+                                'media_format' => $mediaFormat
+                            ];
+                    } else {
+                        error_log("Failed to move uploaded file: $filePath");
                     }
+                } else {
+                    error_log("Upload type not allowed or detection failed: " . $file['name']);
                 }
+            } else {
+                error_log("Extension not supported: $filetype");
             }
         }
+        return $uploadedList;
     }
 
     public static function getPost($postId, $viewerUserId) {
@@ -484,7 +561,7 @@ class Post {
                 ($sharesSub) as total_share,
                 ($isLikedSub) as is_liked,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.id ASC SEPARATOR ',') as post_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
                 
                 m_pfp.media_hash as pfp_media_hash,
                 
@@ -494,7 +571,7 @@ class Post {
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.id ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,

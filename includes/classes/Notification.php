@@ -8,23 +8,6 @@ class Notification {
     public function __construct() {
         $this->db = Database::getInstance();
         $this->conn = $this->db->getConnection();
-        $this->createTableIfNotExists();
-    }
-
-    private function createTableIfNotExists() {
-        $sql = "CREATE TABLE IF NOT EXISTS notifications (
-            notification_id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL, /* Recipient */
-            actor_id INT NOT NULL, /* Triggered by */
-            type VARCHAR(50) NOT NULL, /* like, comment, share */
-            reference_id INT NOT NULL, /* post_id */
-            is_read BOOLEAN DEFAULT FALSE,
-            created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(user_id),
-            FOREIGN KEY (actor_id) REFERENCES users(user_id),
-            FOREIGN KEY (reference_id) REFERENCES posts(post_id)
-        )";
-        $this->db->query($sql);
     }
 
     /*

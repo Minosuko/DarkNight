@@ -11,6 +11,8 @@ require_once __DIR__ . "/classes/Comment.php";
 require_once __DIR__ . "/classes/Friend.php";
 require_once __DIR__ . "/classes/Utils.php";
 require_once __DIR__ . "/classes/QRCode.php";
+require_once __DIR__ . "/config/auth.php";
+require_once __DIR__ . "/classes/JWT.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
 require_once __DIR__ . "/2FAGoogleAuthenticator.php";
 require_once __DIR__ . "/VideoStream.php";
@@ -53,39 +55,50 @@ function decryptPassword($password){
 	return base64_decode($password);
 }
 function _verify_2FA($code, $userID){
-	$conn = $GLOBALS['conn'];
-	$IP2Geo = $GLOBALS['IP2Geo'];
-	$sql = sprintf(
-		"SELECT * FROM `twofactorauth` WHERE user_id = %d AND is_enabled = 1",
-		$conn->real_escape_string($userID)
-	);
-	$query = $conn->query($sql);
-	while($row = $query->fetch_assoc()){
-		$IP2Geo->changeIP(getUserIP());
-		$zone = $IP2Geo->getTimeZone();
-		if (!$zone) $zone = 'UTC';
-		$VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAtZone($row['auth_key'], $code, 1, $zone);
-		if($VerifyCode) {
-			_mark_session_valid($userID);
-			return true;
-		}
-	}
-	return false;
+    $conn = $GLOBALS['conn'];
+    $IP2Geo = $GLOBALS['IP2Geo'];
+    $sql = sprintf(
+        "SELECT * FROM `twofactorauth` WHERE user_id = %d AND is_enabled = 1",
+        $conn->real_escape_string($userID)
+    );
+    $query = $conn->query($sql);
+    while($row = $query->fetch_assoc()){
+        $IP2Geo->changeIP(getUserIP());
+        $zone = $IP2Geo->getTimeZone();
+        if (!$zone) $zone = 'UTC';
+        $VerifyCode = $GLOBALS['GoogleAuthenticator']->verifyCodeAtZone($row['auth_key'], $code, 1, $zone);
+        if($VerifyCode) {
+            _upgrade_session_2fa($userID);
+            return true;
+        }
+    }
+    return false;
 }
-function _mark_session_valid($userID) {
-	$conn = $GLOBALS['conn'];
-	$session_id = $_COOKIE['session_id'] ?? '';
-	$session_token = $_COOKIE['session_token'] ?? '';
-	$browser_id = $_COOKIE['browser_id'] ?? '';
-	
-	$sql = sprintf(
-		"UPDATE session SET session_valid = 1 WHERE user_id = %d AND session_id = '%s' AND session_token = '%s' AND browser_id = '%s'",
-		$userID,
-		$conn->real_escape_string($session_id),
-		$conn->real_escape_string($session_token),
-		$conn->real_escape_string($browser_id)
-	);
-	return $conn->query($sql);
+
+function _upgrade_session_2fa($userID) {
+    if(!isset($_COOKIE['access_token'])) return false;
+    
+    $jwt = $_COOKIE['access_token'];
+    $payload = JWT::decode($jwt);
+    
+    if (!$payload || $payload['user_id'] != $userID) return false;
+    
+    // Update Payload
+    $payload['auth_2fa'] = 1; // Mark verified
+    
+    // Preserve expiration
+    $exp = isset($payload['exp']) ? $payload['exp'] : time() + 86400*30;
+    
+    $newJwt = JWT::encode($payload);
+    _setcookie("access_token", $newJwt, $exp - time());
+    
+    // Update DB for "Active Sessions" visibility
+    if (isset($payload['session_id'])) {
+        $conn = $GLOBALS['conn'];
+        $sid = $conn->real_escape_string($payload['session_id']);
+        $conn->query("UPDATE session SET session_valid = 1 WHERE session_id = '$sid'");
+    }
+    return true;
 }
 function video_stream($file_path){
 	$VidStream = new VideoStream($file_path);
@@ -606,106 +619,140 @@ function _is_same_browser($userID){
 	return [false];
 }
 function new_session($time, $userID, $auth2FA){
-	$check = _is_same_browser($userID);
-	if(!$check[0]){
-		$session_id = uniqid();
-		$session_token = _generate_token("SesAuth_");
-		$conn = $GLOBALS['conn'];
-		$sql = sprintf(
-			"INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,'%s',%d)",
-			$session_id,
-			$session_token,
-			$conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
-			$userID,
-			getUserIP(),
-			$auth2FA,
-			time(),
-			$conn->real_escape_string($_COOKIE['browser_id']),
-			time()
-		);
-		$query = $conn->query($sql);
-	}else{
-		$session_id = $check[1]['session_id'];
-		$session_token = $check[1]['session_token'];
-	}
-	_setcookie("session_id", $session_id, $time);
-	_setcookie("session_token", $session_token, $time);
+    // JWT Implementation
+    // We still call _is_same_browser/DB insert for "Active Sessions" list visibility if needed, 
+    // but primary auth is now JWT.
+    
+    // For "Active Sessions" list in settings (optional, keeping legacy DB logic for logging)
+    $check = _is_same_browser($userID);
+    if(!$check[0]){
+        $session_id = uniqid();
+        $session_token = _generate_token("SesAuth_");
+        $conn = $GLOBALS['conn'];
+        // Insert into DB for "Active Sessions" UI, but NOT for validation
+        $sql = sprintf(
+            "INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,'%s',%d)",
+            $session_id,
+            $session_token,
+            $conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
+            $userID,
+            getUserIP(),
+            $auth2FA,
+            time(),
+            $conn->real_escape_string($_COOKIE['browser_id']),
+            time()
+        );
+        $conn->query($sql);
+    } else {
+        $session_id = $check[1]['session_id'];
+    }
+
+    // Generate JWT
+    $payload = [
+        'user_id' => $userID,
+        'browser_id' => $_COOKIE['browser_id'],
+        'session_id' => $session_id, // Useful for revocation if we implement blacklist later
+        'auth_2fa' => $auth2FA,
+        'exp' => time() + $time
+    ];
+    
+    $jwt = JWT::encode($payload);
+    
+    _setcookie("access_token", $jwt, $time);
+    // Remove legacy cookies to avoid confusion
+    _setcookie("session_id", "", -3600);
+    _setcookie("session_token", "", -3600);
+    _setcookie("token", "", -3600); 
 }
+
 function checkActive(){
-	$conn = $GLOBALS['conn'];
-	$token = $_COOKIE['token'];
-	$sql = sprintf(
-		"SELECT * FROM users WHERE user_token = '%s' AND active = 1",
-		$conn->real_escape_string($token)
-	);
-	$query = $conn->query($sql);
-	return ($query->num_rows == 1);
+    // This function relied on 'token' cookie. Now we use JWT.
+    // However, it checks if user is 'active' (email verified). 
+    // We can put this in JWT or check DB. 
+    // For safety, let's fast check DB or trust JWT if we add 'active' status to it.
+    // Let's stick to DB check for critical status for now, or fetch from get_data_from_token
+    $data = _get_data_from_token();
+    if($data && $data['active'] == 1) return true;
+    return false;
 }
+
 function _is_session_valid($checkActive = true){
-	if(!isset($_COOKIE['token']) || !isset($_COOKIE['session_id']) || !isset($_COOKIE['session_token']) || !isset($_COOKIE['browser_id'])){
-		return false;
-	}
-	$add = ($checkActive) ? ' AND session_valid = 1' : '';
-	$session_id = $_COOKIE['session_id'];
-	$session_token = $_COOKIE['session_token'];
-	$browser_id = $_COOKIE['browser_id'];
-	$token = $_COOKIE['token'];
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT * FROM users WHERE user_token = '%s'",
-		$conn->real_escape_string($token)
-	);
-	$query = $conn->query($sql);
-	if($query->num_rows > 0){
-		$data = $query->fetch_assoc();
-		if($checkActive && $data['active'] == 0)
-			return false;
-		$userID = $data['user_id'];
-		$sql = sprintf(
-			"SELECT * FROM session WHERE user_id = %d AND session_id = '%s' AND session_token = '%s' AND browser_id = '%s'%s",
-			$userID,
-			$conn->real_escape_string($session_id),
-			$conn->real_escape_string($session_token),
-			$conn->real_escape_string($browser_id),
-			$add
-		);
-		$query = $conn->query($sql);
-		if($query->num_rows > 0){
-			return true;
-		}
-	}
-	return false;
+    if(!isset($_COOKIE['access_token']) || !isset($_COOKIE['browser_id'])){
+        return false;
+    }
+    
+    $token = $_COOKIE['access_token'];
+    $payload = JWT::decode($token);
+    
+    if(!$payload) {
+        return false;
+    }
+    
+    // Validate Browser Binding
+    if($payload['browser_id'] !== $_COOKIE['browser_id']) {
+        return false;
+    }
+
+    // Checking 'active' status
+    if ($checkActive) {
+        // Optimization: We could store 'active' in JWT. For now, fetch user to be sure.
+        // But the goal is to REDUCE load. 
+        // If we trust the token, we assume they were active when they logged in.
+        // But if they get banned/deactivated, we need to know.
+        // Let's perform a lightweight lookup or cache it.
+        // For strictness + load reduction: simple PK lookup is fast.
+         $conn = $GLOBALS['conn'];
+         $uid = $payload['user_id'];
+         $res = $conn->query("SELECT active FROM users WHERE user_id = $uid LIMIT 1");
+         if($res && $row = $res->fetch_assoc()) {
+             if ($row['active'] == 0) return false;
+         } else {
+             return false; // User not found
+         }
+    }
+
+    // 2FA Check if required (auth_2fa field in JWT)
+    if(isset($payload['auth_2fa']) && $payload['auth_2fa'] == 0) {
+        // 2FA pending
+        // This function is usually called to check if fully logged in.
+        // If we want to allow partial login for verify page, we need logic.
+        // Legacy: session_valid = 1 means done. 0 means pending.
+        return false; 
+    }
+
+    return true;
 }
+
 function _get_last_online($id){
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT last_online FROM session WHERE user_id = %d ORDER BY last_online DESC",
-		$conn->real_escape_string($id)
-	);
-	$query = $conn->query($sql);
-	$fetch = $query->fetch_assoc();
-	return $fetch['last_online'];
+    $conn = $GLOBALS['conn'];
+    $sql = sprintf(
+        "SELECT last_online FROM session WHERE user_id = %d ORDER BY last_online DESC",
+        $conn->real_escape_string($id)
+    );
+    $query = $conn->query($sql);
+    $fetch = $query->fetch_assoc();
+    return $fetch['last_online'];
 }
+
 function _get_data_from_token(){
-	$token = $_COOKIE['token'];
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT * FROM users WHERE user_token = '%s'",
-		$conn->real_escape_string($token)
-	);
-	$query = $conn->query($sql);
-	$fetch = $query->fetch_assoc();
-	return $fetch;
+    if (isset($_COOKIE['access_token'])) {
+        $payload = JWT::decode($_COOKIE['access_token']);
+        if ($payload) {
+            return _get_data_from_id($payload['user_id']);
+        }
+    }
+    return null;
 }
+
 function _get_data_from_id($id){
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT * FROM users WHERE user_id = %d",
-		$conn->real_escape_string($id)
-	);
-	$query = $conn->query($sql);
-	$fetch = $query->fetch_assoc();
-	return $fetch;
+    $conn = $GLOBALS['conn'];
+    $sql = sprintf(
+        "SELECT * FROM users WHERE user_id = %d",
+        $conn->real_escape_string($id)
+    );
+    $query = $conn->query($sql);
+    $fetch = $query->fetch_assoc();
+    return $fetch;
 }
 function _get_hash_from_media_id($id){
 	$conn = $GLOBALS['conn'];
