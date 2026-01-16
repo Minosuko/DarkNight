@@ -92,6 +92,48 @@ function updateThemeIcon() {
 		}
 	}
 }
+// Utility for Copy to Clipboard
+function copyToClipboard(text, btnId) {
+	if (!navigator.clipboard) {
+		// Fallback for older browsers
+		var textArea = document.createElement("textarea");
+		textArea.value = text;
+		document.body.appendChild(textArea);
+		textArea.select();
+		try {
+			document.execCommand('copy');
+			showCopyFeedback(btnId);
+		} catch (err) {
+			console.error('Fallback: Oops, unable to copy', err);
+		}
+		document.body.removeChild(textArea);
+		return;
+	}
+	navigator.clipboard.writeText(text).then(function () {
+		showCopyFeedback(btnId);
+	}, function (err) {
+		console.error('Async: Could not copy text: ', err);
+	});
+}
+
+function showCopyFeedback(btnId) {
+	var btn = gebi(btnId);
+	if (!btn) return;
+
+	var originalHTML = btn.innerHTML;
+	var isInteractionItem = btn.classList.contains('interaction-item');
+
+	if (isInteractionItem) {
+		btn.innerHTML = '<i class="fa-solid fa-check" style="color:var(--color-primary);"></i> <span class="interaction-label">Copied!</span>';
+	} else {
+		btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+	}
+
+	setTimeout(function () {
+		btn.innerHTML = originalHTML;
+	}, 2000);
+}
+
 function getCFToken() {
 	return document.querySelector("[name='cf-turnstile-response']").value;
 }
@@ -667,6 +709,11 @@ function fetch_post(loc, from_blob = false) {
 					a += '<i class="fa-regular fa-share icon-click" id="post-share-' + s['post_id'] + '"></i>';
 					a += ' <a z-var="counter call roller" id="post-share-count-' + s['post_id'] + '">' + s['total_share'] + '</a>';
 					a += '</div>';
+
+					var postUrl = window.location.origin + '/post.php?id=' + s['post_id'];
+					a += '<div class="reaction-box copy-link" id="copy-btn-feed-' + s['post_id'] + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-feed-' + s['post_id'] + '\')" title="Copy Link">';
+					a += '<i class="fa-regular fa-link icon-click"></i>';
+					a += '</div>';
 				}
 
 				a += '</div>';
@@ -1039,8 +1086,17 @@ function _share(id) {
 		a += '</select>';
 		a += '</div>';
 
-		a += '<input type="hidden" name="post_id" id="post_id" value="' + s['post_id'] + '">';
+		a += '<input type="hidden" name="post_id" id="post_id" value="' + id + '">';
 		a += '<textarea rows="3" name="caption" class="caption" placeholder="Say something about this..." style="width:100%; border:none; background:transparent; font-size:1.1rem; resize:none; outline:none;"></textarea>';
+
+		// Direct Link Section
+		var postUrl = window.location.origin + '/post.php?id=' + id;
+		a += '<div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; margin-bottom:20px; display:flex; align-items:center; gap:10px; border:1px dashed var(--color-border);">';
+		a += '<i class="fa-solid fa-link" style="color:var(--color-text-dim);"></i>';
+		a += '<span style="flex:1; font-size:0.85em; color:var(--color-text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + postUrl + '</span>';
+		a += '<button id="copy-btn-modal-' + id + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-modal-' + id + '\')" style="padding:6px 12px; font-size:0.8em; border-radius:6px; background:var(--color-surface-hover); color:var(--color-text-main); border:1px solid var(--color-border);">';
+		a += 'Copy</button>';
+		a += '</div>';
 
 		// Multi-upload preview for share
 		a += '<div id="media-preview-container" class="media-preview-grid"></div>';
@@ -1483,6 +1539,12 @@ function _load_post(post_id = null) {
 		a += '    <i class="fa-regular fa-share"></i>';
 		a += '    <span class="interaction-label">Share</span>';
 		a += '    <span class="interaction-count" id="post-share-count-' + data['post_id'] + '">' + data['total_share'] + '</span>';
+		a += '  </div>';
+
+		var postUrl = window.location.origin + '/post.php?id=' + data['post_id'];
+		a += '  <div class="interaction-item" id="copy-btn-detail-' + data['post_id'] + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-detail-' + data['post_id'] + '\')">';
+		a += '    <i class="fa-regular fa-link"></i>';
+		a += '    <span class="interaction-label">Copy Link</span>';
 		a += '  </div>';
 		a += '</div>';
 
