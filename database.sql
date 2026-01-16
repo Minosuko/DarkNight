@@ -127,26 +127,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (`actor_id`) REFERENCES users(`user_id`),
   FOREIGN KEY (`reference_id`) REFERENCES posts(`post_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
--- 2FA Schema Update
--- Run this migration to update the twofactorauth table for the new 2FA system.
 
--- Modify auth_key to store Base32 secret (string instead of int)
-ALTER TABLE `twofactorauth` 
-    MODIFY `auth_key` VARCHAR(32) NOT NULL;
-
--- Add is_enabled column if it doesn't exist
-ALTER TABLE `twofactorauth` 
-    ADD COLUMN IF NOT EXISTS `is_enabled` TINYINT(1) NOT NULL DEFAULT 0;
-
--- Add backup_codes column for recovery (optional)
-ALTER TABLE `twofactorauth` 
-    ADD COLUMN IF NOT EXISTS `backup_codes` TEXT NULL;
-
--- Add unique constraint on user_id to prevent duplicates
-ALTER TABLE `twofactorauth` 
-    ADD UNIQUE INDEX IF NOT EXISTS `user_id_unique` (`user_id`);
-
-CREATE TABLE IF NOT EXISTS webauthn_credentials (
+CREATE TABLE IF NOT EXISTS `webauthn_credentials` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL,
   `credential_id` VARCHAR(512) NOT NULL,
@@ -157,6 +139,39 @@ CREATE TABLE IF NOT EXISTS webauthn_credentials (
   `last_used` TIMESTAMP NULL,
   FOREIGN KEY (`user_id`) REFERENCES users(`user_id`) ON DELETE CASCADE,
   UNIQUE KEY unique_credential (credential_id(255))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `notification_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `actor_id` INT NOT NULL,
+  `type` VARCHAR(50) NOT NULL,
+  `reference_id` INT NOT NULL,
+  `is_read` BOOLEAN DEFAULT FALSE,
+  `created_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES users(`user_id`),
+  FOREIGN KEY (`actor_id`) REFERENCES users(`user_id`),
+  FOREIGN KEY (`reference_id`) REFERENCES posts(`post_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `twofactorauth` (
+  `auth_key` VARCHAR(32) NOT NULL,
+  `user_id` INT NOT NULL,
+  `is_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+  `backup_codes` TEXT NULL,
+  UNIQUE KEY `user_id_unique` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `post_media_mapping` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `post_id` int(11) NOT NULL,
+  `media_id` int(11) NOT NULL,
+  `display_order` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `post_id` (`post_id`),
+  KEY `media_id` (`media_id`),
+  FOREIGN KEY (`post_id`) REFERENCES posts(`post_id`) ON DELETE CASCADE,
+  FOREIGN KEY (`media_id`) REFERENCES media(`media_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 COMMIT;

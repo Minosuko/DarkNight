@@ -39,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $result = $webauthn->verifyAuthentication($input['response']);
     
     if ($result['success']) {
-        // Mark 2FA as verified for this session in the database
-        _mark_session_valid($result['user_id']);
+        // Mark 2FA as verified for this session (JWT upgrade + DB update)
+        _upgrade_session_2fa($result['user_id']);
         
         // Also mark in PHP session for good measure
         $_SESSION['2fa_verified'] = true;

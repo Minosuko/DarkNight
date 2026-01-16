@@ -27,6 +27,11 @@
                         </a>
                     </li>
                     <li>
+                        <a href="?tab=appearance" id="tab-appearance" onclick="changeTab('appearance'); return false;">
+                            <i class="fa-solid fa-palette"></i> Appearance
+                        </a>
+                    </li>
+                    <li>
                         <a href="?tab=about" id="tab-about" onclick="changeTab('about'); return false;">
                             <i class="fa-solid fa-circle-info"></i> About
                         </a>
@@ -137,6 +142,40 @@
                         <input id="birthday">
                         <input type="radio" id="malegender"><input type="radio" id="femalegender"><input type="radio" id="othergender">
                         <div id="setting_profile_cover"></div>
+                    </div>
+                </div>
+
+                <!-- APPEARANCE TAB -->
+                <div id="setting-tab-appearance" style="display:none;">
+                    <h2 class="setting-section-title">Appearance Settings</h2>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Display Theme</label>
+                            <div class="setting-value">Switch between light and dark modes</div>
+                        </div>
+                        <div class="setting-action">
+                            <div class="theme-switch-container" id="setting-theme-toggle" onclick="toggleTheme()" style="width:52px; height:28px; background:var(--color-primary); border-radius:14px; position:relative; cursor:pointer; overflow:hidden;">
+                                <div class="theme-switch-slider" style="width:24px; height:24px; background:white; border-radius:50%; position:absolute; top:2px; left:26px; transition:left 0.2s cubic-bezier(0.4, 0, 0.2, 1); display:flex; align-items:center; justify-content:center; color:var(--color-primary); font-size:12px;">
+                                    <i class="fa-solid fa-moon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-item" style="border:none;">
+                        <div class="setting-info">
+                            <label class="setting-label">Primary Color</label>
+                            <div class="setting-value">Choose your favorite accent color</div>
+                            <div class="color-presets" style="margin-top:15px;">
+                                <div class="color-preset" data-hue="210" onclick="setPrimaryHue(210)" style="background:#007aff"></div>
+                                <div class="color-preset" data-hue="270" onclick="setPrimaryHue(270)" style="background:#af52de"></div>
+                                <div class="color-preset" data-hue="330" onclick="setPrimaryHue(330)" style="background:#ff2d55"></div>
+                                <div class="color-preset" data-hue="0" onclick="setPrimaryHue(0)" style="background:#ff3b30"></div>
+                                <div class="color-preset" data-hue="30" onclick="setPrimaryHue(30)" style="background:#ff9500"></div>
+                                <div class="color-preset" data-hue="120" onclick="setPrimaryHue(120)" style="background:#34c759"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

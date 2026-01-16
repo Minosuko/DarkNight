@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $time = 86400*30;
                 
                 $has2FA = Has2FA($row['user_id']); // Keeps existing global function or move to User::has2FA later
-                _setcookie("token", $row['user_token'], $time);
+                // _setcookie("token", $row['user_token'], $time); // Deprecated: JWT handles this now
                 new_session($time, $row['user_id'], ($has2FA ? 0 : 1));
                 
                 if($row['active'] == 0)
