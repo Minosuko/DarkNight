@@ -5,6 +5,7 @@ pfp_cdn = 'data/images.php?t=profile';
 media_cdn = 'data/images.php?t=media';
 video_cdn = 'data/videos.php?t=media';
 backend_url = "/worker/";
+_activeProfileTab = 'timeline'; // Track which profile tab is active
 supported_language = [['en-us', 'English'], ['vi-vn', 'Tiếng Việt']];
 
 if (typeof (Storage) !== "undefined") {
@@ -45,6 +46,53 @@ if (typeof (Storage) !== "undefined") {
 	if (savedHue) {
 		document.documentElement.style.setProperty('--primary-hue', savedHue);
 	}
+
+	load_lang();
+}
+
+function load_lang() {
+	var i = document.getElementsByTagName('lang');
+	Object.keys(i).forEach(function (n) {
+		var e = i[n];
+		var s = e.getAttribute('lang');
+		if (e.getAttribute('lang_set') != 'true') {
+			var t = e.tagName.toLocaleLowerCase();
+			var l = window[s];
+			if (l != undefined) {
+				switch (t) {
+					case 'input':
+						var a = e.getAttribute('type');
+						if (a == 'submit' || a == 'button') {
+							e.value = l;
+						} else {
+							e.placeholder = l;
+						}
+						break;
+					default:
+						e.innerHTML = l;
+						break;
+				}
+				e.setAttribute('lang_set', 'true');
+			}
+		}
+	});
+
+	var h = document.getElementsByTagName('input');
+	Object.keys(h).forEach(function (n) {
+		var e = h[n];
+		var s = e.getAttribute('lang');
+		if (e.getAttribute('lang_set') != 'true' && s != null) {
+			var l = window[s];
+			if (l != undefined) {
+				var a = e.getAttribute('type');
+				if (a == 'submit' || a == 'button')
+					e.value = l;
+				else
+					e.placeholder = l;
+				e.setAttribute('lang_set', 'true');
+			}
+		}
+	});
 }
 
 // Appearance logic
@@ -91,6 +139,12 @@ function updateThemeIcon() {
 				: '<i class="fa-solid fa-moon"></i>';
 		}
 	}
+}
+
+function changeLanguage(lang) {
+	lss("language", lang);
+	localStorage.removeItem("language_data");
+	location.reload();
 }
 // Utility for Copy to Clipboard
 function copyToClipboard(text, btnId) {
@@ -267,6 +321,98 @@ function make_blob_url(c, f) {
 	u = URL.createObjectURL(b);
 	return u;
 }
+
+function _revoke_all_sessions(confirmed = false) {
+	if (!confirmed) {
+		_confirm_modal("Are you sure you want to log out from ALL other devices? This action cannot be undone.", "_revoke_all_sessions(true)");
+		return;
+	}
+
+	$.post(backend_url + "session.php", { revoke_all: 1 }, function (response) {
+		if (response.success === 1) {
+			_load_sessions(); // Refresh list
+			_alert_modal("All other sessions have been revoked.");
+		} else {
+			_alert_modal("Failed to revoke sessions: " + (response.error || "Unknown error"));
+		}
+	});
+}
+
+function _delete_post(postId, confirmed = false) {
+	if (!confirmed) {
+		_confirm_modal("Are you sure you want to delete this post?", "_delete_post(" + postId + ", true)");
+		return;
+	}
+
+	$.post(backend_url + "post_action.php", { action: 'delete', post_id: postId }, function (r) {
+		if (r.success === 1) {
+			const post = gebi('post_id-' + postId);
+			if (post) post.remove();
+			// If in modal, close it
+			if (gebi('modal').style.display === 'flex') modal_close();
+		} else {
+			_alert_modal(r.err || "Failed to delete post.");
+		}
+	});
+}
+
+function _open_edit_post(postId) {
+	togglePostOptions(postId); // Close the menu
+	$.get(backend_url + "fetch_post_info.php?id=" + postId, function (data) {
+		if (data.success === 1) {
+			modal_open('edit_post', postId);
+			var content = gebi("modal_content");
+			var h = '';
+			h += '<div class="upload-modal-container" style="max-width:550px;">';
+			h += '<div class="upload-modal-header"><h2>Edit Post</h2><i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i></div>';
+			h += '<div class="upload-modal-body" style="display:block; padding:20px;">';
+
+			h += '<div style="margin-bottom:15px;">';
+			h += '<label class="input-label">Caption</label>';
+			h += '<textarea id="edit_caption" class="index_input_box" style="height:120px; font-size:1.1rem;">' + data.post_caption + '</textarea>';
+			h += '</div>';
+
+			h += '<div style="margin-bottom:15px;">';
+			h += '<label class="input-label">Privacy</label>';
+			h += '<select id="edit_privacy" class="index_input_box" style="width:100%;">';
+			h += '<option value="2" ' + (data.post_public == 2 ? 'selected' : '') + '>' + window["lang__002"] + '</lang></option>';
+			h += '<option value="1" ' + (data.post_public == 1 ? 'selected' : '') + '>' + window["lang__004"] + '</lang></option>';
+			h += '<option value="0" ' + (data.post_public == 0 ? 'selected' : '') + '>' + window["lang__003"] + '</lang></option>';
+			h += '</select>';
+			h += '</div>';
+
+			h += '</div>';
+			h += '<div class="upload-modal-footer">';
+			h += '<button class="btn-primary" onclick="_submit_post_edit(' + postId + ')">Save Changes</button>';
+			h += '</div>';
+			h += '</div>';
+			content.innerHTML = h;
+
+			// Resize textarea
+			const ta = gebi('edit_caption');
+			if (ta) {
+				ta.style.height = '0px';
+				ta.style.height = ta.scrollHeight + 'px';
+			}
+		}
+	});
+}
+
+function _submit_post_edit(postId) {
+	const caption = gebi('edit_caption').value;
+	const privacy = gebi('edit_privacy').value;
+	$.post(backend_url + "post_action.php", { action: 'update', post_id: postId, caption: caption, private: privacy }, function (r) {
+		if (r.success === 1) {
+			modal_close();
+			// Refresh feed or update DOM
+			// For now, let's just refresh the post if we are in SPA
+			fetch_post("fetch_post.php");
+		} else {
+			_alert_modal(r.err || "Failed to update post.");
+		}
+	});
+}
+
 function load_video(i, h, f, e) {
 	u = video_cdn + '&id=' + i + '&h=' + h;
 	$.ajax({
@@ -433,24 +579,32 @@ function processAjaxData(r, u) {
 			d[0].innerHTML = '';
 		}
 	}
-	if (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php") {
-		window['xel'] = e;
-		fetch_profile(e);
-		gebcn('container')[0].innerHTML = c[0].innerHTML;
-	} else {
-		gebcn('container')[0].innerHTML = c[0].innerHTML;
-	}
 	load_lang();
 	document.title = tl;
 	window.history.pushState({
 		"html": r,
 		"pageTitle": tl
 	}, "", u);
+	if (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php") {
+		_feedLoading = false;
+		window['xel'] = e;
+		gebcn('container')[0].innerHTML = c[0].innerHTML;
+
+		// fetch_profile will handle loading posts after profile header is ready
+		fetch_profile(e);
+	} else {
+		gebcn('container')[0].innerHTML = c[0].innerHTML;
+	}
+
 	loading_bar(0);
-	if (u.substring(0, 13) === "/settings.php" || u.substring(0, 12) === "settings.php")
+	if (u.substring(0, 13) === "/settings.php" || u.substring(0, 12) === "settings.php") {
 		_load_settings();
-	if (u === "/home.php" || u === "home.php")
-		fetch_post("fetch_post.php");
+	}
+	// Reset feed loading state on navigation to prevent locks
+	_feedLoading = false;
+
+	if (u === "/home.php" || u === "home.php" || u === "/" || u === "/index.php" || u === "index.php")
+		fetch_post("fetch_post.php", true);
 	if (u === "/logout.php" || u === "logout.php")
 		location.reload();
 	if (u === "/friends.php" || u === "friends.php")
@@ -459,6 +613,10 @@ function processAjaxData(r, u) {
 		fetch_friend_request('fetch_friend_request.php');
 	if (u === "/notification.php" || u === "notification.php")
 		loadNotifications();
+	if (u.indexOf("/groups.php") === 0 || u.indexOf("groups.php") === 0)
+		_load_groups_discovery();
+	if (u.indexOf("/group.php") === 0 || u.indexOf("group.php") === 0)
+		fetch_group();
 	if (u.substring(0, 9) === "/post.php" || u.substring(0, 8) === "post.php") {
 		if (u.substring(0, 13) === "/post.php?id=" || u.substring(0, 12) === "post.php?id=")
 			_load_post(get("id"));
@@ -515,264 +673,186 @@ function fetch_pfp_box() {
 		}
 	}
 }
-function fetch_post(loc, from_blob = false) {
-	fetch_pfp_box();
-	$.get((from_blob ? '' : backend_url) + loc, function (data) {
-		f = '';
-		l = Object.keys(data).length;
-		page = gebi('page');
-		e = false;
-		if (data["success"] == 1) {
-			for (let i = 0; i < (l - 1); i++) {
-				var s = data[i];
-				share_id = 0;
-				share_able = true;
-				a = "";
-				a += '<div class="post" id="post_id-' + s['post_id'] + '">';
-				a += '<div class="header">';
-				a += '<img class="pfp" src="';
-				a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : getDefaultUserImage(s['user_gender']);
-				a += '" width="40px" height="40px">';
+// Helper to generate Post HTML
+function createPostHTML(s) {
+	var a = "";
+	var isShare = (s['is_share'] > 0);
+	var post = isShare ? s['share'] : s;
+	var postId = isShare ? s['share']['post_id'] : s['post_id'];
+	var originalId = s['post_id'];
 
-				a += '<div class="header-info">'; // Wrapper
+	a += '<div class="post" id="post_id-' + originalId + '">';
+	a += '<div class="header">';
 
-				// User Name Line
-				a += '<div class="user_name">';
-				a += '<a class="profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'] + '</a>';
-				if (s['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" style="margin-left:5px;" title="' + window["lang__016"] + '"></i>';
-				a += '</div>';
+	// PFP
+	a += '<img class="pfp" src="';
+	a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : getDefaultUserImage(s['user_gender']);
+	a += '" width="40px" height="40px">';
 
-				// Meta Line (Nickname • Time • Privacy)
-				a += '<div class="postedtime">';
-				a += '<span class="nickname">@' + s['user_nickname'] + '</span>';
-				a += ' • ';
-				a += '<span title="' + timeConverter(s['post_time'] * 1000) + '">' + timeSince(s['post_time'] * 1000) + '</span>';
-				a += ' • ';
-				switch (Number(s['post_public'])) {
-					case 2:
-						a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
-						break;
-					case 1:
-						a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
-						break;
-					default:
-						a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
-						break;
-				}
-				a += '</div>'; // End Meta
+	a += '<div class="header-info">'; // Wrapper
 
-				a += '</div>'; // End header-info
-				a += '</div>'; // End header
-				a += '<br>';
-				if (s['post_media'] != 0 || (s['post_media_list'] && s['post_media_list'].length > 0)) {
-					if (s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196) {
-						a += '<div class="caption_box" id="caption_box-' + s['post_id'] + '">';
-						a += '<div class="caption_box_shadow" id="caption_box_shadow-' + s['post_id'] + '"><p onclick="showMore(\'' + s['post_id'] + '\')">' + window["lang__014"] + '</p></div>';
-					} else {
-						a += '<div class="caption_box" style="height: 100%">';
-					}
-					a += '<pre class="caption">' + s['post_caption'] + '</pre></div>';
+	// User Name
+	a += '<div class="user_name">';
+	a += '<a class="profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'] + '</a>';
+	if (s['verified'] > 0)
+		a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" style="margin-left:5px;" title="' + window["lang__016"] + '"></i>';
 
-					// CAROUSEL / MEDIA RENDER
-					if (s['post_media_list']) {
-						a += renderMedia(s['post_media_list']);
-					} else if (s['post_media'] != 0) {
-						// Fallback for legacy or if list empty but single media exists
-						a += '<center>';
-						if (s['is_video'])
-							a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + s['post_id'] + '" controls></video>';
-						else
-							a += '<img src="' + media_cdn + "&id=" + s['post_media'] + "&h=" + s['media_hash'] + '" style="max-width:100%;">';
-						a += '</center>';
-					}
-					a += '<br><br>';
-				} else {
-					if (s['is_share'] == 0 && s['post_caption'].replace(/^\s+|\s+$/gm, '').length < 20) {
-						a += '<center>';
-						if (s['post_caption'].split(/\r\n|\r|\n/).length > 3) {
-							a += '<div class="caption_box" id="caption_box-' + s['post_id'] + '">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-' + s['post_id'] + '"><p onclick="showMore(\'' + s['post_id'] + '\')">' + window["lang__014"] + '</p></div>';
-						} else {
-							a += '<div class="caption_box" style="height: 100%">';
-						}
-						a += '<pre class="caption" style="font-size: 300%">' + s['post_caption'] + '</pre></div>';
-						a += '</center>';
-					} else {
-						if (s['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['post_caption'].length > 1196) {
-							a += '<div class="caption_box" id="caption_box-' + s['post_id'] + '">';
-							a += '<div class="caption_box_shadow" id="caption_box_shadow-' + s['post_id'] + '"><p onclick="showMore(\'' + s['post_id'] + '\')">' + window["lang__014"] + '</p></div>';
-						} else {
-							a += '<div class="caption_box" style="height: 100%">';
-						}
-						a += '<pre class="caption">' + s['post_caption'] + '</pre></div>';
-					}
-				}
-				a += '<br>';
-				if (s['is_share'] != 0) {
-					pflag = false;
-					pflag = s['share']["pflag"];
-					a += '<div class="share-post" id="post_id-' + s['share']['post_id'] + '">';
-					if (pflag) {
-						a += '<div class="header">';
-						a += '<img class="pfp" src="'
-						a += (s['share']['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['share']['pfp_media_id'] + "&h=" + s['share']['pfp_media_hash'] : getDefaultUserImage(s['share']['user_gender']);
-						a += '" width="40px" height="40px">';
+	if (s.group_id > 0 && s.group_name) {
+		a += ' <i class="fa-solid fa-caret-right" style="margin:0 5px; color:var(--color-text-dim); font-size:0.8em;"></i> ';
+		a += '<a href="group.php?id=' + s.group_id + '" class="profilelink" onclick="changeUrl(\'group.php?id=' + s.group_id + '\'); return false;" style="color:var(--color-text-main); font-weight:600;">' + s.group_name + '</a>';
+	}
+	a += '</div>';
 
-						a += '<div class="header-info">'; // Wrapper
+	// Meta
+	a += '<div class="postedtime">';
+	a += '<span class="nickname">@' + s['user_nickname'] + '</span>';
+	a += ' • ';
+	a += '<span title="' + timeConverter(s['post_time'] * 1000) + '">' + timeSince(s['post_time'] * 1000) + '</span>';
+	a += ' • ';
+	switch (Number(s['post_public'])) {
+		case 2: a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>'; break;
+		case 1: a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>'; break;
+		default: a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>'; break;
+	}
+	a += '</div>'; // End Meta
 
-						// User Name
-						a += '<div class="user_name">';
-						a += '<a class="profilelink" href="profile.php?id=' + s['share']['user_id'] + '">' + s['share']['user_firstname'] + ' ' + s['share']['user_lastname'] + '</a>';
-						if (s['share']['verified'] > 0)
-							a += '<i class="fa-solid fa-badge-check verified_color_' + s['share']['verified'] + '" style="margin-left:5px;" title="' + window["lang__016"] + '"></i>';
-						a += '</div>';
+	a += '</div>'; // End header-info
+	a += '</div>'; // End header
+	a += '<br>';
 
-						// Meta
-						a += '<div class="postedtime">';
-						a += '<span class="nickname">@' + s['share']['user_nickname'] + '</span>';
-						a += ' • ';
-						a += '<span title="' + timeConverter(s['share']['post_time'] * 1000) + '">' + timeSince(s['share']['post_time'] * 1000) + '</span>';
-						a += ' • ';
-						if (s['share']['post_public'] == 2) {
-							a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
-						} else if (s['share']['post_public'] == 1) {
-							a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
-						} else {
-							a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
-						}
-						a += '</div>'; // End Meta
+	// --- Content Rendering ---
+	// If it's a shared post, wrap content in a share-post container
+	if (isShare) {
+		// Shared Post Content (Logic simplified for clarity, keeping structure)
+		var pflag = s['share']["pflag"]; // Permission flag
+		if (pflag) {
+			a += '<div class="share-post" id="post_id-' + postId + '">';
+			// Shared Header
+			a += '<div class="header">';
+			a += '<img class="pfp" src="';
+			a += (post['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + post['pfp_media_id'] + "&h=" + post['pfp_media_hash'] : getDefaultUserImage(post['user_gender']);
+			a += '" width="40px" height="40px">';
+			a += '<div class="header-info">';
+			a += '<div class="user_name"><a class="profilelink" href="profile.php?id=' + post['user_id'] + '">' + post['user_firstname'] + ' ' + post['user_lastname'] + '</a>';
+			if (post['verified'] > 0) a += '<i class="fa-solid fa-badge-check verified_color_' + post['verified'] + '" style="margin-left:5px;"></i>';
+			a += '</div>';
+			a += '<div class="postedtime"><span class="nickname">@' + post['user_nickname'] + '</span> • <span title="' + timeConverter(post['post_time'] * 1000) + '">' + timeSince(post['post_time'] * 1000) + '</span></div>';
+			a += '</div></div><br>';
 
-						a += '</div>'; // End header-info
-						a += '</div>'; // End header
-						// Removed dangling code
-						a += '<br>';
-						a += '</div>';
-						if (s['post_media'] !== 0) {
-							if (s['share']['post_caption'].split(/\r\n|\r|\n/).length > 13 || s['share']['post_caption'].length > 1196) {
-								a += '<div class="caption_box" id="caption_box-' + s['is_share'] + 'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-' + s['is_share'] + 'shd"><p onclick="showMore(\'' + s['is_share'] + 'shd\')">' + window["lang__014"] + '</p></div>';
-							} else {
-								a += '<div class="caption_box" style="height: 100%">';
-							}
-							a += '<pre class="caption">' + s['share']['post_caption'] + '</pre></div>';
+			// Shared Caption & Media
+			a += renderPostContent(post, true);
 
-							a += '<center>';
-							if (s['share']['is_video'])
-								a += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + s['share']['post_id'] + 's" controls></video>';
-							else
-								a += '<img src="' + media_cdn + "&id=" + s['share']['post_media'] + "&h=" + s['share']['media_hash'] + '" style="max-width:100%;">';
-							a += '<br><br>';
-							a += '</center>';
-						} else {
-							a += '<center>';
-							if (s['share']['post_caption'].split(/\r\n|\r|\n/).length > 3 || s['share']['post_caption'].length > 60) {
-								a += '<div class="caption_box" id="caption_box-' + s['is_share'] + 'shd">';
-								a += '<div class="caption_box_shadow" id="caption_box_shadow-' + s['is_share'] + 'shd"><p onclick="showMore(\'' + s['is_share'] + 'shd\')">' + window["lang__014"] + '</p></div>';
-							} else {
-								a += '<div class="caption_box" style="height: 100%">';
-							}
-							a += '<pre class="caption" style="font-size: 300%">' + s['share']['post_caption'] + '</pre></div>';
-							a += '</center>';
-						}
-						a += '<br>';
-
-					} else {
-						share_able = false;
-						a += '<p style="font-size: 150%;text-align: center">' + window["lang__013"] + '</p>';
-					}
-					a += '</div>';
-					share_id = s['is_share'];
-				} else {
-					share_id = s['post_id'];
-				}
-
-				a += '<div class="bottom">';
-				a += '<div class="reaction-bottom">';
-				liked = '';
-				if (s['is_liked'] == 1)
-					liked = 'p-heart fa-solid';
-				else
-					liked = 'white-col fa-regular';
-
-				a += '<div class="reaction-box likes" onclick="_like(' + s['post_id'] + ')">';
-				a += '<i class="' + liked + ' icon-heart fa-heart icon-click" id="post-like-' + s['post_id'] + '"></i>';
-				a += ' <a z-var="counter call roller" id="post-like-count-' + s['post_id'] + '">' + s['total_like'] + '</a>';
-				a += '</div>';
-
-				a += '<div class="reaction-box comment" onclick="_open_post(' + s['post_id'] + ')">';
-				a += '<i class="fa-regular fa-comment icon-click" id="post-comment-' + s['post_id'] + '"></i>';
-				a += ' <a z-var="counter call roller" id="post-comment-count-' + s['post_id'] + '">' + s['total_comment'] + '</a>';
-				a += '</div>';
-				if (share_able) {
-					a += '<div class="reaction-box share" onclick="_share(' + share_id + ')">';
-					a += '<i class="fa-regular fa-share icon-click" id="post-share-' + s['post_id'] + '"></i>';
-					a += ' <a z-var="counter call roller" id="post-share-count-' + s['post_id'] + '">' + s['total_share'] + '</a>';
-					a += '</div>';
-
-					var postUrl = window.location.origin + '/post.php?id=' + s['post_id'];
-					a += '<div class="reaction-box copy-link" id="copy-btn-feed-' + s['post_id'] + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-feed-' + s['post_id'] + '\')" title="Copy Link">';
-					a += '<i class="fa-regular fa-link icon-click"></i>';
-					a += '</div>';
-				}
-
-				a += '</div>';
-				a += '</div>';
-				a += '</div>';
-				a += '</br>';
-				f += a;
-			}
+			a += '</div>'; // End share-post
 		} else {
-			e = true;
-			f += '<div class="post">';
-			f += '<h1>' + window["lang__012"] + '</h1>';
-			f += '</div>';
+			a += '<div class="share-post"><p style="font-size: 150%;text-align: center">' + window["lang__013"] + '</p></div>';
 		}
-		if (page.value != -1) {
-			if (e)
-				page.value = -1;
-			gebi("feed").innerHTML += f;
+	} else {
+		// Standard Post Content
+		a += renderPostContent(s, false);
+	}
 
-			for (let i = 0; i < (l - 1); i++) {
-				s = data[i];
-				_pvideo = gebi("video_pid-" + s['post_id']);
-				_psvideo = gebi("video_pid-" + s['post_id'] + 's');
-				if (_pvideo != null)
-					load_video(s['post_media'], s['media_hash'], s['media_format'], _pvideo);
-				if (_psvideo != null)
-					load_video(s['share']['post_media'], s['share']['media_hash'], s['share']['media_format'], _psvideo);
-			}
-			HighLightHLJS();
-		}
-		if (isMobile()) {
-			$(".post").each(function () {
-				this.style.border = "none";
-				this.style.borderLeft = "none";
-				this.style.borderRight = "none";
-				this.style.width = "100%";
-				this.style.marginRight = "0";
-			});
-			$(".header .pfp").each(function () {
-				this.style.height = "80px";
-				this.style.width = "80px";
-			});
-			$(".postedtime").each(function () {
-				this.style.marginLeft = "85px";
-			});
-			$(".caption_box_shadow").each(function () {
-				this.style.width = "calc(97.9%)";
-			});
-			$(".fname").each(function () {
-				this.style.marginTop = "-85px";
-				this.style.marginLeft = "85px";
-			});
-			$("pre.caption").each(function () {
-				this.style.width = "calc(97.9%)";
-			});
-		}
-		changeUrlWork();
-	});
+	// --- Options Menu ---
+	var postUrl = window.location.origin + '/post.php?id=' + originalId;
+	a += '<div class="post-options-container">';
+	a += '  <div class="post-options-btn" onclick="togglePostOptions(' + originalId + ')"><i class="fa-solid fa-ellipsis"></i></div>';
+	a += '  <div class="post-options-menu" id="post-options-menu-' + originalId + '">';
+	a += '    <div class="post-options-item" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-feed-' + originalId + '\'); togglePostOptions(' + originalId + ')">';
+	a += '      <i class="fa-regular fa-link"></i><span>Copy Link</span><span id="copy-btn-feed-' + originalId + '" style="display:none"></span>';
+	a += '    </div>';
+	if (s['is_mine'] == 1) {
+		a += '    <div class="post-options-item" onclick="_open_edit_post(' + originalId + ')"><i class="fa-regular fa-pen-to-square"></i><span>Edit Post</span></div>';
+		a += '    <div class="post-options-item" style="color: #ff4d4d;" onclick="_delete_post(' + originalId + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
+	}
+	a += '  </div></div>';
+
+	a += '<br>';
+
+	// --- Actions Bar ---
+	var interactionId = isShare ? originalId : originalId; // Interactions are always on the main post object (s)
+	var likedClass = (s['is_liked'] == 1) ? 'p-heart fa-solid' : 'white-col fa-regular';
+
+	a += '<div class="bottom"><div class="reaction-bottom">';
+
+	// Like
+	a += '<div class="reaction-box likes" onclick="_like(' + originalId + ')">';
+	a += '<i class="' + likedClass + ' icon-heart fa-heart icon-click" id="post-like-' + originalId + '"></i>';
+	a += ' <a z-var="counter call roller" id="post-like-count-' + originalId + '">' + s['total_like'] + '</a>';
+	a += '</div>';
+
+	// Comment
+	a += '<div class="reaction-box comment" onclick="_open_post(' + originalId + ')">';
+	a += '<i class="fa-regular fa-comment icon-click" id="post-comment-' + originalId + '"></i>';
+	a += ' <a z-var="counter call roller" id="post-comment-count-' + originalId + '">' + s['total_comment'] + '</a>';
+	a += '</div>';
+
+	// Share
+	// Logic: If it's a shared post, we share the ORIGINAL post that was shared (the inner one). 
+	// If standard post, we share it.
+	var shareTargetId = isShare ? s['share']['post_id'] : s['post_id'];
+	// Check if inner content is sharable (not private/deleted) - reusing pflag logic if shared
+	var canShare = true;
+	if (isShare && !s['share']['pflag']) canShare = false;
+
+	if (canShare) {
+		a += '<div class="reaction-box share" onclick="_share(' + shareTargetId + ')">';
+		a += '<i class="fa-regular fa-share icon-click" id="post-share-' + originalId + '"></i>';
+		a += ' <a z-var="counter call roller" id="post-share-count-' + originalId + '">' + s['total_share'] + '</a>';
+		a += '</div>';
+	}
+
+	a += '</div></div></div></br>';
+	return a;
 }
+
+// Helper to render caption and media
+function renderPostContent(post, isSharedRender) {
+	var h = "";
+	var suffix = isSharedRender ? 'shd' : ''; // Suffix for IDs to prevent duplicate IDs if same post rendered twice? (Unlikely in feed but good practice)
+
+	// Caption
+	// Logic for "See More" based on length
+	var lines = post['post_caption'].split(/\r\n|\r|\n/).length;
+	var len = post['post_caption'].length;
+	var hasMedia = (post['post_media'] != 0 || (post['post_media_list'] && post['post_media_list'].length > 0));
+	var showMore = false;
+
+	// Thresholds
+	if (hasMedia) {
+		if (lines > 13 || len > 1196) showMore = true;
+	} else {
+		if (post['is_share'] == 0 && post['post_caption'].replace(/^\s+|\s+$/gm, '').length < 20) {
+			// Big text logic... keeping simple for now, standardizing
+		}
+		if (lines > 13 || len > 1196) showMore = true;
+	}
+
+	if (showMore) {
+		h += '<div class="caption_box" id="caption_box-' + post['post_id'] + suffix + '">';
+		h += '<div class="caption_box_shadow" id="caption_box_shadow-' + post['post_id'] + suffix + '"><p onclick="showMore(\'' + post['post_id'] + suffix + '\')">' + window["lang__014"] + '</p></div>';
+	} else {
+		h += '<div class="caption_box" style="height: 100%">';
+	}
+
+	var captionStyle = (!hasMedia && post['post_caption'].length < 20 && !isSharedRender) ? 'style="font-size: 300%"' : '';
+	h += '<pre class="caption" ' + captionStyle + '>' + post['post_caption'] + '</pre></div>';
+
+	// Media
+	if (post['post_media_list']) {
+		h += renderMedia(post['post_media_list']);
+	} else if (post['post_media'] != 0) {
+		// Fallback for single media legacy
+		h += '<center>';
+		if (post['is_video'])
+			h += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + post['post_id'] + suffix + '" controls></video>';
+		else
+			h += '<img src="' + media_cdn + "&id=" + post['post_media'] + "&h=" + post['media_hash'] + '" style="max-width:100%;">';
+		h += '</center>';
+	}
+
+	return h;
+}
+
+
 function get(n) {
 	if (n = (new RegExp('[?&]' + encodeURIComponent(n) + '=([^&]*)')).exec(location.search))
 		return decodeURIComponent(n[1]);
@@ -1007,61 +1087,158 @@ function modal_open(type, pid = null) {
 		const modalContent = gebi('modal-content');
 		modalContent.style.maxWidth = '1200px';
 		modalContent.style.width = '95%';
+	} else if (type === 'create_group') {
+		var h = '';
+		h += '<div class="upload-modal-container">';
+		h += '<div class="upload-modal-header">';
+		h += '<h2>Create New Group</h2>';
+		h += '<i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i>';
+		h += '</div>';
+		h += '<div class="upload-modal-body" style="padding:25px; display:flex; flex-direction:column; gap:20px;">';
+		h += '  <div>';
+		h += '    <label class="input-label">Group Name</label>';
+		h += '    <input type="text" id="group_create_name" class="index_input_box" placeholder="What is your community called?">';
+		h += '  </div>';
+		h += '  <div>';
+		h += '    <label class="input-label">Description (About)</label>';
+		h += '    <textarea id="group_create_about" class="index_input_box" style="height:100px;" placeholder="Tell people what this group is about..."></textarea>';
+		h += '  </div>';
+		h += '  <div>';
+		h += '    <label class="input-label">Privacy</label>';
+		h += '    <select id="group_create_privacy" class="index_input_box">';
+		h += '      <option value="2">Public (Anyone can see and join)</option>';
+		h += '      <option value="1">Closed (Anyone can find it, but joining requires approval)</option>';
+		h += '      <option value="0">Secret (Only members can find it)</option>';
+		h += '    </select>';
+		h += '  </div>';
+		h += '</div>';
+		h += '<div class="upload-modal-footer">';
+		h += '  <button class="btn-primary" onclick="_create_group()" style="width:100%; padding:12px 0; font-size:1.1em;">Create Community</button>';
+		h += '</div>';
+		h += '</div>';
+		content.innerHTML = h;
 	}
 }
-function _load_comment(id, page) {
-	$.get(backend_url + "fetch_comment.php?id=" + id + "&page=" + page, function (data) {
-		b = gebi("comment-box");
-		list = gebi("comment-list");
-		lmc = gebi("load-more-comments-container");
-		a = '';
+// Replaced _load_comment and _load_next_comment_page
+function loadComments(postId, page = -1, reset = false) {
+	var list = gebi("comment-list");
+	if (!list) return; // Element doesn't exist, nothing to do
+
+	var lmcContainer = gebi("load-more-comments-container");
+	var btn = lmcContainer ? lmcContainer.querySelector('button') : null;
+
+	// Manage Page State
+	var pageInput = gebi('page');
+	if (!pageInput) {
+		// Create hidden input if doesn't exist to track page
+		pageInput = document.createElement('input');
+		pageInput.type = 'hidden';
+		pageInput.id = 'page';
+		pageInput.value = 0;
+		document.body.appendChild(pageInput);
+	}
+
+	if (reset) {
+		page = 0;
+		list.innerHTML = '';
+		if (lmcContainer) lmcContainer.style.display = 'none';
+		pageInput.value = 0;
+	} else {
+		if (page === -1) page = parseInt(pageInput.value) + 1;
+	}
+
+	// Loading State
+	if (btn) {
+		btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Loading...';
+		btn.disabled = true;
+		btn.style.opacity = '0.7';
+		btn.style.pointerEvents = 'none';
+	}
+
+	$.get(backend_url + "fetch_comment.php?id=" + postId + "&page=" + page, function (data) {
+
+		// Reset Button State
+		if (btn) {
+			btn.innerHTML = 'Load more comments';
+			btn.disabled = false;
+			btn.style.opacity = '1';
+			btn.style.pointerEvents = 'auto';
+		}
+
 		if (data['success'] == 2) {
-			if (gebi('page')) gebi('page').value = -1;
-			if (lmc) lmc.style.display = 'none';
-			if (page == 0) {
+			// No comments found
+			if (reset) {
 				list.innerHTML = '<div class="empty-comments-state"><i class="fa-light fa-comments"></i><p>No comments yet. Be the first to join the conversation!</p></div>';
+			} else {
+				// No more comments to load
+				if (lmcContainer) lmcContainer.style.display = 'none';
 			}
 			return;
 		}
 
 		if (data['success'] == 1) {
 			var count = 0;
-			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
+			var html = '';
+
+			// Iterate numeric keys
+			for (let i = 0; i < (Object.keys(data).length - 1); i++) { // -1 for success key
 				if (!data[i] || typeof data[i] !== 'object') continue;
 				count++;
-				a += '<div class="comment-item" style="animation-delay: ' + (i * 0.05) + 's">';
-				a += '<img class="comment-pfp" src="';
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
-				a += '">';
 
-				a += '<div class="comment-bubble">';
-				a += '<div class="comment-header">';
-				a += '<a class="comment-user" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
+				html += '<div class="comment-item" style="animation-delay: ' + (i * 0.05) + 's">';
+				html += '<img class="comment-pfp" src="';
+				html += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
+				html += '">';
+
+				html += '<div class="comment-bubble">';
+				html += '<div class="comment-header">';
+				html += '<a class="comment-user" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if (data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" style="margin-left:4px; font-size: 11px;"></i>';
-				a += '</a>';
-				a += '<span class="comment-time" title="' + timeConverter(data[i]['comment_time'] * 1000) + '">' + timeSince(data[i]['comment_time'] * 1000) + '</span>';
-				a += '</div>';
-				a += '<div class="comment-content">' + data[i]['comment'].replace(/\n/g, '<br>') + '</div>';
-				a += '</div>'; // End bubble
-				a += '</div>'; // End item
+					html += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" style="margin-left:4px; font-size: 11px;"></i>';
+				html += '</a>';
+				html += '<span class="comment-time" title="' + timeConverter(data[i]['comment_time'] * 1000) + '">' + timeSince(data[i]['comment_time'] * 1000) + '</span>';
+				html += '</div>';
+				html += '<div class="comment-content">' + data[i]['comment'].replace(/\n/g, '<br>') + '</div>';
+				html += '</div>'; // End bubble
+				html += '</div>'; // End item
 			}
 
-			if (page == 0) list.innerHTML = a;
-			else list.innerHTML += a;
+			// Append or Set
+			if (reset) {
+				list.innerHTML = html;
+			} else {
+				// Use robust appending instead of innerHTML += to preserve event listeners (though none here yet)
+				// innerHTML += is fine for simple content, but let's use insertAdjacentHTML for better performance
+				list.insertAdjacentHTML('beforeend', html);
+			}
 
-			if (gebi('page')) gebi('page').value = page;
+			// Update Page Tracker
+			pageInput.value = page;
 
-			// Show/Hide Load More
-			if (lmc) {
-				if (count >= 10) lmc.style.display = 'block';
-				else lmc.style.display = 'none';
+			// Manage Load More Visibility
+			if (lmcContainer) {
+				if (count >= 10) {
+					// Assuming limit is 10 per page. 
+					// Ideally backend should return "has_more" or similar.
+					// For now, if we got a full page, show button.
+					lmcContainer.style.display = 'block';
+					// Update onclick to load next page specifically? 
+					// No, the function uses pageInput value automatically if -1 passed
+				} else {
+					lmcContainer.style.display = 'none';
+				}
 			}
 		}
-
-		changeUrlWork();
+	}).fail(function () {
+		if (btn) {
+			btn.innerHTML = 'Error loading. Try again.';
+			btn.disabled = false;
+			btn.style.opacity = '1';
+			btn.style.pointerEvents = 'auto';
+		}
 	});
 }
+
 function _share(id) {
 	gebtn('body')[0].style.overflowY = "hidden";
 	$.get(backend_url + "fetch_post_info.php?id=" + id, function (s) {
@@ -1237,6 +1414,9 @@ function fetch_friend_request(loc) {
 		changeUrlWork();
 	});
 }
+// Global storage for current viewing profile
+var _currentProfileData = null;
+
 function fetch_profile(e = null) {
 	// Use async for better UX and to allow DOM to update first in SPA mode
 	id = get("id");
@@ -1251,11 +1431,12 @@ function fetch_profile(e = null) {
 		if (data['success'] != 1) {
 			// If user not found, maybe redirect or show error
 			if (window.location.href.indexOf("profile.php") > -1) {
-				// Only redirect if we are still on the profile page
 				// window.history.go(-1); // Can cause loops if not careful
 			}
 			return;
 		}
+
+		_currentProfileData = data; // Store globally
 
 		// Find the mount point in the REAL DOM, not the detached 'e'
 		// This ensures compatibility with both direct load and SPA
@@ -1266,366 +1447,1289 @@ function fetch_profile(e = null) {
 			return;
 		}
 
-		// --- Build Profile Header HTML ---
-		var h = '';
-		h += '<div class="profile-header-card">';
-
-		// Cover
-		var coverUrl = (data['cover_media_id'] > 0) ? pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] : '';
-		var coverStyle = (coverUrl != '') ? ' style="background-image: url(\'' + coverUrl + '\')"' : '';
-		h += '<div class="profile-cover-banner" id="profile_cover"' + coverStyle + '>';
-		if (data['flag'] == 0) { // If own profile
-			h += '<div class="profile-cover-edit-btn" onclick="_change_picture(1)"><i class="fa-solid fa-camera"></i> Edit Cover</div>';
-		}
-		h += '</div>';
-
-		// Info Section
-		h += '<div class="profile-info-section">';
-
-		// PFP
-		h += '<div class="profile-pfp-container">';
-		var pfpUrl = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
-		h += '<img class="profile-pfp-img" id="profile_image" src="' + pfpUrl + '">';
-		if (data['flag'] == 0) {
-			h += '<div class="profile-pfp-edit-btn" onclick="_change_picture(0)"><i class="fa-solid fa-camera"></i></div>';
-		}
-		h += '</div>';
-
-		// Names
-		h += '<div class="profile-names">';
-		h += '<div class="profile-fullname">';
-		h += data['user_firstname'] + ' ' + data['user_lastname'];
-		if (data['verified'] > 0)
-			h += ' <i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
-		h += '</div>';
-		h += '<div class="profile-username">@' + data['user_nickname'] + '</div>';
-		h += '</div>';
-
-		// Bio & Meta
-		h += '<div class="profile-bio-section">';
-		if (data['user_about'] != '') {
-			h += '<div class="profile-bio-text">' + data['user_about'] + '</div>';
-		}
-
-		h += '<div class="profile-bio-meta">';
-		// Gender
-		if (data['user_gender'] == "M") h += '<span><i class="fa-solid fa-mars"></i> ' + window['lang__030'] + '</span>';
-		else if (data['user_gender'] == "F") h += '<span><i class="fa-solid fa-venus"></i> ' + window['lang__031'] + '</span>';
-
-		// Birthdate
-		h += '<span><i class="fa-solid fa-cake-candles"></i> ' + birthdateConverter(data['user_birthdate'] * 1000) + '</span>';
-
-		// Status
-		if (data['user_status'] != '' && data['user_status'] != 'N') {
-			var statusText = '';
-			switch (data['user_status']) {
-				case "S": statusText = window['lang__071']; break;
-				case "E": statusText = window['lang__072']; break;
-				case "M": statusText = window['lang__073']; break;
-				case "L": statusText = window['lang__074']; break;
-				case "D": statusText = window['lang__075']; break;
-				case "U": statusText = window['lang__076']; break;
-			}
-			h += '<span><i class="fa-solid fa-heart"></i> ' + statusText + '</span>';
-		}
-
-		// Hometown
-		if (data['user_hometown'] != '') {
-			h += '<span><i class="fa-solid fa-location-dot"></i> ' + data['user_hometown'] + '</span>';
-		}
-		h += '</div>'; // End meta
-		h += '</div>'; // End bio section
-
-		// Stats & Actions Bar
-		h += '<div class="profile-stats-bar">';
-
-		h += '<div class="profile-stat-item">';
-		h += '<span class="profile-stat-value">' + round_number(data['total_following']) + '</span>';
-		h += '<span class="profile-stat-label">Following</span>';
-		h += '</div>';
-
-		h += '<div class="profile-stat-item">';
-		h += '<span class="profile-stat-value">' + round_number(data['total_follower']) + '</span>';
-		h += '<span class="profile-stat-label">Followers</span>';
-		h += '</div>';
-
-		h += '<div class="profile-actions-bar">';
-		if (data['flag'] == 0) { // Own profile (0 = Me)
-			// Edit and Settings buttons
-			h += '<button class="btn-primary" onclick="modal_open(\'settings\')"><i class="fa-solid fa-pen"></i> Edit Profile</button>';
-		} else {
-			// Friend Button
-			if (data['friendship_status'] != null) {
-				var btnTxt = (data['friendship_status'] == 1) ? 'Friends' : window["lang__005"]; // 005 = Requested?
-				h += '<input type="submit" onclick="_friend_toggle()" value="' + btnTxt + '" name="remove" id="special" class="createpost_box .input_box" style="background:var(--color-primary); color:white; border:none; border-radius:5px; padding:10px 20px; cursor:pointer;">';
-			} else {
-				h += '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__006"] + '" name="request" id="special" class="createpost_box .input_box" style="background:var(--color-surface-hover); color:white; border:1px solid var(--color-border); border-radius:5px; padding:10px 20px; cursor:pointer;">';
-			}
-
-			// Follow Button
-			if (data['is_followed'] < 2) {
-				var followTxt = ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]);
-				var followName = ((data['is_followed'] == 0) ? 'f' : 'u');
-				var followStyle = (data['is_followed'] == 0) ? 'background:var(--color-primary);' : 'background:transparent; border:1px solid var(--color-border);';
-				h += '<input type="button" onclick="_follow_toggle()" value="' + followTxt + '" name="' + followName + '" id="follow" style="' + followStyle + ' color:white; border-radius:5px; padding:10px 20px; cursor:pointer; border:none;">';
-			}
-		}
-		h += '</div>'; // End Actions
-
-		h += '</div>'; // End Stats Bar
-
-		h += '</div>'; // End Info Section
-		h += '</div>'; // End Card
-
-		mount.innerHTML = h;
+		// Render Profile Header
+		mount.innerHTML = _render_profile_header(data);
 
 		changeUrlWork();
 		onResizeEvent();
-	});
 
-	// Fetch posts asynchronously as well
-	fetch_post("fetch_profile_post.php" + id_a);
+		// Fetch posts after profile header is rendered
+		// Default to Timeline tab
+		switchProfileTab('timeline', id_a);
+	});
+}
+
+function _render_profile_header(data) {
+	var h = '';
+	h += '<div class="profile-header-card">';
+
+	// --- Cover ---
+	var coverUrl = (data['cover_media_id'] > 0) ? pfp_cdn + '&id=' + data['cover_media_id'] + '&h=' + data['cover_media_hash'] : '';
+	var coverStyle = (coverUrl != '') ? ' style="background-image: url(\'' + coverUrl + '\')"' : '';
+	h += '<div class="profile-cover-banner" id="profile_cover"' + coverStyle + '>';
+	if (data['flag'] == 0) { // If own profile
+		h += '<div class="profile-cover-edit-btn" onclick="_change_picture(1)"><i class="fa-solid fa-camera"></i> Edit Cover</div>';
+	}
+	h += '</div>';
+
+	// --- Info Section ---
+	h += '<div class="profile-info-section">';
+
+	// Header Top (PFP + Actions)
+	h += '<div class="profile-header-top">';
+
+	// PFP
+	h += '<div class="profile-pfp-container">';
+	var pfpUrl = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
+	h += '<img class="profile-pfp-img" id="profile_image" src="' + pfpUrl + '">';
+	if (data['flag'] == 0) {
+		h += '<div class="profile-pfp-edit-btn" onclick="_change_picture(0)"><i class="fa-solid fa-camera"></i></div>';
+	}
+	h += '</div>';
+
+	// Actions Bar
+	h += '<div class="profile-actions-bar">';
+	if (data['flag'] == 0) { // Own profile (0 = Me)
+		// Edit
+		h += '<button class="btn-primary" onclick="modal_open(\'settings\')"><i class="fa-solid fa-pen"></i> Edit Profile</button>';
+	} else {
+		// Friend Button
+		if (data['friendship_status'] != null) {
+			var btnTxt = (data['friendship_status'] == 1) ? 'Friends' : window["lang__005"]; // 005 = Requested?
+			// Using smaller inline styling for specific button types if needed, or classes
+			h += '<input type="submit" onclick="_friend_toggle()" value="' + btnTxt + '" name="remove" id="special" class="createpost_box .input_box" style="background:var(--color-primary); color:white; border:none; border-radius:5px; padding:10px 20px; cursor:pointer;">';
+		} else {
+			h += '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__006"] + '" name="request" id="special" class="createpost_box .input_box" style="background:var(--color-surface-hover); color:white; border:1px solid var(--color-border); border-radius:5px; padding:10px 20px; cursor:pointer;">';
+		}
+
+		// Follow Button
+		if (data['is_followed'] < 2) {
+			var followTxt = ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]);
+			var followName = ((data['is_followed'] == 0) ? 'f' : 'u');
+			var followStyle = (data['is_followed'] == 0) ? 'background:var(--color-primary);' : 'background:transparent; border:1px solid var(--color-border);';
+			h += '<input type="button" onclick="_follow_toggle()" value="' + followTxt + '" name="' + followName + '" id="follow" style="' + followStyle + ' color:white; border-radius:5px; padding:10px 20px; cursor:pointer; border:none;">';
+		}
+	}
+	h += '</div>'; // End Actions
+	h += '</div>'; // End Header Top
+
+	// Names
+	h += '<div class="profile-names">';
+	h += '<div class="profile-fullname">';
+	h += data['user_firstname'] + ' ' + data['user_lastname'];
+	if (data['verified'] > 0)
+		h += ' <i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
+	h += '</div>';
+	h += '<div class="profile-username">@' + data['user_nickname'] + '</div>';
+	h += '</div>';
+
+	// Bio
+	if (data['user_about'] != '') {
+		h += '<div class="profile-bio-text">' + data['user_about'] + '</div>';
+	}
+
+	// Meta info
+	h += '<div class="profile-bio-meta">';
+	if (data['user_gender'] == "M") h += '<span><i class="fa-solid fa-mars"></i> ' + window['lang__030'] + '</span>';
+	else if (data['user_gender'] == "F") h += '<span><i class="fa-solid fa-venus"></i> ' + window['lang__031'] + '</span>';
+
+	h += '<span><i class="fa-solid fa-cake-candles"></i> ' + birthdateConverter(data['user_birthdate'] * 1000) + '</span>';
+
+	if (data['user_status'] != '' && data['user_status'] != 'N') {
+		var statusText = '';
+		switch (data['user_status']) {
+			case "S": statusText = window['lang__071']; break;
+			case "E": statusText = window['lang__072']; break;
+			case "M": statusText = window['lang__073']; break;
+			case "L": statusText = window['lang__074']; break;
+			case "D": statusText = window['lang__075']; break;
+			case "U": statusText = window['lang__076']; break;
+		}
+		h += '<span><i class="fa-solid fa-heart"></i> ' + statusText + '</span>';
+	}
+
+	if (data['user_hometown'] != '') {
+		h += '<span><i class="fa-solid fa-location-dot"></i> ' + data['user_hometown'] + '</span>';
+	}
+	h += '</div>';
+
+	// Stats Row
+	h += '<div class="profile-stat-row">';
+	h += '<div class="profile-stat-item">';
+	h += '<span class="profile-stat-value">' + round_number(data['total_following']) + '</span>';
+	h += '<span class="profile-stat-label">Following</span>';
+	h += '</div>';
+	h += '<div class="profile-stat-item">';
+	h += '<span class="profile-stat-value">' + round_number(data['total_follower']) + '</span>';
+	h += '<span class="profile-stat-label">Followers</span>';
+	h += '</div>';
+	h += '</div>';
+
+	// Tabs
+	h += '<div class="profile-nav-tabs">';
+	h += '<div class="profile-tab-item active" onclick="switchProfileTab(\'timeline\', \'' + (id_a || '') + '\', this)">Timeline</div>';
+	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'about\', \'' + (id_a || '') + '\', this)">About</div>';
+	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'friends\', \'' + (id_a || '') + '\', this)">Friends</div>';
+	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'photos\', \'' + (id_a || '') + '\', this)">Photos</div>';
+	h += '</div>';
+
+	h += '</div>'; // End Info Section
+	h += '</div>'; // End Card
+
+	return h;
+}
+
+function switchProfileTab(tabName, id_a, tabElement) {
+	// Track active tab globally so scroll handler knows not to load posts on other tabs
+	_activeProfileTab = tabName;
+
+	// Update Active Tab UI
+	if (tabElement) {
+		var tabs = document.querySelectorAll('.profile-tab-item');
+		tabs.forEach(t => t.classList.remove('active'));
+		tabElement.classList.add('active');
+	}
+
+	var oldFeed = gebi('feed');
+	if (!oldFeed) return;
+
+	// Reset loading flag to prevent lockout if user switches tabs rapidly
+	if (typeof _feedLoading !== 'undefined') _feedLoading = false;
+
+	// Explicitly clear content first (addressing user request + visual cleanup)
+	oldFeed.innerHTML = '';
+
+	// Replace the feed element to detach it from DOM.
+	// This ensures that any pending fetch_post callbacks (which hold a reference to the old element)
+	// will append to the detached element instead of the active UI, preventing race conditions.
+	var feed = document.createElement('div');
+	feed.id = 'feed';
+	// Preserve any classes if needed, though usually #feed is bare
+	feed.className = oldFeed.className;
+	oldFeed.parentNode.replaceChild(feed, oldFeed);
+
+	if (tabName === 'timeline') {
+		// Load Timeline
+		// We can reuse fetch_post but we need to ensure it targets 'feed' or we reconstruct the wrapper
+		// Creating a wrapper for posts if needed
+		feed.innerHTML = '<div id="profile-posts-container"></div>';
+		// Actually fetch_post appends to 'feed' by default if no logic changes,
+		// but wait, fetch_post implementation (checked earlier) usually appends to `gebi('feed')` or specific container?
+		// Let's check fetch_profile_post logic.
+		// Existing logic: fetch_post("fetch_profile_post.php" + id_a, true);
+		// The 2nd arg 'true' might mean "is profile" or "reset"?
+		// Checking fetch_post signature in my memory or I should have checked.
+		// Assuming standard behavior: it appends to a list container.
+
+		// To be safe, we'll assume fetch_post handles the "feed" element.
+		// We simply call it.
+		// But first add the "Create Post" box if it's my profile?
+		// The "Create Post" box is usually part of the feed stream or added separately.
+		// In the old code, it wasn't explicitly added in fetch_profile.
+		// It might be in profile.php static HTML? No, profile.php has <div id="feed"></div>.
+		// So `fetch_post("fetch_profile_post.php"...)` likely renders it.
+
+		fetch_post("fetch_profile_post.php" + id_a, true);
+
+	} else if (tabName === 'about') {
+		_load_profile_about();
+	} else if (tabName === 'friends') {
+		_load_profile_friends(id_a);
+	} else if (tabName === 'photos') {
+		_load_profile_photos(id_a);
+	}
+}
+
+// Global storage for lightbox navigation
+var _photoLightboxData = [];
+var _photoLightboxIndex = 0;
+var _photoLightboxPostId = null;
+
+function _load_profile_about() {
+	var feed = gebi('feed');
+	var d = _currentProfileData;
+	if (!d) {
+		feed.innerHTML = '<div class="post"><div style="padding:20px; text-align:center; color:var(--color-text-secondary);">Error loading profile data.</div></div>';
+		return;
+	}
+
+	var h = '<div class="profile-about-container">';
+
+	// Bio/About Section
+	h += '<div class="about-card">';
+	h += '  <div class="about-card-title"><i class="fa-solid fa-user"></i> About Me</div>';
+	h += '  <div class="about-bio-text">' + (d.user_about || 'No description available.') + '</div>';
+	h += '</div>';
+
+	// Basic Info Section
+	h += '<div class="about-card">';
+	h += '  <div class="about-card-title"><i class="fa-solid fa-circle-info"></i> Basic Information</div>';
+	h += '  <div class="about-info-grid">';
+
+	// Gender
+	var gender = 'N/A';
+	if (d.user_gender === 'M') gender = 'Male';
+	else if (d.user_gender === 'F') gender = 'Female';
+	else if (d.user_gender === 'U') gender = 'Other';
+	h += _render_about_item('fa-venus-mars', 'Gender', gender);
+
+	// Birthday
+	h += _render_about_item('fa-cake-candles', 'Birthday', birthdateConverter(d.user_birthdate * 1000));
+
+	// Status
+	var status = 'N/A';
+	if (d.user_status && d.user_status !== 'N') {
+		switch (d.user_status) {
+			case "S": status = 'Single'; break;
+			case "E": status = 'Engaged'; break;
+			case "M": status = 'Married'; break;
+			case "L": status = 'In a relationship'; break;
+			case "D": status = 'Divorced'; break;
+			case "U": status = 'Widowed'; break;
+		}
+	}
+	h += _render_about_item('fa-heart', 'Relationship Status', status);
+
+	// Hometown
+	h += _render_about_item('fa-location-dot', 'Hometown', d.user_hometown || 'Not specified');
+
+	h += '  </div>'; // End Grid
+	h += '</div>'; // End Card
+
+	h += '</div>'; // End Container
+	feed.innerHTML = h;
+}
+
+function _render_about_item(icon, label, value) {
+	var item = '';
+	item += '<div class="about-info-item">';
+	item += '  <div class="about-info-icon"><i class="fa-solid ' + icon + '"></i></div>';
+	item += '  <div class="about-info-content">';
+	item += '    <span class="about-info-label">' + label + '</span>';
+	item += '    <div class="about-info-value">' + value + '</div>';
+	item += '  </div>';
+	item += '</div>';
+	return item;
+}
+
+function _load_profile_friends(id_a) {
+	var feed = gebi('feed');
+	// Initial skeleton
+	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	$.get(backend_url + "fetch_friend_list.php" + id_a, function (data) {
+		if (_activeProfileTab !== 'friends') return;
+
+		if (data.success == 2 || data.success == 3) {
+			if (data.success == 2) feed.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-user-group fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No friends to show yet.</p></div>';
+			return;
+		}
+
+		var h = '<div class="profile-friend-grid">';
+		var count = Object.keys(data).length - 1; // -1 for success key
+		for (let i = 0; i < count; i++) {
+			var f = data[i];
+			var pUrl = f.pfp_media_hash ? media_cdn + "&id=" + f.pfp_media_id + "&h=" + f.pfp_media_hash : "data/images/U.png";
+			h += '<a href="profile.php?id=' + f.user_id + '" class="friend-card" onclick="route(event, this)">';
+			h += '  <img src="' + pUrl + '" class="friend-card-pfp">';
+			h += '  <div class="friend-card-name">' + f.user_firstname + ' ' + f.user_lastname + (f.verified == 1 ? ' <i class="fa-solid fa-circle-check" style="color:var(--color-primary); font-size:0.8em;"></i>' : '') + '</div>';
+			h += '  <div class="friend-card-username">@' + f.user_nickname + '</div>';
+			h += '</a>';
+		}
+		h += '</div>';
+		feed.innerHTML = h;
+	});
+}
+
+function _load_profile_photos(id_a) {
+	var feed = gebi('feed');
+	// Initial skeleton
+	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	$.get(backend_url + "fetch_profile_photos.php" + id_a, function (data) {
+		if (_activeProfileTab !== 'photos') return;
+
+		if (data.success == 2 || data.success == 3) {
+			if (data.success == 2) feed.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-image fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No photos to show yet.</p></div>';
+			return;
+		}
+
+		var h = '<div class="profile-media-grid">';
+		var count = Object.keys(data).length - 1;
+		for (let i = 0; i < count; i++) {
+			var m = data[i];
+			var isVideo = (m.media_format.indexOf('video') !== -1);
+			var mUrl = (isVideo ? video_cdn : media_cdn) + "&id=" + m.media_id + "&h=" + m.media_hash;
+
+			h += '<div class="media-grid-item" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
+			if (isVideo) {
+				h += '<video src="' + mUrl + '"></video>';
+				h += '<div class="media-type-icon"><i class="fa-solid fa-play"></i></div>';
+			} else {
+				h += '<img src="' + mUrl + '">';
+			}
+			if (m.media_count > 1) {
+				h += '<div class="media-count-badge"><i class="fa-solid fa-clone"></i> ' + m.media_count + '</div>';
+			}
+			h += '</div>';
+		}
+		h += '</div>';
+		feed.innerHTML = h;
+	});
+}
+
+// --- Group Management Functions ---
+var _currentGroupData = null;
+var _activeGroupTab = 'timeline';
+
+function fetch_group() {
+	var id = get("id");
+	var id_a = '';
+	if (typeof (id) != 'undefined') id_a = '?id=' + id;
+
+	$.get(backend_url + "fetch_group_info.php" + id_a, function (data) {
+		if (data['success'] != 1) {
+			gebi('feed').innerHTML = '<div class="empty-state" style="padding:40px; text-align:center;"><p>' + (data.message || 'Group not found') + '</p></div>';
+			return;
+		}
+
+		_currentGroupData = data;
+		var mount = gebi("group-header-mount");
+		if (mount) mount.innerHTML = _render_group_header(data);
+
+		// If a specific tab is active, we don't force 'timeline' unless it's the first load or invalid
+		var u = new URL(window.location.href);
+		if (!_activeGroupTab) _activeGroupTab = 'timeline';
+		switchGroupTab(_activeGroupTab, id_a);
+	});
+}
+
+function _render_group_header(d) {
+	var coverUrl = d.cover_media_hash ? media_cdn + "&id=" + d.cover_media_id + "&h=" + d.cover_media_hash : "data/images/default_cover.png";
+	var pfpUrl = d.pfp_media_hash ? media_cdn + "&id=" + d.pfp_media_id + "&h=" + d.pfp_media_hash : "data/images/default_group.png";
+
+	var h = '<div class="profile-card group-card premium-card">';
+
+	// Cover
+	h += '<div class="profile-cover-container">';
+	h += '  <img src="' + coverUrl + '" class="profile-cover-img" id="group-cover">';
+	if (d.my_role >= 1) {
+		h += '  <div class="profile-cover-edit-btn" onclick="_change_picture(1, ' + d.group_id + ')"><i class="fa-solid fa-camera"></i> Edit Cover</div>';
+	}
+	h += '</div>';
+
+	// Header Top Area (PFP & Actions)
+	h += '<div class="profile-header-top">';
+	h += '  <div class="profile-pfp-wrapper" style="position:relative;">';
+	h += '    <img src="' + pfpUrl + '" class="profile-pfp" id="group-pfp">';
+	if (d.my_role >= 1) {
+		h += '    <div class="profile-pfp-edit-btn" onclick="_change_picture(0, ' + d.group_id + ')"><i class="fa-solid fa-camera"></i></div>';
+	}
+	h += '  </div>';
+
+	h += '  <div class="profile-actions-bar">';
+	if (d.my_status == 1) {
+		if (d.my_role >= 1) {
+			h += '    <button class="btn-primary" onclick="_open_group_settings()"><i class="fa-solid fa-gear"></i> Manage</button>';
+		}
+		h += '    <button class="btn-secondary-outline" onclick="_group_membership(' + d.group_id + ', \'leave\')"><i class="fa-solid fa-right-from-bracket"></i> Leave</button>';
+	} else {
+		var joinText = (d.group_privacy == 2) ? 'Join Community' : 'Request to Join';
+		h += '    <button class="btn-primary" onclick="_group_membership(' + d.group_id + ', \'join\')"><i class="fa-solid fa-plus"></i> ' + joinText + '</button>';
+	}
+	h += '  </div>';
+	h += '</div>';
+
+	// Name & Metadata Section
+	h += '<div class="profile-info-section">';
+	h += '  <div class="profile-names">';
+	h += '    <h1 class="profile-fullname">' + d.group_name + '</h1>';
+
+	// Privacy & Meta Badges
+	var privIcon = (d.group_privacy == 2) ? 'fa-globe' : (d.group_privacy == 1 ? 'fa-lock' : 'fa-eye-slash');
+	var privText = (d.group_privacy == 2) ? 'Public' : (d.group_privacy == 1 ? 'Private' : 'Secret');
+	var privColor = (d.group_privacy == 2) ? '#28a745' : '#ffc107';
+
+	h += '    <div class="profile-bio-meta" style="margin-top:5px;">';
+	h += '      <span style="color:' + privColor + '"><i class="fa-solid ' + privIcon + '"></i> ' + privText + ' Community</span>';
+	h += '      <span><i class="fa-solid fa-users"></i> ' + d.member_count + ' Members</span>';
+	h += '    </div>';
+	h += '  </div>';
+
+	// About Snippet (Optional)
+	if (d.group_about) {
+		h += '  <div class="profile-bio-text" style="max-width:600px; margin:15px 0;">' + d.group_about + '</div>';
+	}
+
+	// Stats Row (Alternative look)
+	h += '  <div class="profile-stat-row" style="border-top: 1px solid var(--color-border); padding-top: 15px;">';
+	h += '    <div class="profile-stat-item">';
+	h += '      <span class="profile-stat-value">' + round_number(d.member_count) + '</span>';
+	h += '      <span class="profile-stat-label">Total Members</span>';
+	h += '    </div>';
+	h += '  </div>';
+
+	h += '</div>'; // End Info Section
+
+	// Navigation Tabs
+	h += '<div class="profile-nav-tabs">';
+	h += '  <div class="profile-tab-item active" onclick="switchGroupTab(\'timeline\', \'?id=' + d.group_id + '\', this)">Timeline</div>';
+	h += '  <div class="profile-tab-item" onclick="switchGroupTab(\'photos\', \'?id=' + d.group_id + '\', this)">Photos</div>';
+	h += '  <div class="profile-tab-item" onclick="switchGroupTab(\'about\', \'?id=' + d.group_id + '\', this)">About</div>';
+	h += '  <div class="profile-tab-item" onclick="switchGroupTab(\'members\', \'?id=' + d.group_id + '\', this)">Members</div>';
+	h += '</div>';
+
+	h += '</div>'; // End Card
+	return h;
+}
+
+function switchGroupTab(tabName, id_a, tabElement) {
+	_activeGroupTab = tabName;
+	if (tabElement) {
+		var tabs = tabElement.parentNode.querySelectorAll('.profile-tab-item');
+		tabs.forEach(t => t.classList.remove('active'));
+		tabElement.classList.add('active');
+	}
+
+	var feed = gebi('feed');
+	if (!feed) return;
+	feed.innerHTML = '';
+
+	if (tabName === 'timeline') {
+		var d = _currentGroupData;
+		// Add Create Post box if member
+		if (d.my_status == 1) {
+			var pfpUrl = lsg('pfp_media_id') > 0 ? pfp_cdn + '&id=' + lsg('pfp_media_id') + "&h=" + lsg('pfp_media_hash') : getDefaultUserImage(lsg('user_gender'));
+			var h = '<div class="createpost_box" style="margin-bottom:20px;">';
+			h += '  <img class="pfp" src="' + pfpUrl + '">';
+			h += '  <div class="input_box" onclick="make_post(' + d.group_id + ')">Write something to this group...</div>';
+			h += '</div>';
+			feed.innerHTML = h;
+		} else if (d.group_privacy < 2) {
+			feed.innerHTML = '<div class="post"><div style="padding:40px; text-align:center; color:var(--color-text-secondary);"><i class="fa-solid fa-lock fa-2x" style="margin-bottom:15px; display:block; opacity:0.5;"></i> This is a private group. Join to see the community posts.</div></div>';
+			return;
+		}
+
+		// Group Feed
+		fetch_post("fetch_group_posts.php" + id_a, false); // false = append/don't reset feed as we just added create box manually
+	} else if (tabName === 'about') {
+		var d = _currentGroupData;
+		var h = '<div class="profile-about-container">';
+
+		// About Section
+		h += '  <div class="about-card">';
+		h += '    <div class="about-card-title"><i class="fa-solid fa-circle-info"></i> About Community</div>';
+		h += '    <div class="about-bio-text">' + (d.group_about || 'No description provided.') + '</div>';
+		h += '  </div>';
+
+		// Metadata Grid
+		h += '  <div class="about-card">';
+		h += '    <div class="about-card-title"><i class="fa-solid fa-database"></i> Community Information</div>';
+		h += '    <div class="about-info-grid">';
+
+		var privText = (d.group_privacy == 2) ? 'Public' : (d.group_privacy == 1 ? 'Closed' : 'Secret');
+		var privIcon = (d.group_privacy == 2) ? 'fa-globe' : 'fa-lock';
+
+		h += _render_about_item(privIcon, 'Privacy', privText);
+		h += _render_about_item('fa-calendar-days', 'Created', timeSince(d.created_time * 1000) + ' ago');
+		h += _render_about_item('fa-users', 'Member Count', d.member_count + ' active members');
+
+		// Rules Section
+		if (d.group_rules) {
+			h += '    </div>'; // Close previous grid
+			h += '  </div>'; // Close previous card
+			h += '  <div class="about-card">';
+			h += '    <div class="about-card-title"><i class="fa-solid fa-scale-balanced"></i> Community Rules</div>';
+			h += '    <div class="about-bio-text" style="white-space: pre-wrap;">' + d.group_rules + '</div>';
+		}
+
+		h += '    </div>';
+		h += '  </div>';
+
+		h += '</div>';
+		feed.innerHTML = h;
+	} else if (tabName === 'photos') {
+		_load_group_photos(id_a);
+	} else if (tabName === 'members') {
+		_load_group_members(id_a);
+	}
+}
+
+function _load_group_photos(id_a) {
+	var feed = gebi('feed');
+	if (!feed) return;
+	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	$.get(backend_url + "fetch_group_photos.php" + id_a, function (data) {
+		if (_activeGroupTab !== 'photos') return;
+
+		if (data.success == 2 || data.success == 3) {
+			if (data.success == 2) feed.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-image fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No community photos yet.</p></div>';
+			return;
+		}
+
+		var h = '<div class="profile-media-grid">';
+		var count = Object.keys(data).length - 1;
+		for (let i = 0; i < count; i++) {
+			var m = data[i];
+			var isVideo = (m.media_format.indexOf('video') !== -1);
+			var mUrl = (isVideo ? video_cdn : media_cdn) + "&id=" + m.media_id + "&h=" + m.media_hash;
+
+			h += '<div class="media-grid-item" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
+			if (isVideo) {
+				h += '<video src="' + mUrl + '"></video>';
+				h += '<div class="media-type-icon"><i class="fa-solid fa-play"></i></div>';
+			} else {
+				h += '<img src="' + mUrl + '">';
+			}
+			if (m.media_count > 1) {
+				h += '<div class="media-count-badge"><i class="fa-solid fa-clone"></i> ' + m.media_count + '</div>';
+			}
+			h += '</div>';
+		}
+		h += '</div>';
+		feed.innerHTML = h;
+	});
+}
+
+function _load_group_members(id_a, query = '') {
+	var feed = gebi('feed');
+	if (!feed) return;
+
+	var mount = gebi('group-member-mount');
+	if (!mount) {
+		feed.innerHTML = `
+			<div class="member-search-container" style="padding: 20px; border-bottom: 1px solid var(--color-border); margin-bottom: 10px;">
+				<div class="search-input-wrapper" style="position: relative;">
+					<i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--color-text-dim);"></i>
+					<input type="text" id="group-member-search-input" class="premium-input-sm" placeholder="Search members..." style="padding-left: 40px; width: 100%; box-sizing: border-box;" 
+						onkeyup="_debounce_group_member_search('${id_a}')">
+				</div>
+			</div>
+			<div id="group-member-mount"></div>
+		`;
+		mount = gebi('group-member-mount');
+	}
+
+	mount.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	var url = backend_url + "fetch_group_members.php" + id_a;
+	if (query !== '') url += "&query=" + encodeURIComponent(query);
+
+	$.get(url, function (data) {
+		if (_activeGroupTab !== 'members') return;
+
+		if (data.length === 0) {
+			mount.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-user-group fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>' + (query === '' ? 'This group has no members yet.' : 'No members found matching your search.') + '</p></div>';
+			return;
+		}
+
+		var h = '<div class="profile-friend-grid">';
+		data.forEach(function (m) {
+			var pUrl = m.pfp_media_hash ? media_cdn + "&id=" + m.pfp_media_id + "&h=" + m.pfp_media_hash : "data/images/U.png";
+			var roleLabel = (m.role == 2) ? 'Admin' : (m.role == 1 ? 'Moderator' : 'Member');
+			var roleClass = (m.role >= 1) ? 'style="color:var(--color-primary); font-weight:bold;"' : '';
+
+			h += '<a href="profile.php?id=' + m.user_id + '" class="friend-card" onclick="route(event, this)">';
+			h += '  <img src="' + pUrl + '" class="friend-card-pfp">';
+			h += '  <div class="friend-card-name">' + m.user_firstname + ' ' + m.user_lastname + (m.verified == 1 ? ' <i class="fa-solid fa-circle-check" style="color:var(--color-primary); font-size:0.8em;"></i>' : '') + '</div>';
+			h += '  <div class="friend-card-username" ' + roleClass + '>' + roleLabel + '</div>';
+			h += '</a>';
+		});
+		h += '</div>';
+		mount.innerHTML = h;
+	});
+}
+
+var _gmSearchTimeout = null;
+function _debounce_group_member_search(id_a) {
+	clearTimeout(_gmSearchTimeout);
+	_gmSearchTimeout = setTimeout(function () {
+		var q = gebi('group-member-search-input').value;
+		_load_group_members(id_a, q);
+	}, 500);
+}
+
+function _group_membership(groupId, action) {
+	if (action === 'join' && _currentGroupData && _currentGroupData.group_rules) {
+		// Show rules modal
+		modal_open('group_rules');
+		var content = gebi("modal_content");
+		var h = '';
+		h += '<div class="upload-modal-container">';
+		h += '<div class="upload-modal-header"><h2>Community Rules</h2><i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i></div>';
+		h += '<div class="upload-modal-body" style="padding:20px;">';
+		h += '<p style="margin-bottom:15px; color:var(--color-text-secondary);">Please read and agree to the rules before joining this group.</p>';
+		h += '<div class="rules-container" style="background:var(--color-background-secondary); padding:15px; border-radius:8px; max-height:300px; overflow-y:auto; margin-bottom:20px; white-space: pre-wrap; font-size:0.95rem;">';
+		h += _currentGroupData.group_rules;
+		h += '</div>';
+		h += '<label class="checkbox-container" style="display:flex; align-items:center; gap:10px; cursor:pointer;">';
+		h += '<input type="checkbox" id="agree_rules_check" onchange="gebi(\'join_btn_rules\').disabled = !this.checked">';
+		h += '<span>I agree to these rules</span>';
+		h += '</label>';
+		h += '</div>';
+		h += '<div class="upload-modal-footer">';
+		h += '<button id="join_btn_rules" class="btn-primary" disabled onclick="_confirm_join_group(' + groupId + ')">Join Group</button>';
+		h += '</div>';
+		h += '</div>';
+		content.innerHTML = h;
+		return;
+	}
+
+	_confirm_join_group(groupId, action);
+}
+
+function _confirm_join_group(groupId, action = 'join') {
+	if (action === 'join' && gebi('agree_rules_check')) {
+		// If coming from rules modal
+		modal_close();
+	}
+
+	$.post(backend_url + "group_membership.php", { id: groupId, action: action }, function (data) {
+		if (data.success == 1) {
+			fetch_group(); // Refresh header
+		} else {
+			_alert_modal(data.message);
+		}
+	});
+}
+
+function _open_group_settings() {
+	var d = _currentGroupData;
+	var groupId = d.group_id;
+	modal_open('group_settings_edit', groupId);
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:600px;">';
+	h += '<div class="upload-modal-header"><h2>Manage Group</h2><i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i></div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">';
+
+	h += '<div class="input-group" style="margin-bottom:15px;">';
+	h += '<label class="input-label">Group Name</label>';
+	h += '<input type="text" id="edit_group_name" class="index_input_box" value="' + d.group_name + '">';
+	h += '</div>';
+
+	h += '<div class="input-group" style="margin-bottom:15px;">';
+	h += '<label class="input-label">About</label>';
+	h += '<textarea id="edit_group_about" class="index_input_box" style="height:100px;">' + (d.group_about || '') + '</textarea>';
+	h += '</div>';
+
+	h += '<div class="input-group" style="margin-bottom:15px;">';
+	h += '<label class="input-label">Privacy</label>';
+	h += '<select id="edit_group_privacy" class="index_input_box" style="width:100%;">';
+	h += '<option value="2" ' + (d.group_privacy == 2 ? 'selected' : '') + '>Public - visible to everyone</option>';
+	h += '<option value="1" ' + (d.group_privacy == 1 ? 'selected' : '') + '>Closed - only members can see posts</option>';
+	h += '<option value="0" ' + (d.group_privacy == 0 ? 'selected' : '') + '>Secret - hidden from search</option>';
+	h += '</select>';
+	h += '</div>';
+
+	h += '<div class="input-group" style="margin-bottom:15px;">';
+	h += '<label class="input-label">Community Rules</label>';
+	h += '<textarea id="edit_group_rules" class="index_input_box" style="height:150px;" placeholder="Set rules for your community...">' + (d.group_rules || '') + '</textarea>';
+	h += '</div>';
+
+	h += '<div class="input-group" style="margin-bottom:15px; border-top: 1px solid var(--color-border); padding-top: 15px;">';
+	h += '<h3 style="color:var(--color-danger); margin-bottom:10px;">Danger Zone</h3>';
+	h += '<p style="color:var(--color-text-secondary); margin-bottom:10px; font-size:0.9rem;">Once you delete a group, there is no going back. Please be certain.</p>';
+	h += '<button class="btn-danger-outline" onclick="_delete_group_modal(' + groupId + ')">Delete this group</button>';
+	h += '</div>';
+
+	h += '</div>';
+	h += '<div class="upload-modal-footer">';
+	h += '<button class="btn-primary" onclick="_submit_group_settings(' + groupId + ')">Save Changes</button>';
+	h += '</div>';
+	h += '</div>';
+	content.innerHTML = h;
+}
+
+function _delete_group_modal(groupId) {
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:450px;">';
+	h += '<div class="upload-modal-header" style="justify-content:center;"><h2>Delete Group?</h2></div>';
+	h += '<div class="upload-modal-body" style="padding:20px; text-align:center;">';
+	h += '<p style="margin-bottom:20px; color:var(--color-text-secondary);">This action cannot be undone. All posts and member data will be removed.</p>';
+
+	h += '<div class="input-group" style="margin-bottom:15px; text-align:left;">';
+	h += '<label class="input-label">Enter Password</label>';
+	h += '<input type="password" id="del_group_password" class="index_input_box" placeholder="Your password">';
+	h += '</div>';
+
+	h += '<div id="del_group_2fa_container" style="display:none; text-align:left; margin-bottom:15px;">';
+	h += '<label class="input-label">2FA Code</label>';
+	h += '<input type="text" id="del_group_2fa_code" class="index_input_box" placeholder="Enter 6-digit code">';
+	h += '</div>';
+
+	h += '</div>';
+	h += '<div class="upload-modal-footer" style="justify-content:center;">';
+	h += '<button class="btn-secondary-outline" onclick="modal_close()">Cancel</button>';
+	h += '<button class="btn-danger" id="btn_confirm_del_group" onclick="_delete_group(' + groupId + ')">Confirm Delete</button>';
+	h += '</div></div>';
+
+	content.innerHTML = h;
+	// Do not use modal_open here, because we might be switching from another modal. 
+	// We are replacing content. But if called from button, the modal is already open (Settings).
+	// Actually we should probably just replace content.
+	// But `modal_open` sets display:flex.
+	gebi("modal").style.display = "flex";
+}
+
+function _delete_group(groupId) {
+	var pass = gebi('del_group_password').value;
+	var code = gebi('del_group_2fa_code').value;
+
+	if (pass === '') {
+		alert("Password is required.");
+		return;
+	}
+
+	var btn = gebi('btn_confirm_del_group');
+	btn.disabled = true;
+	btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+
+	$.post(backend_url + "delete_group.php", { id: groupId, password: encryptPassword(pass), code: code }, function (data) {
+		btn.disabled = false;
+		btn.innerHTML = 'Confirm Delete';
+
+		if (data.success == 1) {
+			window.location.href = "home.php";
+		} else {
+			if (data.err === '2fa_required') {
+				gebi('del_group_2fa_container').style.display = 'block';
+				alert("2FA Verification Required. Please enter your code.");
+				gebi('del_group_2fa_code').focus();
+			} else {
+				alert("Error: " + data.err);
+			}
+		}
+	});
+}
+
+function _submit_group_settings(groupId) {
+	var name = gebi('edit_group_name').value;
+	var about = gebi('edit_group_about').value;
+	var privacy = gebi('edit_group_privacy').value;
+	var rules = gebi('edit_group_rules').value;
+
+	$.post(backend_url + "update_group.php", {
+		id: groupId,
+		name: name,
+		about: about,
+		privacy: privacy,
+		rules: rules
+	}, function (r) {
+		if (r.success === 1) {
+			modal_close();
+			fetch_group(); // Refresh to show new info
+		} else {
+			_alert_modal(r.message || "Failed to update group.");
+		}
+	});
+}
+
+function _create_group() {
+	var name = gebi('group_create_name').value;
+	var about = gebi('group_create_about').value;
+	var privacy = gebi('group_create_privacy').value;
+
+	if (!name) {
+		alert("Please enter a group name");
+		return;
+	}
+
+	$.post(backend_url + "create_group.php", { name: name, about: about, privacy: privacy }, function (data) {
+		if (data.success == 1) {
+			modal_close();
+			window.location.href = 'group.php?id=' + data.group_id;
+		} else {
+			alert(data.message);
+		}
+	});
+}
+
+function _load_groups_discovery() {
+	var mount = gebi('groups-discovery-mount');
+	if (!mount) return;
+
+	$.get(backend_url + "fetch_groups.php", function (data) {
+		if (data.length === 0) {
+			mount.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-users fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No communities found. Why not create one?</p></div>';
+			return;
+		}
+
+		var h = '<div class="groups-discovery-grid">';
+		data.forEach(function (g) {
+			var coverUrl = g.cover_media_hash ? media_cdn + "&id=" + g.cover_media_id + "&h=" + g.cover_media_hash : "data/images/default_cover.png";
+			var pfpUrl = g.pfp_media_hash ? media_cdn + "&id=" + g.pfp_media_id + "&h=" + g.pfp_media_hash : "data/images/default_group.png";
+
+			h += '<a href="group.php?id=' + g.group_id + '" class="group-discovery-card premium-hover-card" onclick="route(event, this)">';
+			h += '  <div class="group-discovery-cover" style="background-image: url(' + coverUrl + ');">';
+
+			// Membership Status Badge
+			if (g.my_status == 1) {
+				h += '    <div class="group-status-badge joined"><i class="fa-solid fa-check-circle"></i> Joined</div>';
+			} else if (g.my_status == 0) {
+				h += '    <div class="group-status-badge pending"><i class="fa-regular fa-clock"></i> Pending</div>';
+			}
+
+			h += '  </div>';
+			h += '  <div class="group-discovery-info">';
+			h += '    <img src="' + pfpUrl + '" class="group-discovery-pfp">';
+			h += '    <div class="group-discovery-name">' + g.group_name + '</div>';
+			h += '    <div class="group-discovery-about">' + (g.group_about || 'No description.') + '</div>';
+			h += '    <div class="group-discovery-meta">';
+			h += '      <span class="meta-item"><i class="fa-solid fa-user-group"></i> ' + g.member_count + ' Members</span>';
+
+			var privIcon = (g.group_privacy == 2) ? 'fa-globe' : 'fa-lock';
+			var privText = (g.group_privacy == 2) ? 'Public' : 'Private';
+			h += '      <span class="meta-item"><i class="fa-solid ' + privIcon + '"></i> ' + privText + '</span>';
+
+			h += '    </div>';
+			h += '  </div>';
+			h += '</a>';
+		});
+		h += '</div>';
+		mount.innerHTML = h;
+	});
+}
+
+function _openPostMediaLightbox(postId) {
+	var feed = gebi('feed');
+	// Initial skeleton
+	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	$.get(backend_url + "fetch_profile_photos.php" + (id_a || ''), function (data) {
+		if (data.success === 1 || data.success === 3) {
+
+			var keys = Object.keys(data).filter(k => !isNaN(k));
+
+			if (keys.length === 0) {
+				feed.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-images fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No photos yet.</p></div>';
+				return;
+			}
+
+			// Store data for lightbox navigation
+			_photoLightboxData = keys.map(k => data[k]);
+
+			var html = '<div class="profile-media-grid">';
+			keys.forEach(function (key, index) {
+				var m = data[key];
+				var cdn = m.is_video ? video_cdn : media_cdn;
+				var src = cdn + '&id=' + m.media_id + '&h=' + m.media_hash;
+
+				html += '<div class="media-grid-item" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
+
+				if (m.is_video) {
+					html += '<video src="' + src + '#t=0.5" preload="metadata" muted></video>';
+					html += '<div class="media-type-icon"><i class="fa-solid fa-play"></i></div>';
+				} else {
+					html += '<img src="' + src + '" loading="lazy">';
+				}
+
+				// Show count badge if multiple media in post
+				if (m.media_count > 1) {
+					html += '<div class="media-count-badge"><i class="fa-solid fa-images"></i> ' + m.media_count + '</div>';
+				}
+
+				html += '</div>';
+			});
+			html += '</div>';
+			feed.innerHTML = html;
+		} else {
+			feed.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);">Failed to load photos.</div>';
+		}
+	});
+}
+
+// Opens lightbox with all media from a specific post
+function _openPostMediaLightbox(postId) {
+	_photoLightboxPostId = postId;
+	_photoLightboxIndex = 0;
+
+	// Create lightbox element if it doesn't exist
+	var lightbox = gebi('photo-lightbox');
+	if (!lightbox) {
+		lightbox = document.createElement('div');
+		lightbox.id = 'photo-lightbox';
+		lightbox.className = 'photo-lightbox';
+		lightbox.innerHTML = `
+			<div class="lightbox-close" onclick="_closePhotoLightbox()"><i class="fa-solid fa-xmark"></i></div>
+			<div class="lightbox-counter" id="lightbox-counter"></div>
+			<div class="lightbox-nav prev" onclick="_navigateLightbox(-1)"><i class="fa-solid fa-chevron-left"></i></div>
+			<div class="lightbox-content" id="lightbox-content"><div style="color:white;"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i></div></div>
+			<div class="lightbox-nav next" onclick="_navigateLightbox(1)"><i class="fa-solid fa-chevron-right"></i></div>
+			<div class="lightbox-actions">
+				<button onclick="_goToPostFromLightbox()"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Post</button>
+			</div>
+		`;
+		document.body.appendChild(lightbox);
+
+		// Click outside to close
+		lightbox.addEventListener('click', function (e) {
+			if (e.target === lightbox) _closePhotoLightbox();
+		});
+	}
+
+	// Show lightbox with loading state
+	gebi('lightbox-content').innerHTML = '<div style="color:white;"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i></div>';
+	gebi('lightbox-counter').textContent = '';
+	lightbox.classList.add('active');
+	document.body.style.overflow = 'hidden';
+	document.addEventListener('keydown', _lightboxKeyHandler);
+
+	// Fetch all media for this post
+	$.get(backend_url + "fetch_post_media.php?id=" + postId, function (data) {
+		if (data.success === 1 && data.media && data.media.length > 0) {
+			_photoLightboxData = data.media.map(function (m) {
+				return {
+					media_id: m.media_id,
+					media_hash: m.media_hash,
+					media_format: m.media_format,
+					is_video: m.media_format.startsWith('video'),
+					post_id: postId
+				};
+			});
+			_updateLightboxContent();
+		} else {
+			gebi('lightbox-content').innerHTML = '<div style="color:white;">No media found</div>';
+		}
+	});
+}
+
+function _updateLightboxContent() {
+	var m = _photoLightboxData[_photoLightboxIndex];
+	if (!m) return;
+
+	var cdn = m.is_video ? video_cdn : media_cdn;
+	var src = cdn + '&id=' + m.media_id + '&h=' + m.media_hash;
+	var content = gebi('lightbox-content');
+	var counter = gebi('lightbox-counter');
+
+	if (m.is_video) {
+		// Use custom video player
+		content.innerHTML = '<div class="custom-video-container lightbox-video"><video src="' + src + '" preload="metadata"></video></div>';
+		// Initialize the custom video player
+		var videoContainer = content.querySelector('.custom-video-container');
+		if (videoContainer && typeof initVideoPlayer === 'function') {
+			initVideoPlayer(videoContainer);
+		}
+	} else {
+		content.innerHTML = '<img src="' + src + '">';
+	}
+
+	counter.textContent = (_photoLightboxIndex + 1) + ' / ' + _photoLightboxData.length;
+
+	// Update nav visibility
+	var prevNav = document.querySelector('.lightbox-nav.prev');
+	var nextNav = document.querySelector('.lightbox-nav.next');
+	if (prevNav) prevNav.style.opacity = _photoLightboxIndex > 0 ? '' : '0.3';
+	if (nextNav) nextNav.style.opacity = _photoLightboxIndex < _photoLightboxData.length - 1 ? '' : '0.3';
+}
+
+function _navigateLightbox(direction) {
+	var newIndex = _photoLightboxIndex + direction;
+	if (newIndex >= 0 && newIndex < _photoLightboxData.length) {
+		_photoLightboxIndex = newIndex;
+		_updateLightboxContent();
+	}
+}
+
+function _closePhotoLightbox() {
+	var lightbox = gebi('photo-lightbox');
+	if (lightbox) {
+		lightbox.classList.remove('active');
+		// Stop any playing video
+		var video = lightbox.querySelector('video');
+		if (video) video.pause();
+	}
+	document.body.style.overflow = '';
+	document.removeEventListener('keydown', _lightboxKeyHandler);
+}
+
+function _goToPostFromLightbox() {
+	if (_photoLightboxPostId) {
+		_closePhotoLightbox();
+		modal_open('view_post', _photoLightboxPostId);
+	}
+}
+
+function _lightboxKeyHandler(e) {
+	switch (e.key) {
+		case 'Escape':
+			_closePhotoLightbox();
+			break;
+		case 'ArrowLeft':
+			_navigateLightbox(-1);
+			break;
+		case 'ArrowRight':
+			_navigateLightbox(1);
+			break;
+	}
+}
+
+
+function _load_profile_friends(id_a) {
+	var feed = gebi('feed');
+	// Initial skeleton or loading state
+	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
+
+	$.get(backend_url + "fetch_friend_list.php" + (id_a || ''), function (data) {
+		if (data.success === 1 || data.success === 3) {
+
+			// Check if list is empty (object keys length check minus success key)
+			// The PHP returns numeric keys 0..N and 'success'.
+			var keys = Object.keys(data).filter(k => !isNaN(k));
+
+			if (keys.length === 0) {
+				feed.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-user-group fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No friends to show yet.</p></div>';
+				return;
+			}
+
+			var html = '<div class="profile-friend-grid">';
+			keys.forEach(function (key) {
+				var u = data[key];
+				// PFP Logic
+				var pfp = (u['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + u['pfp_media_id'] + "&h=" + u['pfp_media_hash'] : getDefaultUserImage(u['user_gender']);
+
+				html += '<a href="profile.php?id=' + u['user_id'] + '" class="friend-card">';
+				html += '<img class="friend-card-pfp" src="' + pfp + '">';
+				html += '<div class="friend-card-name">';
+				html += u['user_firstname'] + ' ' + u['user_lastname'];
+				if (u['verified'] > 0)
+					html += ' <i class="fa-solid fa-badge-check verified_color_' + u['verified'] + '" style="font-size:0.9em;"></i>';
+				html += '</div>';
+				html += '<div class="friend-card-username">@' + u['user_nickname'] + '</div>';
+				html += '</a>';
+			});
+			html += '</div>';
+			feed.innerHTML = html;
+		} else {
+			feed.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);">Failed to load friends.</div>';
+		}
+	});
 }
 function _load_post(post_id = null) {
 	id = (post_id != null) ? post_id : get('id');
 	$.get(backend_url + "fetch_post_info.php?id=" + id, function (data) {
-		if (data['success'] == 2)
-			return;
+		if (data['success'] == 2) return;
+
 		_content_left = gebi("_content_left");
 		_content_right = gebi("_content_right");
-		a = '';
-		a += '<div class="rcf_box"></div>';
-		a += '<div class="header" style="margin: 15px">';
-		if (_content_left) _content_left.style.height = ($(window).height() - 45) + "px";
-		if (_content_right) _content_right.style.height = ($(window).height() - 45) + "px";
 
-		if (data['post_media_list'] || data['post_media'] != 0 || data['is_share'] > 0) {
-			if (_content_left) {
-				if (data['is_share'] > 0) {
-					var mediaList = data['share']['post_media_list'] ? data['share']['post_media_list'] : (data['share']['post_media'] != 0 ? data['share']['post_media'] + ":" + data['share']['media_hash'] + ":" + data['share']['media_format'] : null);
-					if (mediaList) {
-						var items = mediaList.split(',').map(p => {
-							var d = p.split(':');
-							return { id: d[0], hash: d[1], format: d[2] };
-						});
-						var h = '<div id="post-media-viewer" style="position:relative; height:100%;">';
-						if (items.length > 1) {
-							h += '<div class="view-toggle-bar" style="position:absolute; top:10px; right:10px; z-index:100; display:flex; gap:10px;">';
-							h += '<button class="view-toggle-btn active" onclick="togglePostView(\'carousel\')" title="Carousel View"><i class="fa-solid fa-images"></i></button>';
-							h += '<button class="view-toggle-btn" onclick="togglePostView(\'grid\')" title="Grid View"><i class="fa-solid fa-grid-2"></i></button>';
-							h += '</div>';
-						}
-						h += '<div id="carousel-view-container" style="height:100%;">' + renderMedia(mediaList) + '</div>';
-						if (items.length > 1) {
-							h += '<div id="grid-view-container" style="display:none; height:100%; overflow-y:auto; padding:20px; background:var(--color-surface);">';
-							h += '<div class="media-detail-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:15px;">';
-							items.forEach((s, idx) => {
-								var url = media_cdn + '&id=' + s.id + '&h=' + s.hash;
-								var isVideo = s.format.startsWith('video');
-								h += '<div class="grid-item" style="aspect-ratio:1; cursor:pointer; overflow:hidden; border-radius:8px; background:#000;" onclick="viewFullImage(' + JSON.stringify(items).replace(/"/g, '&quot;') + ', ' + idx + ')">';
-								if (isVideo) {
-									h += '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:white;"><i class="fa-solid fa-play fa-2x"></i></div>';
-								} else {
-									h += '<img src="' + url + '" style="width:100%; height:100%; object-fit:cover;">';
-								}
-								h += '</div>';
-							});
-							h += '</div></div>';
-						}
-						h += '</div>';
-						_content_left.innerHTML = h;
-					} else {
-						_content_left.style.display = 'none';
-					}
-				} else {
-					if (data['post_media_list']) {
-						var items = data['post_media_list'].split(',').map(p => {
-							var d = p.split(':');
-							return { id: d[0], hash: d[1], format: d[2] };
-						});
-						var h = '<div id="post-media-viewer" style="position:relative; height:100%;">';
-						if (items.length > 1) {
-							h += '<div class="view-toggle-bar" style="position:absolute; top:10px; right:10px; z-index:100; display:flex; gap:10px;">';
-							h += '<button class="view-toggle-btn active" onclick="togglePostView(\'carousel\')" title="Carousel View"><i class="fa-solid fa-images"></i></button>';
-							h += '<button class="view-toggle-btn" onclick="togglePostView(\'grid\')" title="Grid View"><i class="fa-solid fa-grid-2"></i></button>';
-							h += '</div>';
-						}
-						h += '<div id="carousel-view-container" style="height:100%;">' + renderMedia(data['post_media_list']) + '</div>';
-						if (items.length > 1) {
-							h += '<div id="grid-view-container" style="display:none; height:100%; overflow-y:auto; padding:20px; background:var(--color-surface);">';
-							h += '<div class="media-detail-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:15px;">';
-							items.forEach((s, idx) => {
-								var url = media_cdn + '&id=' + s.id + '&h=' + s.hash;
-								var isVideo = s.format.startsWith('video');
-								h += '<div class="grid-item" style="aspect-ratio:1; cursor:pointer; overflow:hidden; border-radius:8px; background:#000;" onclick="viewFullImage(' + JSON.stringify(items).replace(/"/g, '&quot;') + ', ' + idx + ')">';
-								if (isVideo) {
-									h += '<div style="height:100%; display:flex; align-items:center; justify-content:center; color:white;"><i class="fa-solid fa-play fa-2x"></i></div>';
-								} else {
-									h += '<img src="' + url + '" style="width:100%; height:100%; object-fit:cover;">';
-								}
-								h += '</div>';
-							});
-							h += '</div></div>';
-						}
-						h += '</div>';
-						_content_left.innerHTML = h;
-					} else if (data['post_media'] != 0) {
-						_content_left.innerHTML = renderMedia(data['post_media'] + ":" + data['media_hash'] + ":" + data['media_format']);
-					}
-				}
-			}
-			if (data['is_share'] > 0) {
-				a += '<a style="text-align: center; display:block; margin-bottom:10px;" href="post.php?id=' + data['is_share'] + '">View original post</a>';
-				a += '<hr>';
-			}
-		} else {
-			if (_content_left) _content_left.style.display = 'none';
-			if (_content_right) {
-				_content_right.style.float = 'unset';
-				_content_right.style.right = 'unset';
-				_content_right.style.width = '80%';
-				_content_right.style.margin = 'auto';
-				_content_right.style.position = 'relative';
-			}
-			a += '<style>.caption_box{overflow-y: auto;}.caption_box_shadow{margin-top:540px;width:99%;}.comment-form{width: calc(80% - 10px);}</style>';
+		// Reset containers if they exist (for direct post.php view)
+		if (_content_left) _content_left.innerHTML = '';
+		if (_content_right) _content_right.innerHTML = '';
+
+		// Construct the new premium layout
+		var isModal = gebi('modal').style.display === 'flex';
+		var containerHtml = '<div class="post-view-modal">';
+
+		// LEFT COLUMN (Media)
+		containerHtml += '<div class="post-view-left" id="post-view-left-content">';
+		if (isModal) {
+			containerHtml += '<div class="post-view-close" onclick="modal_close()"><i class="fa-solid fa-xmark"></i></div>';
 		}
-		a += '<img class="pfp" src="';
-		a += (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
-		a += '" width="40px" height="40px">';
+		containerHtml += '</div>';
 
-		a += '<div class="header-info">';
-		a += '  <div class="user_name">';
-		a += '    <a class="profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'] + '</a>';
-		if (data['verified'] > 0)
-			a += '    <i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
-		a += '  </div>';
+		// RIGHT COLUMN (Info, Caption, Comments)
+		containerHtml += '<div class="post-view-right">';
 
-		a += '  <div class="postedtime">';
-		a += '    <span class="nickname">@' + data['user_nickname'] + '</span>';
-		a += '    • ';
-		a += '    <span title="' + timeConverter(data['post_time'] * 1000) + '">' + timeSince(data['post_time'] * 1000) + '</span>';
-		a += '    • ';
-		switch (Number(data['post_public'])) {
-			case 2:
-				a += '    <i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>';
-				break;
-			case 1:
-				a += '    <i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>';
-				break;
-			default:
-				a += '    <i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>';
-				break;
-		}
-		a += '  </div>';
-		a += '</div>'; // End header-info
-		a += '</div>'; // End header
+		// Header
+		containerHtml += '<div class="post-view-header">';
+		var pfpUrl = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		containerHtml += '  <img class="comment-pfp" src="' + pfpUrl + '">';
+		containerHtml += '  <div style="flex:1;">';
+		containerHtml += '    <div style="font-weight:700; font-size:1.05rem;"><a class="profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'] + '</a></div>';
+		containerHtml += '    <div style="font-size:0.85rem; color:var(--color-text-dim);">@' + data['user_nickname'] + ' • ' + timeSince(data['post_time'] * 1000) + '</div>';
+		containerHtml += '  </div>';
 
-		// INTERACTION BAR
-		a += '<div class="post-detail-interaction-bar">';
-		liked = (data['is_liked'] == 1) ? 'p-heart fa-solid' : 'white-col fa-regular';
-		a += '  <div class="interaction-item" onclick="_like(' + data['post_id'] + ')">';
-		a += '    <i class="' + liked + ' fa-heart" id="post-like-' + data['post_id'] + '"></i>';
-		a += '    <span class="interaction-label">Like</span>';
-		a += '    <span class="interaction-count" id="post-like-count-' + data['post_id'] + '">' + data['total_like'] + '</span>';
-		a += '  </div>';
-
-		a += '  <div class="interaction-item" onclick="gebi(\'comment-form-text\').focus()">';
-		a += '    <i class="fa-regular fa-comment"></i>';
-		a += '    <span class="interaction-label">Comment</span>';
-		a += '    <span class="interaction-count" id="post-comment-count-' + data['post_id'] + '">' + data['total_comment'] + '</span>';
-		a += '  </div>';
-
-		a += '  <div class="interaction-item" onclick="_share(' + data['post_id'] + ')">';
-		a += '    <i class="fa-regular fa-share"></i>';
-		a += '    <span class="interaction-label">Share</span>';
-		a += '    <span class="interaction-count" id="post-share-count-' + data['post_id'] + '">' + data['total_share'] + '</span>';
-		a += '  </div>';
-
+		// Options Menus
 		var postUrl = window.location.origin + '/post.php?id=' + data['post_id'];
-		a += '  <div class="interaction-item" id="copy-btn-detail-' + data['post_id'] + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-detail-' + data['post_id'] + '\')">';
-		a += '    <i class="fa-regular fa-link"></i>';
-		a += '    <span class="interaction-label">Copy Link</span>';
-		a += '  </div>';
-		a += '</div>';
+		containerHtml += '  <div class="post-options-container">';
+		containerHtml += '    <div class="post-options-btn" onclick="togglePostOptions(' + data['post_id'] + ')"><i class="fa-solid fa-ellipsis"></i></div>';
+		containerHtml += '    <div class="post-options-menu" id="post-options-menu-' + data['post_id'] + '">';
+		containerHtml += '      <div class="post-options-item" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-detail-' + data['post_id'] + '\'); togglePostOptions(' + data['post_id'] + ')">';
+		containerHtml += '        <i class="fa-regular fa-link"></i><span>Copy Link</span><span id="copy-btn-detail-' + data['post_id'] + '" style="display:none"></span>';
+		containerHtml += '      </div>';
+		if (data['is_mine'] == 1) {
+			containerHtml += '      <div class="post-options-item" onclick="_open_edit_post(' + data['post_id'] + ')"><i class="fa-regular fa-pen-to-square"></i><span>Edit Post</span></div>';
+			containerHtml += '      <div class="post-options-item" style="color:#ff4d4d;" onclick="_delete_post(' + data['post_id'] + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
+		}
+		containerHtml += '    </div>';
+		containerHtml += '  </div>';
+		containerHtml += '</div>';
 
-		a += '<br>';
-		if (data['post_caption'].split(/\r\n|\r|\n/).length > 13 || data['post_caption'].length > 1196) {
-			a += '<div class="caption_box" id="caption_box-' + data['post_id'] + '">';
-			a += '<div class="caption_box_shadow" id="caption_box_shadow-' + data['post_id'] + '"><p onclick="showMore(\'' + data['post_id'] + '\')">' + window["lang__014"] + '</p></div>';
+		// Content (Caption + Interaction + Comments)
+		containerHtml += '<div class="post-view-content">';
+		if (data['post_caption']) {
+			containerHtml += '<div class="post-view-caption">' + data['post_caption'] + '</div>';
+		}
+
+		// Interaction Bar
+		var liked = (data['is_liked'] == 1) ? 'p-heart fa-solid' : 'white-col fa-regular';
+		containerHtml += '<div class="post-detail-interaction-bar">';
+		containerHtml += '  <div class="interaction-item" onclick="_like(' + data['post_id'] + ')"><i class="' + liked + ' fa-heart"></i><span>' + round_number(data['total_like']) + '</span></div>';
+		containerHtml += '  <div class="interaction-item"><i class="fa-regular fa-comment"></i><span>' + round_number(data['total_comment']) + '</span></div>';
+		containerHtml += '  <div class="interaction-item" onclick="modal_open(\'share\', ' + data['post_id'] + ')"><i class="fa-regular fa-share-nodes"></i><span>' + round_number(data['total_share']) + '</span></div>';
+		containerHtml += '</div>';
+
+
+		// Comment Box
+		containerHtml += '<div class="comment-box" id="comment-box">';
+		containerHtml += '<div id="comment-list"></div>';
+		containerHtml += '<div id="load-more-comments-container" style="display:none; text-align:center; padding:10px;">';
+		containerHtml += '<button class="load-more-btn" onclick="loadComments(' + data['post_id'] + ', -1, false)">Load more comments</button>';
+		containerHtml += '</div>'; // End load more container
+		containerHtml += '</div>';
+		containerHtml += '</div>'; // End content
+
+		// Comment Form (Fixed at bottom)
+		containerHtml += '<div class="comment-form">';
+		containerHtml += '  <div class="comment-form-text" id="comment-text-' + data['post_id'] + '" contenteditable="true" placeholder="Write a comment..."></div>';
+		containerHtml += '  <div class="send-btn" onclick="_send_comment(' + data['post_id'] + ')"><i class="fa-solid fa-paper-plane"></i></div>';
+		containerHtml += '</div>';
+
+		containerHtml += '</div>'; // End right column
+		containerHtml += '</div>'; // End main container
+
+		// Integration for post.php or Modal
+		if (isModal) {
+			// Modal view
+			gebi("modal_content").innerHTML = containerHtml;
+			var mc = gebi("post-view-left-content");
+			_render_media_into_container(data, mc);
 		} else {
-			a += '<div class="caption_box">';
-		}
-		a += '<pre class="caption">' + data['post_caption'] + '</pre></div>';
-
-		a += '<hr />';
-		a += '<div class="comment-box" id="comment-box">';
-		a += '  <div id="comment-list"></div>';
-		a += '  <div id="load-more-comments-container" style="text-align:center; padding: 15px; display:none;">';
-		a += '    <button class="load-more-btn" id="load-more-comments-btn">Load More Comments</button>';
-		a += '  </div>';
-		a += '</div>';
-		a += '<div class="comment-form">';
-		a += '<textarea class="comment-form-text" placeholder="Comment something..." id="comment-form-text"></textarea>';
-		a += '<div class="send-btn" onclick="send_comment()"><i class="fa-solid fa-paper-plane-top"></i></div>';
-		a += '</div>';
-
-		_content_right.innerHTML = a;
-		_load_comment(data['post_id'], 0);
-
-		// Pagination Button Listener
-		$(document).off('click', '#load-more-comments-btn').on('click', '#load-more-comments-btn', function () {
-			var pageInput = gebi('page');
-			if (pageInput && pageInput.value != -1) {
-				var nextPage = Number(pageInput.value) + 1;
-				_load_comment(data['post_id'], nextPage);
+			// post.php view
+			var mount = gebi('image_content');
+			if (mount) {
+				mount.innerHTML = containerHtml;
+				_content_left = gebi("post-view-left-content");
+				// Logic to handle media in left col
+				_render_media_into_container(data, _content_left);
 			}
-		});
-
-		if (isMobile()) {
-			_content_right.style.float = 'unset';
-			_content_right.style.right = 'unset';
-			_content_left.style.width = '100%';
-			_content_right.style.width = '100%';
-			_content_right.style.borderLeft = 'none';
-			_content_right.style.borderRight = 'none';
-			_content_right.style.margin = 'auto';
-			_content_right.style.position = 'relative';
-			gebcn('comment-form')[0].style.width = "100%";
 		}
-		$("textarea").each(function () {
-			this.style.height = 0;
-			this.style.height = (this.scrollHeight) + "px";
-			this.style.overflowY = 'hidden';
-		}).on("input", function () {
-			this.style.height = 0;
-			if (this.scrollHeight < 300) {
-				this.style.height = (this.scrollHeight) + "px";
-				this.style.overflowY = 'hidden';
-			} else {
-				this.style.height = "300px";
-				this.style.overflowY = 'auto';
-			}
-		});
-		HighLightHLJS();
+
+		loadComments(data['post_id'], 0, true);
 		changeUrlWork();
 	});
 }
 
-function togglePostView(view) {
-	var cv = gebi('carousel-view-container');
-	var gv = gebi('grid-view-container');
-	var btns = gebcn('view-toggle-btn');
+function focusCommentInput(postId) {
+	const input = gebi('comment-text-' + postId);
+	if (input) {
+		input.focus();
+		// Place cursor at end if there's already text (though usually empty here)
+		const range = document.createRange();
+		const sel = window.getSelection();
+		range.selectNodeContents(input);
+		range.collapse(false);
+		sel.removeAllRanges();
+		sel.addRange(range);
+	}
+}
+function _render_media_into_container(data, container) {
+	if (!container) return;
+	var mediaList = (data['is_share'] > 0) ?
+		(data['share']['post_media_list'] ? data['share']['post_media_list'] : (data['share']['post_media'] != 0 ? data['share']['post_media'] + ":" + data['share']['media_hash'] + ":" + data['share']['media_format'] : null)) :
+		(data['post_media_list'] ? data['post_media_list'] : (data['post_media'] != 0 ? data['post_media'] + ":" + data['media_hash'] + ":" + data['media_format'] : null));
+
+	if (mediaList) {
+		// Check item count
+		var items = [];
+		var p = mediaList.split(',');
+		p.forEach(function (x) {
+			var d = x.split(':');
+			if (d.length >= 3) items.push({
+				id: d[0],
+				hash: d[1],
+				format: d[2]
+			});
+		});
+
+		// Determine Post ID for scoping (kept for IDs but logic will use DOM)
+		var postId = data['post_id'];
+
+		if (items.length > 1) {
+			// Multi-media: Show View Toggles
+			var html = '';
+			html += '<div class="post-media-container">';
+
+			// Toggles
+			html += '<div class="view-toggle-container">';
+			html += '<button class="view-toggle-btn active" onclick="togglePostView(\'carousel\', this)" title="Carousel View"><i class="fa-regular fa-images"></i></button>';
+			html += '<button class="view-toggle-btn" onclick="togglePostView(\'grid\', this)" title="Grid View"><i class="fa-regular fa-grid"></i></button>';
+			html += '</div>';
+
+			// Carousel View (Default)
+			html += '<div class="post-media-carousel-view js-carousel-container">';
+			html += renderMedia(mediaList);
+			html += '</div>';
+
+			// Grid View
+			html += '<div class="post-media-grid-view js-grid-container view-hidden">';
+			var itemsJson = JSON.stringify(items).replace(/"/g, '&quot;');
+			items.forEach(function (s, idx) {
+				let url = s.format.startsWith('video') ?
+					video_cdn + '&id=' + s.id + '&h=' + s.hash :
+					media_cdn + '&id=' + s.id + '&h=' + s.hash;
+
+				var content = '';
+				if (s.format.startsWith('video')) {
+					content = '<div class="grid-media-item">';
+					content += '<video src="' + url + '" onclick="viewFullImage(' + itemsJson + ', ' + idx + ')"></video>';
+					content += '</div>';
+				} else {
+					content = '<div class="grid-media-item">';
+					content += '<img src="' + url + '" onclick="viewFullImage(' + itemsJson + ', ' + idx + ')">';
+					content += '</div>';
+				}
+				html += content;
+			});
+			html += '</div>'; // End grid view
+
+			html += '</div>'; // End main container
+
+			container.innerHTML = html;
+		} else {
+			// Single item or empty
+			container.innerHTML = renderMedia(mediaList);
+		}
+	} else {
+		container.style.display = 'none';
+	}
+}
+
+
+// End of premium detail view logic
+
+function togglePostView(view, btnElement) {
+	// Traverse DOM to identify the container
+	// Button is inside .view-toggle-container, which is inside .post-media-container
+	var toggleContainer = btnElement.parentElement;
+	var wrapper = toggleContainer.parentElement;
+
+	if (!wrapper || !wrapper.classList.contains('post-media-container')) return;
+
+	var cv = wrapper.querySelector('.js-carousel-container');
+	var gv = wrapper.querySelector('.js-grid-container');
+	var btns = toggleContainer.querySelectorAll('.view-toggle-btn');
 
 	if (view === 'carousel') {
-		if (cv) cv.style.display = 'block';
-		if (gv) gv.style.display = 'none';
-		if (btns.length > 0) btns[0].classList.add('active');
-		if (btns.length > 1) btns[1].classList.remove('active');
+		cv.classList.remove('view-hidden');
+		gv.classList.add('view-hidden');
+
+		btns.forEach(b => {
+			if (b.title === "Carousel View") b.classList.add('active');
+			else b.classList.remove('active');
+		});
 	} else {
-		if (cv) cv.style.display = 'none';
-		if (gv) gv.style.display = 'block';
-		if (btns.length > 0) btns[0].classList.remove('active');
-		if (btns.length > 1) btns[1].classList.add('active');
+		cv.classList.add('view-hidden');
+		gv.classList.remove('view-hidden');
+
+		btns.forEach(b => {
+			if (b.title === "Grid View") b.classList.add('active');
+			else b.classList.remove('active');
+		});
 	}
 }
 function _friend_request_toggle(id, accept) {
@@ -1698,6 +2802,8 @@ function send_comment() {
 		}
 	});
 }
+
+
 function _friend_toggle() {
 	special = gebi("special");
 	f = new FormData();
@@ -1897,6 +3003,11 @@ function _load_settings() {
 	});
 	updateThemeIcon();
 	updateColorPresetsUI();
+
+	var langSelect = gebi('setting-language-select');
+	if (langSelect) {
+		langSelect.value = lsg("language") || 'en-us';
+	}
 	usernickname = gebi('usernickname');
 	userfirstname = gebi('userfirstname');
 	userlastname = gebi('userlastname');
@@ -2561,7 +3672,7 @@ function _change_infomation(c = null) {
 		});
 	});
 }
-function _change_picture(isCover = 0) {
+function _change_picture(isCover = 0, groupId = 0) {
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "flex"; // Using flex for centering if modal css supports it, otherwise block
 
@@ -2661,6 +3772,7 @@ function _change_picture(isCover = 0) {
 									var formData = new FormData();
 									formData.append('fileUpload', blob, 'media_cropped.jpg');
 									formData.append('type', (isCover == 1) ? 'cover' : 'profile'); // Fixed type
+									if (groupId > 0) formData.append('group_id', groupId);
 
 									// Show loading state?
 									$(this).text('Saving...').prop('disabled', true);
@@ -2674,11 +3786,19 @@ function _change_picture(isCover = 0) {
 											modal_close();
 											// Reload specific image
 											if (isCover == 1) {
-												$("#profile_cover").css('background-image', "url('" + croppedImageDataURL + "')");
-												$("#setting_profile_cover").css('background-image', "url('" + croppedImageDataURL + "')");
+												if (groupId > 0) {
+													$("#group-cover").attr('src', croppedImageDataURL);
+												} else {
+													$("#profile_cover").css('background-image', "url('" + croppedImageDataURL + "')");
+													$("#setting_profile_cover").css('background-image', "url('" + croppedImageDataURL + "')");
+												}
 											} else {
-												$("#profile_image").attr('src', croppedImageDataURL);
-												$("#profile_picture").attr('src', croppedImageDataURL);
+												if (groupId > 0) {
+													$("#group-pfp").attr('src', croppedImageDataURL);
+												} else {
+													$("#profile_image").attr('src', croppedImageDataURL);
+													$("#profile_picture").attr('src', croppedImageDataURL);
+												}
 											}
 										}
 									});
@@ -2715,16 +3835,20 @@ function renderMedia(mediaListStr) {
 		var s = items[0];
 		if (s.format.startsWith('video')) {
 			let mediaUrl = video_cdn + '&id=' + s.id + '&h=' + s.hash;
-			return '<center><div class="media-carousel-container" style="position:relative; overflow:hidden;">' +
+			return '<div class="post-media-container">' +
+				'<div class="single-media-wrapper">' +
 				'<div class="custom-video-container">' +
 				'<video src="' + mediaUrl + '" preload="metadata"></video>' +
 				'</div>' +
-				'</div></center>';
+				'</div>' +
+				'</div>';
 		} else
-			return '<center><div class="media-carousel-container" style="position:relative; overflow:hidden;">' +
+			return '<div class="post-media-container">' +
+				'<div class="single-media-wrapper">' +
 				'<div class="media-backdrop" style="background-image: url(\'' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '\')"></div>' +
-				'<img src="' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '" onclick="viewFullImage(' + itemsJson + ', 0)" style="cursor:pointer; position:relative; z-index:2;">' +
-				'</div></center>';
+				'<img src="' + media_cdn + '&id=' + s.id + '&h=' + s.hash + '" onclick="viewFullImage(' + itemsJson + ', 0)" style="cursor:pointer;">' +
+				'</div>' +
+				'</div>';
 	} else {
 		// Carousel
 		var uid = Math.floor(Math.random() * 1000000);
@@ -2792,6 +3916,17 @@ function initVideoPlayer(container) {
 			<button class="video-control-btn video-mute-btn"><i class="fa-solid fa-volume-high"></i></button>
 			<input type="range" class="video-volume-slider" min="0" max="1" step="0.1" value="1">
 		</div>
+		<div class="video-speed-container">
+			<button class="video-control-btn video-speed-btn">1x</button>
+			<div class="video-speed-menu">
+				<button class="speed-option" data-speed="0.5">0.5x</button>
+				<button class="speed-option" data-speed="0.75">0.75x</button>
+				<button class="speed-option active" data-speed="1">1x (Normal)</button>
+				<button class="speed-option" data-speed="1.25">1.25x</button>
+				<button class="speed-option" data-speed="1.5">1.5x</button>
+				<button class="speed-option" data-speed="2">2x</button>
+			</div>
+		</div>
 		<button class="video-control-btn video-fullscreen-btn"><i class="fa-solid fa-expand"></i></button>
 	`;
 	container.appendChild(controls);
@@ -2811,6 +3946,9 @@ function initVideoPlayer(container) {
 	var muteBtn = controls.querySelector('.video-mute-btn');
 	var volumeSlider = controls.querySelector('.video-volume-slider');
 	var fullscreenBtn = controls.querySelector('.video-fullscreen-btn');
+	var speedBtn = controls.querySelector('.video-speed-btn');
+	var speedMenu = controls.querySelector('.video-speed-menu');
+	var speedOptions = controls.querySelectorAll('.speed-option');
 
 	function formatTime(seconds) {
 		if (isNaN(seconds)) return '0:00';
@@ -2861,12 +3999,22 @@ function initVideoPlayer(container) {
 		video.currentTime = pos * video.duration;
 	});
 
+	// Update volume slider fill
+	function updateVolumeSliderFill(value) {
+		var percent = value * 100;
+		volumeSlider.style.background = 'linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ' + percent + '%, rgba(255, 255, 255, 0.3) ' + percent + '%, rgba(255, 255, 255, 0.3) 100%)';
+	}
+
+	// Initialize volume slider fill
+	updateVolumeSliderFill(volumeSlider.value);
+
 	muteBtn.addEventListener('click', function () {
 		video.muted = !video.muted;
 		muteBtn.innerHTML = video.muted
 			? '<i class="fa-solid fa-volume-xmark"></i>'
 			: '<i class="fa-solid fa-volume-high"></i>';
 		volumeSlider.value = video.muted ? 0 : video.volume;
+		updateVolumeSliderFill(volumeSlider.value);
 	});
 
 	volumeSlider.addEventListener('input', function () {
@@ -2875,6 +4023,31 @@ function initVideoPlayer(container) {
 		muteBtn.innerHTML = video.muted
 			? '<i class="fa-solid fa-volume-xmark"></i>'
 			: '<i class="fa-solid fa-volume-high"></i>';
+		updateVolumeSliderFill(volumeSlider.value);
+	});
+
+	// Playback Speed Logic
+	speedBtn.addEventListener('click', function (e) {
+		e.stopPropagation();
+		speedMenu.classList.toggle('show');
+	});
+
+	speedOptions.forEach(option => {
+		option.addEventListener('click', function (e) {
+			e.stopPropagation();
+			var speed = parseFloat(this.dataset.speed);
+			video.playbackRate = speed;
+			speedBtn.innerText = speed + 'x';
+
+			speedOptions.forEach(opt => opt.classList.remove('active'));
+			this.classList.add('active');
+			speedMenu.classList.remove('show');
+		});
+	});
+
+	// Close speed menu when clicking elsewhere
+	document.addEventListener('click', function () {
+		if (speedMenu) speedMenu.classList.remove('show');
 	});
 
 	fullscreenBtn.addEventListener('click', function () {
@@ -3089,7 +4262,7 @@ function removeFile(index) {
 }
 
 
-function make_post() {
+function make_post(groupId = 0) {
 	gebtn('body')[0].style.overflowY = "hidden";
 	gebi("modal").style.display = "block";
 
@@ -3102,14 +4275,22 @@ function make_post() {
 
 	a += '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">';
 	a += '<div class="modal-header-user">';
-	a += '<img class="modal-user-pfp" src="' + gebi('pfp_box').src + '">';
+	var userPfp = "data/images/U.png";
+	if (lsg('pfp_media_id') > 0) userPfp = pfp_cdn + '&id=' + lsg('pfp_media_id') + "&h=" + lsg('pfp_media_hash');
+	a += '<img class="modal-user-pfp" src="' + userPfp + '">';
 	a += '<div style="display:flex; flex-direction:column;">';
 	a += '<span class="modal-user-name">' + gebi('fullname').value + '</span>';
-	a += '<select name="private" id="private" class="modal-privacy-select">';
-	a += '<option value="2">' + window["lang__002"] + '</option>';
-	a += '<option value="1">' + window["lang__004"] + '</option>';
-	a += '<option value="0">' + window["lang__003"] + '</option>';
-	a += '</select>';
+	if (groupId > 0) {
+		var gName = (_currentGroupData && _currentGroupData.group_id == groupId) ? _currentGroupData.group_name : "Community";
+		a += '<div class="modal-context-badge"><i class="fa-solid fa-users"></i> Post to ' + gName + '</div>';
+		a += '<input type="hidden" id="private" value="2">'; // Fixed public for groups (group privacy handles visibility)
+	} else {
+		a += '<select name="private" id="private" class="modal-privacy-select">';
+		a += '<option value="2">' + window["lang__002"] + '</option>';
+		a += '<option value="1">' + window["lang__004"] + '</option>';
+		a += '<option value="0">' + window["lang__003"] + '</option>';
+		a += '</select>';
+	}
 	a += '</div>';
 	a += '</div>';
 	a += '</div>';
@@ -3132,6 +4313,10 @@ function make_post() {
 	a += '<input type="button" class="btn-primary" value="' + window["lang__001"] + '" onclick="return validatePost(0)" style="padding: 10px 30px; font-size:1rem; border-radius:10px;">';
 	a += '</div>';
 
+	if (groupId > 0) {
+		a += '<input type="hidden" id="post_group_id" value="' + groupId + '">';
+	}
+
 	a += '</div>';
 	gebi("modal_content").innerHTML = a;
 
@@ -3152,13 +4337,16 @@ function _f() {
 	is_private = gebi('private').value;
 	// Final Safety Check
 	if (typeof dt !== 'undefined' && dt.files.length > 60) {
-		alert("You can only upload a maximum of 60 files.");
+		_alert_modal("You can only upload a maximum of 60 files.");
 		return;
 	}
 	f = new FormData();
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("caption", gebtn("textarea")[0].value);
+
+	var gId = gebi('post_group_id');
+	if (gId) f.append("group_id", gId.value);
 
 	let videoCount = 0;
 	// Append all files from DataTransfer
@@ -3193,15 +4381,21 @@ function _f() {
 		},
 		success: function (r) {
 			r = JSON.parse(r);
-			if (r["success"] == 1)
-				fetch_post("fetch_post.php");
+			if (r["success"] == 1) {
+				var gId = gebi('post_group_id');
+				if (gId) {
+					fetch_post("fetch_group_posts.php?id=" + gId.value, true);
+				} else {
+					fetch_post("fetch_post.php", true);
+				}
+			}
 
 			// Close modal and clear logic handled by validatePost, but redundant safety:
 			if (pContainer) pContainer.style.display = 'none';
 		},
 		error: function () {
 			if (pContainer) pContainer.style.display = 'none';
-			alert("Upload failed. Please try again.");
+			_alert_modal("Upload failed. Please try again.");
 		}
 	});
 }
@@ -3214,6 +4408,17 @@ function _search(page = 0) {
 	f.append("type", type);
 	f.append("query", query);
 	f.append("page", page);
+
+	// Advanced Filters for Posts
+	if (type == 1) {
+		f.append("scope", gebi('search-scope').value);
+		f.append("privacy", gebi('search-privacy').value);
+		f.append("start_date", gebi('search-start-date').value);
+		f.append("end_date", gebi('search-end-date').value);
+
+		var commId = gebi('search-comm-id');
+		if (commId) f.append("group_id", commId.value);
+	}
 	$.ajax({
 		type: "POST",
 		url: backend_url + "search.php",
@@ -3264,12 +4469,74 @@ function _search(page = 0) {
 					}
 					search.innerHTML = a;
 				}
+				else if (type == 4) {
+					// Group Search Results
+					search.className = 'groups-discovery-grid';
+					for (let i = 0; i < (Object.keys(r).length - 1); i++) {
+						var g = r[i];
+						var coverUrl = g.cover_media_hash ? media_cdn + "&id=" + g.cover_media_id + "&h=" + g.cover_media_hash : "resources/images/default_cover.png";
+						var pfpUrl = g.pfp_media_hash ? media_cdn + "&id=" + g.pfp_media_id + "&h=" + g.pfp_media_hash : "resources/images/default_group.png";
+
+						a += '<a href="group.php?id=' + g.group_id + '" class="group-discovery-card" onclick="route(event, this)">';
+						a += '  <div class="group-discovery-cover" style="background-image: url(' + coverUrl + ');"></div>';
+						a += '  <div class="group-discovery-info">';
+						a += '    <img src="' + pfpUrl + '" class="group-discovery-pfp">';
+						var statusText = "";
+						if (g.my_status == 1) statusText = ' <span class="group-stat-badge" style="background:var(--color-primary-alpha); color:var(--color-primary); margin-left:8px; display:inline-flex; vertical-align:middle; border-radius:12px; padding:2px 10px; font-size:0.75rem;"><i class="fa-solid fa-check"></i> Joined</span>';
+						else if (g.my_status == 0) statusText = ' <span class="group-stat-badge" style="background:var(--color-surface-hover); margin-left:8px; display:inline-flex; vertical-align:middle; border-radius:12px; padding:2px 10px; font-size:0.75rem;"><i class="fa-solid fa-clock"></i> Requested</span>';
+
+						a += '    <div class="group-discovery-name">' + g.group_name + statusText + '</div>';
+						a += '    <div class="group-discovery-about">' + g.group_about + '</div>';
+						a += '    <div class="group-discovery-meta">';
+						a += '      <span><i class="fa-solid fa-user-group"></i> ' + g.member_count + ' Members</span>';
+						var privText = (g.group_privacy == 2) ? 'Public' : 'Closed';
+						a += '      <span><i class="fa-solid fa-lock"></i> ' + privText + '</span>';
+						a += '    </div>';
+						a += '  </div>';
+						a += '</a>';
+					}
+					search.innerHTML = a;
+				}
 				else if (type == 1) {
 					search.className = 'search-results-list'; // List layout for posts
 					search.innerHTML = '<div id="feed"></div>';
 					fetch_post(b, true);
 				}
 			}
+		}
+	});
+}
+
+function toggleSearchFilters() {
+	var type = gebi('searchtype').value;
+	var filters = gebi('advanced-filters');
+	if (filters) {
+		filters.style.display = (type == 1) ? 'flex' : 'none';
+		if (type == 1) {
+			var scope = gebi('search-scope').value;
+			var commGroup = gebi('scope-community-group');
+			if (commGroup) {
+				commGroup.style.display = (scope == 'groups') ? 'flex' : 'none';
+				if (scope == 'groups') _populate_joined_communities();
+			}
+		}
+	}
+}
+
+function _populate_joined_communities() {
+	var select = gebi('search-comm-id');
+	if (!select || select.children.length > 1) return; // Already populated or missing
+
+	$.get(backend_url + "fetch_groups.php?joined=1", function (r) {
+		if (r && r.length > 0) {
+			r.forEach(function (g) {
+				if (g.my_status == 1) {
+					var opt = document.createElement('option');
+					opt.value = g.group_id;
+					opt.textContent = g.group_name;
+					select.appendChild(opt);
+				}
+			});
 		}
 	});
 }
@@ -3291,7 +4558,7 @@ function _share_feed() {
 	post_id = gebi('post_id').value;
 	// Final Safety Check
 	if (typeof dt !== 'undefined' && dt.files.length > 60) {
-		alert("You can only upload a maximum of 60 files.");
+		_alert_modal("You can only upload a maximum of 60 files.");
 		return;
 	}
 	// ... Keeping share simple for now to avoid complexity explosion, focus on Create Post.
@@ -3347,7 +4614,7 @@ function _share_feed() {
 		},
 		error: function () {
 			if (pContainer) pContainer.style.display = 'none';
-			alert("Share failed. Please try again.");
+			_alert_modal("Share failed. Please try again.");
 		}
 	});
 }
@@ -3375,7 +4642,7 @@ function validatePost(type) {
 function _setup_2fa() {
 	var code = gebi('2fa_setup_code').value;
 	if (code.length < 6) {
-		alert("Please enter a 6-digit code.");
+		_alert_modal("Please enter a 6-digit code.");
 		return;
 	}
 	$.post(backend_url + "2fa_setup.php", { code: code }, function (r) {
@@ -3384,7 +4651,7 @@ function _setup_2fa() {
 			_success_modal("2FA Enabled Successfully!");
 			_load_2fa_status();
 		} else {
-			alert("Invalid code. Please try again.");
+			_alert_modal("Invalid code. Please try again.");
 		}
 	});
 }
@@ -3393,7 +4660,7 @@ function _disable_2fa() {
 	var pass = gebi('2fa_disable_pass').value;
 	var code = gebi('2fa_disable_code').value;
 	if (!pass || code.length < 6) {
-		alert("Please fill in all fields.");
+		_alert_modal("Please fill in all fields.");
 		return;
 	}
 	$.post(backend_url + "2fa_disable.php", { password: pass, code: code }, function (r) {
@@ -3402,10 +4669,82 @@ function _disable_2fa() {
 			_success_modal("2FA Disabled Successfully.");
 			_load_2fa_status();
 		} else {
-			alert("Invalid password or 2FA code.");
+			_alert_modal("Invalid password or 2FA code.");
 		}
 	});
 }
+function _load_settings() {
+	$.get(backend_url + "fetch_profile_setting_info.php", function (d) {
+		if (d.success === 1) {
+			// Account Tab
+			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = '@' + d.user_nickname;
+			if (gebi("usernickname")) gebi("usernickname").value = d.user_nickname;
+
+			if (gebi("display_email")) gebi("display_email").innerHTML = d.user_email;
+			if (gebi("email")) gebi("email").value = d.user_email;
+
+			// Verification
+			if (gebi("verified-text")) {
+				if (d.verified > 0) {
+					gebi("verified-text").innerHTML = "Verified";
+					gebi("verified-text").style.color = "var(--color-primary)";
+					gebi("verified").className = "fa-solid fa-badge-check verified_color_" + d.verified;
+				} else {
+					gebi("verified-text").innerHTML = "Not Verified";
+					gebi("verified-text").style.color = "var(--color-text-secondary)";
+					gebi("verified").className = "";
+				}
+			}
+
+			// 2FA Status
+			if (gebi("2fa-status-text")) {
+				if (d.twofa_enabled == 1) {
+					gebi("2fa-status-text").innerHTML = '<span style="color:#28a745"><i class="fa-solid fa-check-circle"></i> Enabled</span>';
+				} else {
+					gebi("2fa-status-text").innerHTML = '<span style="color:var(--color-text-secondary)">Disabled</span>';
+				}
+			}
+
+			// Profile Tab Inputs
+			if (gebi("userfirstname")) gebi("userfirstname").value = d.user_firstname;
+			if (gebi("userlastname")) gebi("userlastname").value = d.user_lastname;
+			if (gebi("userabout")) gebi("userabout").value = d.user_about;
+			if (gebi("userhometown")) gebi("userhometown").value = d.user_hometown;
+			if (gebi("birthday")) gebi("birthday").value = birthdateConverter(d.user_birthdate * 1000);
+
+			// Gender
+			if (d.user_gender == 'M' && gebi("malegender")) gebi("malegender").checked = true;
+			if (d.user_gender == 'F' && gebi("femalegender")) gebi("femalegender").checked = true;
+			if (d.user_gender == 'O' && gebi("othergender")) gebi("othergender").checked = true;
+
+			// Profile Images
+			if (gebi("profile_picture")) {
+				var pfpSrc = (d.pfp_media_id > 0) ? pfp_cdn + '&id=' + d.pfp_media_id + "&h=" + d.pfp_media_hash : getDefaultUserImage(d.user_gender);
+				gebi("profile_picture").src = pfpSrc;
+			}
+			if (gebi("setting_profile_cover")) {
+				var coverStyle = (d.cover_media_id > 0) ? 'url(\'' + pfp_cdn + '&id=' + d.cover_media_id + '&h=' + d.cover_media_hash + '\')' : 'none';
+				gebi("setting_profile_cover").style.backgroundImage = coverStyle;
+				if (d.cover_media_id <= 0) gebi("setting_profile_cover").style.backgroundColor = "var(--color-background)";
+			}
+		} else {
+			// Handle logical error (e.g. user not found)
+			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Error loading data.";
+			_alert_modal("Failed to load settings data. Code: " + (d.success || "Unknown"));
+		}
+	}).fail(function () {
+		// Handle network/server error
+		if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Connection Error.";
+		_alert_modal("Failed to connect to server to fetch settings.");
+	});
+
+	// Also load sessions if device tab is active
+	var urlParams = new URLSearchParams(window.location.search);
+	if (urlParams.get('tab') === 'device') {
+		_load_sessions();
+	}
+}
+
 function HighLightHLJS() {
 	if (lsg("load_hightlightjs") == "no")
 		return;
@@ -3423,6 +4762,11 @@ document.addEventListener('readystatechange', function (e) {
 			setInterval(_online, 300000);
 		setInterval(_fr_count, 300000);
 		setInterval(_notification_count, 300000);
+
+		var u = window.location.pathname;
+		if (u.includes("settings.php")) {
+			_load_settings();
+		}
 		onResizeEvent();
 		changeUrlWork();
 		textAreaRework();
@@ -3498,43 +4842,340 @@ function validateField() {
 	}
 	return true;
 }
+// Enhanced fetch_post
+var _feedLoading = false;
+function fetch_post(loc, reset = false) {
+	fetch_pfp_box();
+	if (_feedLoading) return;
+
+	var feedContainer = gebi("feed");
+	var pageInput = gebi('page');
+
+	if (!feedContainer || !pageInput) return;
+
+	if (reset) {
+		feedContainer.innerHTML = '';
+		pageInput.value = 0;
+	}
+
+	// Check if we hit end
+	if (pageInput.value == -1) return;
+
+	_feedLoading = true;
+
+	// If loc is a blob or full URL, don't prepend backend_url or append page (blob is static)
+	var url = (loc.indexOf('blob:') === 0 || loc.indexOf('http') === 0) ? loc : backend_url + loc;
+	if (loc.indexOf('blob:') !== 0) {
+		var sep = loc.includes('?') ? '&' : '?';
+		url += sep + "page=" + pageInput.value;
+	}
+
+	$.get(url, function (data) {
+		_feedLoading = false;
+
+		if (data.success == 2) {
+			// End of feed
+			pageInput.value = -1;
+			if (reset) {
+				feedContainer.innerHTML = '<div class="post"><h1>' + window["lang__012"] + '</h1></div>';
+			}
+			return;
+		}
+
+		if (data.success == 1) {
+			var html = '';
+			var count = Object.keys(data).length - 1; // -1 for success key
+
+			for (let i = 0; i < count; i++) {
+				html += createPostHTML(data[i]);
+			}
+
+			feedContainer.insertAdjacentHTML('beforeend', html);
+
+			// Post-Process: Load Videos
+			for (let i = 0; i < count; i++) {
+				var s = data[i];
+				if (s['is_video']) {
+					let v = gebi("video_pid-" + s['post_id']);
+					if (v) load_video(s['post_media'], s['media_hash'], s['media_format'], v);
+				}
+				if (s['is_share'] > 0 && s['share']['is_video']) {
+					let v = gebi("video_pid-" + s['share']['post_id'] + 's');
+					if (v) load_video(s['share']['post_media'], s['share']['media_hash'], s['share']['media_format'], v);
+				}
+			}
+
+			HighLightHLJS();
+
+			// Advance Page
+			pageInput.value = parseInt(pageInput.value) + 1;
+		}
+
+		changeUrlWork();
+	});
+}
+
 function isBottom() {
 	calc = $(window).scrollTop() * 2.15 + $(window).height() > $(document).height() - 200;
 	return calc;
 }
+
 $(window).scroll(function () {
 	u = window.location.pathname;
+
+	// Check if we need to load more
+	var shouldLoad = false;
 	if ($(window).height() != $(document).height()) {
-		if ((($(window).scrollTop() + $(window).height() > $(document).height() - 100) && !isMobile()) || (isBottom() && isMobile())) {
-			if ((u === "/home.php" || u === "home.php") || (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php")) {
-				page = gebi('page');
-				if (page.value != -1) {
-					nextPage = Number(page.value) + 1;
-					if (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php") {
-						add_header = "";
-						if (u.substring(0, 16) === "/profile.php?id=" || u.substring(0, 15) === "profile.php?id=")
-							add_header = "&id=" + get("id");
-						fetch_post("fetch_profile_post.php?page=" + nextPage + add_header);
-					} else {
-						fetch_post("fetch_post.php?page=" + nextPage);
-					}
-					page.value = nextPage;
-				}
-			} else if (u === "/friends.php" || u === "friends.php") {
-				page = gebi('page');
-				if (page.value != -1) {
-					nextPage = Number(page.value) + 1;
-					fetch_friend_list('fetch_friend_list.php?page=' + nextPage);
-					page.value = nextPage;
-				}
-			} else if (u === "/requests.php" || u === "requests.php") {
-				page = gebi('page');
-				if (page.value != -1) {
-					nextPage = Number(page.value) + 1;
-					fetch_friend_request('fetch_friend_request.php?page=' + nextPage);
-					page.value = nextPage;
-				}
+		if (!isMobile()) {
+			if ($(window).scrollTop() + $(window).height() > $(document).height() - 100) shouldLoad = true;
+		} else {
+			if (isBottom()) shouldLoad = true;
+		}
+	}
+
+	if (shouldLoad) {
+		// Feed / Home
+		if (u === "/home.php" || u === "home.php" || u === "/") {
+			fetch_post("fetch_post.php");
+		}
+		// Profile - only load posts if on Timeline tab
+		else if (u.startsWith("/profile.php") || u.startsWith("profile.php")) {
+			if (_activeProfileTab === 'timeline') {
+				var idParam = get("id");
+				var endpoint = "fetch_profile_post.php";
+				if (idParam) endpoint += "?id=" + idParam;
+				fetch_post(endpoint);
+			}
+		}
+		// Others (Friends, Requests) - kept legacy as they had specific functions
+		else if (u === "/friends.php" || u === "friends.php") {
+			var p = gebi('page');
+			if (p && p.value != -1) {
+				var next = Number(p.value) + 1;
+				fetch_friend_list('fetch_friend_list.php?page=' + next);
+				p.value = next;
+			}
+		}
+		else if (u === "/requests.php" || u === "requests.php") {
+			var p = gebi('page');
+			if (p && p.value != -1) {
+				var next = Number(p.value) + 1;
+				fetch_friend_request('fetch_friend_request.php?page=' + next);
+				p.value = next;
 			}
 		}
 	}
 });
+
+function togglePostOptions(postId) {
+	const menu = gebi('post-options-menu-' + postId);
+	if (!menu) return;
+
+	// Close all other menus first
+	const allMenus = document.querySelectorAll('.post-options-menu');
+	allMenus.forEach(m => {
+		if (m.id !== 'post-options-menu-' + postId) {
+			m.classList.remove('active');
+		}
+	});
+
+	menu.classList.toggle('active');
+}
+
+// Click outside to close menus
+document.addEventListener('click', function (e) {
+	if (!e.target.closest('.post-options-container')) {
+		const allMenus = document.querySelectorAll('.post-options-menu');
+		allMenus.forEach(m => m.classList.remove('active'));
+	}
+});
+
+// Initial Load
+if (window.location.href.indexOf("home.php") > -1) {
+	fetch_post("fetch_post.php", true);
+}
+
+// Settings Page Logic
+function changeTab(tabName) {
+	// Hide all tabs
+	var tabs = document.querySelectorAll('[id^="setting-tab-"]');
+	tabs.forEach(function (tab) {
+		tab.style.display = 'none';
+	});
+
+	// Show selected tab
+	var selectedTab = document.getElementById('setting-tab-' + tabName);
+	if (selectedTab) {
+		selectedTab.style.display = 'block';
+	}
+
+	// Update sidebar active state
+	var links = document.querySelectorAll('.settings-sidebar a');
+	links.forEach(function (link) {
+		link.classList.remove('active');
+	});
+	var activeLink = document.getElementById('tab-' + tabName);
+	if (activeLink) activeLink.classList.add('active');
+
+	// Update URL param without reload
+	var newUrl = new URL(window.location);
+	newUrl.searchParams.set('tab', tabName);
+	window.history.pushState({}, '', newUrl);
+
+	// Specific logic per tab
+	if (tabName === 'device') {
+		_load_sessions();
+	}
+}
+
+function _load_settings() {
+	// Check URL for tab
+	var urlParams = new URLSearchParams(window.location.search);
+	var tab = urlParams.get('tab') || 'account';
+	changeTab(tab);
+
+	$.get(backend_url + "fetch_profile_setting_info.php", function (d) {
+		if (d.success === 1) {
+			// Account Tab
+			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = '@' + d.user_nickname;
+			if (gebi("usernickname")) gebi("usernickname").value = d.user_nickname;
+
+			if (gebi("display_email")) gebi("display_email").innerHTML = d.user_email;
+			if (gebi("email")) gebi("email").value = d.user_email;
+
+			// Verification
+			if (gebi("verified-text")) {
+				if (d.verified > 0) {
+					gebi("verified-text").innerHTML = "Verified";
+					gebi("verified-text").style.color = "var(--color-primary)";
+					gebi("verified").className = "fa-solid fa-badge-check verified_color_" + d.verified;
+				} else {
+					gebi("verified-text").innerHTML = "Not Verified";
+					gebi("verified-text").style.color = "var(--color-text-secondary)";
+					gebi("verified").className = "";
+				}
+			}
+
+			// 2FA Status
+			if (gebi("2fa-status-text")) {
+				if (d.twofa_enabled == 1) {
+					gebi("2fa-status-text").innerHTML = '<span style="color:#28a745"><i class="fa-solid fa-check-circle"></i> Enabled</span>';
+				} else {
+					gebi("2fa-status-text").innerHTML = '<span style="color:var(--color-text-secondary)">Disabled</span>';
+				}
+			}
+
+			// Profile Tab Inputs
+			if (gebi("userfirstname")) gebi("userfirstname").value = d.user_firstname;
+			if (gebi("userlastname")) gebi("userlastname").value = d.user_lastname;
+			if (gebi("userabout")) gebi("userabout").value = d.user_about;
+			if (gebi("userhometown")) gebi("userhometown").value = d.user_hometown;
+			if (gebi("birthday")) gebi("birthday").value = birthdateConverter(d.user_birthdate * 1000);
+
+			// Gender
+			if (d.user_gender == 'M' && gebi("malegender")) gebi("malegender").checked = true;
+			if (d.user_gender == 'F' && gebi("femalegender")) gebi("femalegender").checked = true;
+			if (d.user_gender == 'O' && gebi("othergender")) gebi("othergender").checked = true;
+
+			// Profile Images
+			if (gebi("profile_picture")) {
+				var pfpSrc = (d.pfp_media_id > 0) ? pfp_cdn + '&id=' + d.pfp_media_id + "&h=" + d.pfp_media_hash : getDefaultUserImage(d.user_gender);
+				gebi("profile_picture").src = pfpSrc;
+			}
+			if (gebi("setting_profile_cover")) {
+				var coverStyle = (d.cover_media_id > 0) ? 'url(\'' + pfp_cdn + '&id=' + d.cover_media_id + '&h=' + d.cover_media_hash + '\')' : 'none';
+				gebi("setting_profile_cover").style.backgroundImage = coverStyle;
+				if (d.cover_media_id <= 0) gebi("setting_profile_cover").style.backgroundColor = "var(--color-background)";
+			}
+		} else {
+			// Handle logical error
+			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Error loading data.";
+			_alert_modal("Failed to load settings data. Code: " + (d.success || "Unknown"));
+		}
+	}).fail(function () {
+		// Handle network/server error
+		if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Connection Error.";
+		_alert_modal("Failed to connect to server to fetch settings.");
+	});
+}
+
+// Session Management
+function _load_sessions() {
+	var container = document.getElementById('session-list');
+	if (!container) return;
+
+	container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--color-text-dim);"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading sessions...</div>';
+
+	$.get(backend_url + "session.php", function (response) {
+		if (response.success === 1) {
+			var html = '';
+			if (response.sessions.length === 0) {
+				html = '<div class="no-data">No active sessions found.</div>';
+			} else {
+				response.sessions.forEach(function (s) {
+					var icon = 'fa-desktop';
+					if (s.device_str.toLowerCase().includes('mobile')) icon = 'fa-mobile-screen';
+
+					var currentBadge = s.is_current ? '<span class="session-badge current">Current Device</span>' : '';
+					var revokeBtn = s.is_current ? '' : '<button class="btn-danger-outline" onclick="_revoke_session(\'' + s.session_id + '\')">Log Out</button>';
+
+					html += '<div class="session-item" id="session-' + s.session_id + '">';
+					html += '  <div class="session-icon"><i class="fa-solid ' + icon + '"></i></div>';
+					html += '  <div class="session-info">';
+					html += '    <div class="session-title">' + s.os + ' • ' + s.browser + ' ' + currentBadge + '</div>';
+					html += '    <div class="session-meta">' + s.ip + ' • ' + s.last_active + '</div>';
+					html += '  </div>';
+					html += '  <div class="session-action">' + revokeBtn + '</div>';
+					html += '</div>';
+				});
+			}
+			container.innerHTML = html;
+		} else {
+			container.innerHTML = '<div class="error-message">Failed to load sessions.</div>';
+		}
+	});
+}
+
+function _revoke_session(sessionId, confirmed = false) {
+	if (!confirmed) {
+		_confirm_modal("Are you sure you want to log out this device?", "_revoke_session('" + sessionId + "', true)");
+		return;
+	}
+
+	$.post(backend_url + "session.php", { session_id: sessionId }, function (response) {
+		if (response.success === 1) {
+			var el = document.getElementById('session-' + sessionId);
+			if (el) el.remove();
+		} else {
+			_alert_modal("Failed to revoke session: " + (response.error || "Unknown error"));
+		}
+	});
+}
+
+// Custom Modals
+function _alert_modal(msg) {
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:400px; text-align:center;">';
+	h += '<div class="upload-modal-header" style="justify-content:center;"><h2>Alert</h2></div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">' + msg + '</div>';
+	h += '<div class="upload-modal-footer" style="justify-content:center;">';
+	h += '<button class="btn-primary" onclick="modal_close()">OK</button>';
+	h += '</div></div>';
+	content.innerHTML = h;
+	gebi("modal").style.display = "flex";
+}
+
+function _confirm_modal(msg, callbackName) {
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:400px; text-align:center;">';
+	h += '<div class="upload-modal-header" style="justify-content:center;"><h2>Confirm</h2></div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">' + msg + '</div>';
+	h += '<div class="upload-modal-footer" style="justify-content:center;">';
+	h += '<button class="btn-danger-outline" onclick="modal_close()">Cancel</button>';
+	h += '<button class="btn-primary" onclick="modal_close(); ' + callbackName + '">Confirm</button>';
+	h += '</div></div>';
+	content.innerHTML = h;
+	gebi("modal").style.display = "flex";
+}
