@@ -9,12 +9,17 @@ if (!_is_session_valid()) {
 header("content-type: application/json");
 $data = _get_data_from_token();
 
+$current_id = $data['user_id'];
+if(isset($_GET['id']) && is_numeric($_GET['id'])){
+    $current_id = $_GET['id'];
+}
+
 $page = 0;
 if (isset($_GET['page']) && is_numeric($_GET['page'])) {
     $page = $_GET['page'];
 }
 
-$friends = Friend::getList($data['user_id'], $page);
+$friends = Friend::getList($current_id, $page);
 
 if (empty($friends)) {
     // Original logic: echo '{"success":' . (($off >= 20) ? '3' : 2) . '}';

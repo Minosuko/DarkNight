@@ -10,6 +10,25 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$filetype = pathinfo($filename, PATHINFO_EXTENSION);
 		$supported_image = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
 		if(in_array($type,['cover','profile'])){
+			$group_id = isset($_POST['group_id']) ? (int)$_POST['group_id'] : 0;
+			
+			// Permission Check
+			$can_update = false;
+			if ($group_id > 0) {
+				$groupObj = new Group($conn);
+				$gInfo = $groupObj->getInfo($group_id, $data['user_id']);
+				if ($gInfo && $gInfo['my_role'] >= 1) { // 1 = Moderator, 2 = Admin
+					$can_update = true;
+				}
+			} else {
+				$can_update = true; // Own profile
+			}
+
+			if (!$can_update) {
+				echo "error: permission denied";
+				exit;
+			}
+
 			if(in_array($filetype,$supported_image)){
 				if(exif_imagetype($_FILES["fileUpload"]["tmp_name"])){
 					$media_hash = md5_file($_FILES["fileUpload"]["tmp_name"]);
@@ -29,23 +48,33 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if($type == 'profile'){
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
-					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed profile picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
-						$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
-					);
-					$query5 = $conn->query($sql5);
-					$sql7 = "UPDATE users SET pfp_media_id = $media_id WHERE user_id = {$data['user_id']}";
-					$query7 = $conn->query($sql7);
+					if ($group_id > 0) {
+						$sql7 = "UPDATE groups SET pfp_media_id = $media_id WHERE group_id = $group_id";
+						$query7 = $conn->query($sql7);
+					} else {
+						$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed profile picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
+							$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
+						);
+						$query5 = $conn->query($sql5);
+						$sql7 = "UPDATE users SET pfp_media_id = $media_id WHERE user_id = {$data['user_id']}";
+						$query7 = $conn->query($sql7);
+					}
 				}
 			}
 			if($type == 'cover'){
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
-					$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed cover picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
-						$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
-					);
-					$query5 = $conn->query($sql5);
-					$sql7 = "UPDATE users SET cover_media_id = $media_id WHERE user_id = {$data['user_id']}";
-					$query7 = $conn->query($sql7);
+					if ($group_id > 0) {
+						$sql7 = "UPDATE groups SET cover_media_id = $media_id WHERE group_id = $group_id";
+						$query7 = $conn->query($sql7);
+					} else {
+						$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media) VALUES ('%s has changed cover picture.', 2, $timestamp, {$data['user_id']}, $media_id)",
+							$conn->real_escape_string("{$data['user_firstname']} {$data['user_lastname']}"),
+						);
+						$query5 = $conn->query($sql5);
+						$sql7 = "UPDATE users SET cover_media_id = $media_id WHERE user_id = {$data['user_id']}";
+						$query7 = $conn->query($sql7);
+					}
 				}
 			}
 			echo "success";

@@ -34,7 +34,8 @@ if (empty($comments)) {
         }
         $i++;
     }
-    $formatted["success"] = 1;
-    echo json_encode($formatted);
+    $result = $formatted;
+    $result["success"] = 1;
+    echo json_encode($result);
 }
 ?>

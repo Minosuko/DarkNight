@@ -19,6 +19,17 @@ if($total_rows == 0){
 	if($row_d['cover_media_id'] > 0)
 		$row_d['cover_media_hash'] = _get_hash_from_media_id($row_d['cover_media_id']);
 	$row_d["user_about"] = htmlspecialchars($row_d['user_about']);
+
+    // Fetch 2FA status
+    $uid = $data['user_id'];
+    $sql_2fa = "SELECT is_enabled FROM twofactorauth WHERE user_id = $uid LIMIT 1";
+    $query_2fa = $conn->query($sql_2fa);
+    if($query_2fa && $row_2fa = $query_2fa->fetch_assoc()){
+        $row_d['twofa_enabled'] = $row_2fa['is_enabled'];
+    } else {
+        $row_d['twofa_enabled'] = 0;
+    }
+
 	$row_d["success"] = 1;
 	echo json_encode($row_d);
 }

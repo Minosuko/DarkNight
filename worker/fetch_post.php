@@ -42,7 +42,10 @@ if (empty($feed)) {
             'is_liked' => $row['is_liked'] > 0 ? 1 : 0,
             'total_like' => $row['total_like'],
             'total_comment' => $row['total_comment'],
-            'total_share' => $row['total_share']
+            'total_share' => $row['total_share'],
+            'is_mine' => ($row['user_id'] == $user_id) ? 1 : 0,
+            'group_id' => $row['group_id'],
+            'group_name' => $row['group_name']
         ];
 
         if (!empty($row['post_media_list'])) {

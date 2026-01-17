@@ -49,6 +49,7 @@ if (!$post) {
         }
     }
 
+    $post['is_mine'] = ($post['user_id'] == $data['user_id']) ? 1 : 0;
     $post['success'] = 1;
     echo json_encode($post);
 }

@@ -89,7 +89,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');
 			if(email_exists($NewEmail)) die('{"success":0,"code":2}');
 			$timeSlice = floor(time() / 900);
-			$code = substr(hash("sha256",lunar_hash(strtolower($NewEmail).$data['user_email'].$data['user_password'].$data['user_token'].$timeSlice)),0,8);
+			$code = substr(hash("sha256",lunar_hash(strtolower($NewEmail).$data['user_email'].$data['user_password'].$data['user_create_date'].$timeSlice)),0,8);
 			if($VerifyCode != $code) die('{"success":0,"code":3}');
 			$sql = sprintf(
 				"UPDATE users SET user_email = '%s' WHERE user_id = %d",
@@ -125,7 +125,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');
 			if(email_exists($NewEmail)) die('{"success":0,"code":2}');
 			$timeSlice = floor(time() / 900);
-			$code = substr(hash("sha256",lunar_hash(strtolower($NewEmail).$data['user_email'].$data['user_password'].$data['user_token'].$timeSlice)),0,8);
+			$code = substr(hash("sha256",lunar_hash(strtolower($NewEmail).$data['user_email'].$data['user_password'].$data['user_create_date'].$timeSlice)),0,8);
 			$MailBody = $GLOBALS['Mailer_Header']
 			.'
 						<p>Hello '.$name.',</p>

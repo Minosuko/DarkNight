@@ -20,8 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $fileData = isset($_FILES['fileUpload']) ? $_FILES['fileUpload'] : null;
+        $group_id = isset($_POST['group_id']) ? (int)$_POST['group_id'] : 0;
         
-        $response = Post::create($data['user_id'], $caption, $public, $fileData);
+        $response = Post::create($data['user_id'], $caption, $public, $fileData, $group_id);
         echo json_encode($response);
     }
 }

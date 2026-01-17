@@ -22,14 +22,10 @@
 	</head>
 	<body>
 		<?php include 'includes/navbar.php'; ?>
-		<div class="container">
+		<div class="container" style="padding: 0; max-width: 100%; height: calc(100vh - 60px);">
 			<input type="hidden" id="page" value="0">
-			<div id="image_content">
-				<center>
-					<div class="left_content" id="_content_left">
-					</div>
-				</center>
-				<div class="right_content" id="_content_right"></div>
+			<div id="image_content" style="height: 100%;">
+                <!-- Modern Post Detail View will be loaded here -->
 			</div>
 		</div>
 		<script>

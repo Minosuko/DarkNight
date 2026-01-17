@@ -28,9 +28,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $rows["success"] = 1;
                 echo json_encode($rows); // Search::users returns formatted rows with success flag now
             }
+        } elseif ($type == 4) {
+            // Group Search
+            $rows = Search::groups($key, $data['user_id'], $page);
+            if (empty($rows)) {
+                echo '{"success":2}';
+            } else {
+                $rows["success"] = 1;
+                echo json_encode($rows);
+            }
         } else {
             // Post Search
-            $feed = Post::searchPosts($key, $data['user_id'], $page);
+            $filters = [
+                'scope' => $_POST['scope'] ?? 'all',
+                'privacy' => $_POST['privacy'] ?? 'all',
+                'start_date' => $_POST['start_date'] ?? null,
+                'end_date' => $_POST['end_date'] ?? null,
+                'group_id' => $_POST['group_id'] ?? 0
+            ];
+            $feed = Post::searchPosts($key, $data['user_id'], $page, $filters);
             if (empty($feed)) {
                 echo '{"success":2}';
             } else {

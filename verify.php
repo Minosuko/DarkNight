@@ -104,7 +104,7 @@ if(_is_session_valid(false)){
 							<?php
 							break;
 							case 'verify':
-								if(_verify($_GET['username'],$_GET['user_email'],$_GET['h']))
+						if(_verify($_GET['username'],$_GET['user_email'],$_GET['h']))
 									echo "<h1>Verified, now you can login :3</h1>";
 								else
 									echo "<h1>Nah, wrong link uwu</h1>";

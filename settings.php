@@ -22,6 +22,11 @@
                         </a>
                     </li>
                     <li>
+                        <a href="?tab=device" id="tab-device" onclick="changeTab('device'); return false;">
+                            <i class="fa-solid fa-desktop"></i> Devices
+                        </a>
+                    </li>
+                    <li>
                         <a href="?tab=profile" id="tab-profile" onclick="changeTab('profile'); return false;">
                             <i class="fa-solid fa-user"></i> Profile
                         </a>
@@ -163,7 +168,7 @@
                         </div>
                     </div>
 
-                    <div class="setting-item" style="border:none;">
+                    <div class="setting-item">
                         <div class="setting-info">
                             <label class="setting-label">Primary Color</label>
                             <div class="setting-value">Choose your favorite accent color</div>
@@ -175,6 +180,33 @@
                                 <div class="color-preset" data-hue="30" onclick="setPrimaryHue(30)" style="background:#ff9500"></div>
                                 <div class="color-preset" data-hue="120" onclick="setPrimaryHue(120)" style="background:#34c759"></div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-item" style="border:none;">
+                        <div class="setting-info">
+                            <label class="setting-label"><lang lang="lang__085">Language</lang></label>
+                            <div class="setting-value"><lang lang="lang__086">Select your preferred language</lang></div>
+                        </div>
+                        <div class="setting-action">
+                            <select id="setting-language-select" class="setting-select" onchange="changeLanguage(this.value)">
+                                <option value="en-us">English</option>
+                                <option value="vi-vn">Tiếng Việt</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="setting-tab-device" style="display:none;">
+                    <h2 class="setting-section-title">Active Sessions</h2>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn-danger-outline" onclick="_revoke_all_sessions()" style="width:100%;">
+                            <i class="fa-solid fa-right-from-bracket"></i> Log Out All Other Devices
+                        </button>
+                    </div>
+                    <div id="session-list">
+                        <div style="text-align:center; padding:20px; color:var(--color-text-dim);">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading sessions...
                         </div>
                     </div>
                 </div>

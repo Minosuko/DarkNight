@@ -30,9 +30,8 @@
 			</div>
 			<br><br><br>
 		</div>
+		
 		<script>
-            // Ensure fetch_post logic handles the new CSS structure if needed, 
-            // but mostly it generates HTML. We need to ensure that HTML matches main.css
 			fetch_post("fetch_post.php");
 		</script>
 	</body>

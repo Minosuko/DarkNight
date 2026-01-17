@@ -28,10 +28,7 @@ if(isset($_GET['id'])){
 					die('{"success":1,"c":'.($c ? 1 : 0).'}');
 				}
 			}
-			$sql = sprintf(
-				"INSERT INTO `comments` (`post_id`, `user_id`, `comment`, `comment_time`) VALUES ('$post_id', '$user_id', '$comment', '$timestamp')",
-				$conn->real_escape_string($comment)
-			);
+			$sql = "INSERT INTO `comments` (`post_id`, `user_id`, `comment`, `comment_time`) VALUES ('$post_id', '$user_id', '" . $conn->real_escape_string($comment) . "', '$timestamp')";
 			$query = $conn->query($sql);
 			if($query){
 				// TRIGGER NOTIFICATION

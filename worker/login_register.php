@@ -54,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 		$userbirthdate  = strtotime($_POST['birthday']);
 		$usergender     = $_POST['usergender'];
 		$userabout      = '';
-		$user_token     = _generate_token(); // From functions.php (or move to User/Utils)
 		$usergender 	= in_array($usergender,["F","M","U"]) ? $usergender : "U";
 		
         if(!validateDate($_POST['birthday'])) die('{"success":0,"err":"invalid_date"}');
@@ -73,10 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if(strtolower($useremail) == strtolower($existing['user_email'])){
 				die('{"success":0,"err":"exist_email"}');
 			}
-		}else{
-            $query = User::create($userfirstname, $userlastname, $usernickname, $userpassword, $useremail, $usergender, $userbirthdate, $userabout, $user_token);
+        }else{
+            $timestamp = time();
+            $query = User::create($userfirstname, $userlastname, $usernickname, $userpassword, $useremail, $usergender, $userbirthdate, $userabout, $timestamp);
             
-			$link = (isset($_SERVER["HTTPS"]) ? 'https' : 'http')."://". $_SERVER['SERVER_NAME'].'/verify.php?t=verify&user_email='.htmlspecialchars($useremail).'&username='.htmlspecialchars($usernickname).'&h='.hash('sha256',($userpassword.$user_token));
+			$link = (isset($_SERVER["HTTPS"]) ? 'https' : 'http')."://". $_SERVER['SERVER_NAME'].'/verify.php?t=verify&user_email='.htmlspecialchars($useremail).'&username='.htmlspecialchars($usernickname).'&h='.hash('sha256',($userpassword.$timestamp));
 			SendVerifyMail($useremail,"$userfirstname $userlastname",$link);
 			if($query){
 				die('{"success":1,"go":"verify.php?t=registered"}');
