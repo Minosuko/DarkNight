@@ -11,6 +11,7 @@ require_once __DIR__ . "/classes/Comment.php";
 require_once __DIR__ . "/classes/Friend.php";
 require_once __DIR__ . "/classes/Utils.php";
 require_once __DIR__ . "/classes/QRCode.php";
+require_once __DIR__ . "/classes/Group.php";
 require_once __DIR__ . "/config/auth.php";
 require_once __DIR__ . "/classes/JWT.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
@@ -573,16 +574,6 @@ function Has2FA($userID){
 	
 	return false;
 }
-function _get_session_info(){
-	$conn = $GLOBALS['conn'];
-	$sql = sprintf(
-		"SELECT * FROM users WHERE user_token = '%s'",
-		$conn->real_escape_string($token)
-	);
-	$query = $conn->query($sql);
-	$fetch = $query->fetch_assoc();
-	return $fetch;
-}
 function _verify($username, $email, $hash){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
@@ -593,7 +584,7 @@ function _verify($username, $email, $hash){
 	$query = $conn->query($sql);
 	if($query->num_rows > 0){
 		$fetch = $query->fetch_assoc();
-		if(hash('sha256',($fetch['user_password'].$fetch['user_token'])) == $hash){
+		if(hash('sha256',($fetch['user_password'].$fetch['user_create_date'])) == $hash){
 			$sql = sprintf(
 				"UPDATE users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
 				$conn->real_escape_string($username),
@@ -608,7 +599,7 @@ function _verify($username, $email, $hash){
 function _is_same_browser($userID){
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM session WHERE user_id = %d browser_id = '%s'",
+		"SELECT * FROM session WHERE user_id = %d AND browser_id = '%s'",
 		$userID,
 		$conn->real_escape_string($_COOKIE['browser_id'])
 	);
@@ -629,12 +620,26 @@ function new_session($time, $userID, $auth2FA){
         $session_id = uniqid();
         $session_token = _generate_token("SesAuth_");
         $conn = $GLOBALS['conn'];
+        
+        // Parse User Agent
+        $browserInfo = getBrowser();
+        $os = $conn->real_escape_string($browserInfo['platform']);
+        $browser = $conn->real_escape_string($browserInfo['name']);
+        $os_ver = $conn->real_escape_string($browserInfo['version']); // Note: getBrowser returns version of browser, logic might need adjustment for OS version if needed, but getBrowser is simple.
+        // Actually getBrowser returns browser version primarily. Platform is just os string.
+        // We will store browser version in browser_ver. OS version is not parsed by getBrowser, so leave null or implement better parser later. 
+        // For now, let's just use what we have.
+        $browser_ver = $conn->real_escape_string($browserInfo['version']);
+        
         // Insert into DB for "Active Sessions" UI, but NOT for validation
         $sql = sprintf(
-            "INSERT INTO session (session_id, session_token,session_device,user_id,session_ip,session_valid,last_online,browser_id,login_time) VALUES ('%s','%s','%s',%d,'%s',%d,%d,'%s',%d)",
+            "INSERT INTO session (session_id, session_token, session_device, session_os, session_browser, session_os_ver, session_browser_ver, user_id, session_ip, session_valid, last_online, browser_id, login_time) VALUES ('%s','%s','%s','%s','%s',NULL,'%s',%d,'%s',%d,%d,'%s',%d)",
             $session_id,
             $session_token,
             $conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
+            $os,
+            $browser,
+            $browser_ver,
             $userID,
             getUserIP(),
             $auth2FA,
@@ -692,6 +697,14 @@ function _is_session_valid($checkActive = true){
     if($payload['browser_id'] !== $_COOKIE['browser_id']) {
         return false;
     }
+    
+    // Revocation Check: Verify session exists in DB
+    $conn = $GLOBALS['conn'];
+    $sid = $conn->real_escape_string($payload['session_id']);
+    $res = $conn->query("SELECT session_id FROM session WHERE session_id = '$sid' LIMIT 1");
+    if($res->num_rows == 0){
+        return false; // Session revoked/deleted
+    }
 
     // Checking 'active' status
     if ($checkActive) {
@@ -701,7 +714,6 @@ function _is_session_valid($checkActive = true){
         // But if they get banned/deactivated, we need to know.
         // Let's perform a lightweight lookup or cache it.
         // For strictness + load reduction: simple PK lookup is fast.
-         $conn = $GLOBALS['conn'];
          $uid = $payload['user_id'];
          $res = $conn->query("SELECT active FROM users WHERE user_id = $uid LIMIT 1");
          if($res && $row = $res->fetch_assoc()) {

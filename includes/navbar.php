@@ -28,6 +28,7 @@ if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
             </a>
         </li>
         <li><a href="/friends.php" onclick="changeUrl('/friends.php'); return false;" title="Friends"><i class="fa-solid fa-user-group"></i></a></li>
+        <li><a href="/groups.php" onclick="changeUrl('/groups.php'); return false;" title="Groups"><i class="fa-solid fa-users"></i></a></li>
         <li><a href="/home.php" class="active" onclick="changeUrl('/home.php'); return false;" title="Home"><i class="fa-solid fa-house"></i></a></li>
         <li><a href="/profile.php" onclick="changeUrl('/profile.php'); return false;" title="Profile"><i class="fa-solid fa-user"></i></a></li>
         <li>

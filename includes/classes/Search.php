@@ -88,4 +88,28 @@ class Search {
         
         return $rows;
     }
+
+    public static function groups($query, $viewerId, $page = 0) {
+        $db = Database::getInstance();
+        $limit = 20;
+        $offset = intval($page) * $limit;
+        $key = $db->escape($query);
+        $viewerId = intval($viewerId);
+        
+        $sql = "SELECT g.*, 
+                (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id AND status = 1) as member_count,
+                m_pfp.media_hash as pfp_media_hash,
+                m_cov.media_hash as cover_media_hash,
+                (SELECT status FROM group_members WHERE group_id = g.group_id AND user_id = $viewerId) as my_status
+                FROM groups g
+                LEFT JOIN media m_pfp ON g.pfp_media_id = m_pfp.media_id
+                LEFT JOIN media m_cov ON g.cover_media_id = m_cov.media_id
+                WHERE (g.group_name LIKE '%$key%' OR g.group_about LIKE '%$key%')
+                  AND g.group_privacy >= 1 -- Only public and closed groups are searchable
+                ORDER BY member_count DESC
+                LIMIT $limit OFFSET $offset";
+        
+        $result = $db->query($sql);
+        return $result->fetch_all(MYSQLI_ASSOC);
+    }
 }

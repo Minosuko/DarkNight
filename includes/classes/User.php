@@ -23,24 +23,14 @@ class User {
         return $result->num_rows > 0;
     }
 
-    public static function checkActive($token) {
+    public static function checkActive($id) {
         $db = Database::getInstance();
         $sql = sprintf(
-            "SELECT user_id FROM users WHERE user_token = '%s' AND active = 1",
-            $db->escape($token)
+            "SELECT user_id FROM users WHERE user_id = %d AND active = 1",
+            $db->escape($id)
         );
         $query = $db->query($sql);
         return ($query->num_rows == 1);
-    }
-
-    public static function getDataByToken($token) {
-        $db = Database::getInstance();
-        $sql = sprintf(
-            "SELECT * FROM users WHERE user_token = '%s'",
-            $db->escape($token)
-        );
-        $query = $db->query($sql);
-        return $query->fetch_assoc();
     }
 
     public static function getDataById($id) {
@@ -63,7 +53,8 @@ class User {
         $query = $db->query($sql);
         if ($query->num_rows > 0) {
             $fetch = $query->fetch_assoc();
-            if (hash('sha256', ($fetch['user_password'] . $fetch['user_token'])) == $hash) {
+            // Use user_create_date as salt since user_token is removed
+            if (hash('sha256', ($fetch['user_password'] . $fetch['user_create_date'])) == $hash) {
                 $updateSql = sprintf(
                     "UPDATE users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
                     $db->escape($username),
@@ -90,10 +81,10 @@ class User {
         return null;
     }
 
-    public static function create($firstname, $lastname, $nickname, $password, $email, $gender, $birthdate, $about, $token) {
+    public static function create($firstname, $lastname, $nickname, $password, $email, $gender, $birthdate, $about, $create_date) {
         $db = Database::getInstance();
         $sql = sprintf(
-            "INSERT INTO users(user_firstname, user_lastname, user_nickname, user_password, user_email, user_gender, user_birthdate, user_about, user_token, user_create_date) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
+            "INSERT INTO users(user_firstname, user_lastname, user_nickname, user_password, user_email, user_gender, user_birthdate, user_about, user_create_date) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
             $db->escape($firstname),
             $db->escape($lastname),
             $db->escape($nickname),
@@ -102,8 +93,7 @@ class User {
             $db->escape($gender),
             $db->escape($birthdate),
             $db->escape($about),
-            $db->escape($token),
-            time()
+            $create_date
         );
         return $db->query($sql);
     }
