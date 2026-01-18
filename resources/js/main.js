@@ -338,6 +338,45 @@ function _revoke_all_sessions(confirmed = false) {
 	});
 }
 
+function _pin_post(postId) {
+	togglePostOptions(postId);
+	$.post(backend_url + "post_action.php", { action: 'pin', post_id: postId }, function (r) {
+		if (r.success === 1) {
+			const postEl = gebi('post_id-' + postId);
+			if (!postEl) {
+				location.reload(); // Fallback if element not found
+				return;
+			}
+
+			// Clear ANY existing pinned state in the feed visually
+			$('.pinned-label').remove();
+			$('.post-options-item .fa-thumbtack').siblings('span').text('Pin Post');
+
+			if (r.status === 'pinned') {
+				// 1. Add indicator to this post
+				let pinLabel = window["lang__087"] || "Pinned Post";
+				let pinHtml = '<div class="pinned-label" style="font-size:0.85rem; color:var(--color-text-dim); margin-bottom: 8px; margin-left:2px;"><i class="fa-solid fa-thumbtack" style="transform:rotate(45deg); margin-right:5px;"></i> ' + pinLabel + '</div>';
+				$(postEl).prepend(pinHtml);
+
+				// 2. Update menu label for THIS post
+				$(postEl).find('.post-options-item .fa-thumbtack').siblings('span').text('Unpin Post');
+
+				// 3. Move to top if on Profile or Group page
+				const u = window.location.pathname;
+				if (u.includes('profile.php') || u.includes('group.php')) {
+					$('#feed').prepend(postEl);
+				}
+			} else {
+				// Unpinned - we already cleared indicators above
+				// If it was at the top, it stays there until refresh or we could try to move it back,
+				// but that's complex without knowing original order. Leaving it is fine.
+			}
+		} else {
+			_alert_modal(r.err || "Failed to pin post.");
+		}
+	});
+}
+
 function _delete_post(postId, confirmed = false) {
 	if (!confirmed) {
 		_confirm_modal("Are you sure you want to delete this post?", "_delete_post(" + postId + ", true)");
@@ -608,9 +647,7 @@ function processAjaxData(r, u) {
 	if (u === "/logout.php" || u === "logout.php")
 		location.reload();
 	if (u === "/friends.php" || u === "friends.php")
-		fetch_friend_list('fetch_friend_list.php');
-	if (u === "/requests.php" || u === "requests.php")
-		fetch_friend_request('fetch_friend_request.php');
+		initFriendsPage();
 	if (u === "/notification.php" || u === "notification.php")
 		loadNotifications();
 	if (u.indexOf("/groups.php") === 0 || u.indexOf("groups.php") === 0)
@@ -626,6 +663,7 @@ function processAjaxData(r, u) {
 	changeUrlWork();
 	textAreaRework();
 	updateActiveNavbar(u);
+	initCustomSelects(); // Theming new content
 }
 
 function updateActiveNavbar(u) {
@@ -682,15 +720,24 @@ function createPostHTML(s) {
 	var originalId = s['post_id'];
 
 	a += '<div class="post" id="post_id-' + originalId + '">';
+
+	// Pinned Indicator & Spoiler Badge
+	if (s['is_pinned'] == 1 || s['is_spoiler'] == 1) {
+		a += '<div style="display:flex; gap:10px; align-items:center; margin-bottom: 8px; margin-left:2px;">';
+		if (s['is_pinned'] == 1) {
+			a += '<div class="pinned-label" style="font-size:0.85rem; color:var(--color-text-dim);"><i class="fa-solid fa-thumbtack" style="transform:rotate(45deg); margin-right:5px;"></i> ' + (window["lang__087"] || "Pinned Post") + '</div>';
+		}
+		a += '</div>';
+	}
+
 	a += '<div class="header">';
 
-	// PFP
+	// Left Side: PFP + User Info
 	a += '<img class="pfp" src="';
 	a += (s['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + s['pfp_media_id'] + "&h=" + s['pfp_media_hash'] : getDefaultUserImage(s['user_gender']);
 	a += '" width="40px" height="40px">';
 
-	a += '<div class="header-info">'; // Wrapper
-
+	a += '<div class="header-info">';
 	// User Name
 	a += '<div class="user_name">';
 	a += '<a class="profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'] + '</a>';
@@ -700,6 +747,7 @@ function createPostHTML(s) {
 	if (s.group_id > 0 && s.group_name) {
 		a += ' <i class="fa-solid fa-caret-right" style="margin:0 5px; color:var(--color-text-dim); font-size:0.8em;"></i> ';
 		a += '<a href="group.php?id=' + s.group_id + '" class="profilelink" onclick="changeUrl(\'group.php?id=' + s.group_id + '\'); return false;" style="color:var(--color-text-main); font-weight:600;">' + s.group_name + '</a>';
+		if (s.group_verified > 0) a += '<i class="fa-solid fa-badge-check verified_color_' + s.group_verified + '" style="margin-left:5px;" title="Verified Community"></i>';
 	}
 	a += '</div>';
 
@@ -715,19 +763,48 @@ function createPostHTML(s) {
 		default: a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>'; break;
 	}
 	a += '</div>'; // End Meta
-
 	a += '</div>'; // End header-info
+
+	// Right Side: Options Menu (3-dot)
+	var postUrl = window.location.origin + '/post.php?id=' + originalId;
+	a += '<div class="post-options-container">';
+	a += '  <div class="post-options-btn" onclick="togglePostOptions(' + originalId + ')"><i class="fa-solid fa-ellipsis"></i></div>';
+	a += '  <div class="post-options-menu" id="post-options-menu-' + originalId + '">';
+
+	// Pin Option Logic
+	var showPin = false;
+	var pinLabel = (s['is_pinned'] == 1) ? "Unpin Post" : "Pin Post";
+	if (s['group_id'] == 0 && s['is_mine'] == 1) showPin = true;
+	if (s['group_id'] > 0 && s['can_pin'] == 1) showPin = true;
+
+	if (showPin) {
+		a += '    <div class="post-options-item" onclick="_pin_post(' + originalId + ')"><i class="fa-solid fa-thumbtack"></i><span>' + pinLabel + '</span></div>';
+		a += '    <div class="menu-divider"></div>';
+	}
+
+	a += '    <div class="post-options-item" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-feed-' + originalId + '\'); togglePostOptions(' + originalId + ')">';
+	a += '      <i class="fa-regular fa-link"></i><span>Copy Link</span><span id="copy-btn-feed-' + originalId + '" style="display:none"></span>';
+	a += '    </div>';
+
+	if (s['is_mine'] == 1 || s['can_delete'] == 1) {
+		a += '    <div class="menu-divider"></div>';
+		if (s['is_mine'] == 1) {
+			a += '    <div class="post-options-item" onclick="_open_edit_post(' + originalId + ')"><i class="fa-regular fa-pen-to-square"></i><span>Edit Post</span></div>';
+		}
+		if (s['is_mine'] == 1 || s['can_delete'] == 1) {
+			a += '    <div class="post-options-item" style="color: #ff4d4d;" onclick="_delete_post(' + originalId + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
+		}
+	}
+	a += '  </div></div>';
+
 	a += '</div>'; // End header
 	a += '<br>';
 
 	// --- Content Rendering ---
-	// If it's a shared post, wrap content in a share-post container
 	if (isShare) {
-		// Shared Post Content (Logic simplified for clarity, keeping structure)
-		var pflag = s['share']["pflag"]; // Permission flag
+		var pflag = s['share']["pflag"];
 		if (pflag) {
 			a += '<div class="share-post" id="post_id-' + postId + '">';
-			// Shared Header
 			a += '<div class="header">';
 			a += '<img class="pfp" src="';
 			a += (post['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + post['pfp_media_id'] + "&h=" + post['pfp_media_hash'] : getDefaultUserImage(post['user_gender']);
@@ -738,58 +815,32 @@ function createPostHTML(s) {
 			a += '</div>';
 			a += '<div class="postedtime"><span class="nickname">@' + post['user_nickname'] + '</span> • <span title="' + timeConverter(post['post_time'] * 1000) + '">' + timeSince(post['post_time'] * 1000) + '</span></div>';
 			a += '</div></div><br>';
-
-			// Shared Caption & Media
 			a += renderPostContent(post, true);
-
-			a += '</div>'; // End share-post
+			a += '</div>';
 		} else {
 			a += '<div class="share-post"><p style="font-size: 150%;text-align: center">' + window["lang__013"] + '</p></div>';
 		}
 	} else {
-		// Standard Post Content
 		a += renderPostContent(s, false);
 	}
-
-	// --- Options Menu ---
-	var postUrl = window.location.origin + '/post.php?id=' + originalId;
-	a += '<div class="post-options-container">';
-	a += '  <div class="post-options-btn" onclick="togglePostOptions(' + originalId + ')"><i class="fa-solid fa-ellipsis"></i></div>';
-	a += '  <div class="post-options-menu" id="post-options-menu-' + originalId + '">';
-	a += '    <div class="post-options-item" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-feed-' + originalId + '\'); togglePostOptions(' + originalId + ')">';
-	a += '      <i class="fa-regular fa-link"></i><span>Copy Link</span><span id="copy-btn-feed-' + originalId + '" style="display:none"></span>';
-	a += '    </div>';
-	if (s['is_mine'] == 1) {
-		a += '    <div class="post-options-item" onclick="_open_edit_post(' + originalId + ')"><i class="fa-regular fa-pen-to-square"></i><span>Edit Post</span></div>';
-		a += '    <div class="post-options-item" style="color: #ff4d4d;" onclick="_delete_post(' + originalId + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
-	}
-	a += '  </div></div>';
 
 	a += '<br>';
 
 	// --- Actions Bar ---
-	var interactionId = isShare ? originalId : originalId; // Interactions are always on the main post object (s)
+	var interactionId = isShare ? originalId : originalId;
 	var likedClass = (s['is_liked'] == 1) ? 'p-heart fa-solid' : 'white-col fa-regular';
 
 	a += '<div class="bottom"><div class="reaction-bottom">';
-
-	// Like
 	a += '<div class="reaction-box likes" onclick="_like(' + originalId + ')">';
 	a += '<i class="' + likedClass + ' icon-heart fa-heart icon-click" id="post-like-' + originalId + '"></i>';
 	a += ' <a z-var="counter call roller" id="post-like-count-' + originalId + '">' + s['total_like'] + '</a>';
 	a += '</div>';
-
-	// Comment
 	a += '<div class="reaction-box comment" onclick="_open_post(' + originalId + ')">';
 	a += '<i class="fa-regular fa-comment icon-click" id="post-comment-' + originalId + '"></i>';
 	a += ' <a z-var="counter call roller" id="post-comment-count-' + originalId + '">' + s['total_comment'] + '</a>';
 	a += '</div>';
 
-	// Share
-	// Logic: If it's a shared post, we share the ORIGINAL post that was shared (the inner one). 
-	// If standard post, we share it.
 	var shareTargetId = isShare ? s['share']['post_id'] : s['post_id'];
-	// Check if inner content is sharable (not private/deleted) - reusing pflag logic if shared
 	var canShare = true;
 	if (isShare && !s['share']['pflag']) canShare = false;
 
@@ -799,7 +850,6 @@ function createPostHTML(s) {
 		a += ' <a z-var="counter call roller" id="post-share-count-' + originalId + '">' + s['total_share'] + '</a>';
 		a += '</div>';
 	}
-
 	a += '</div></div></div></br>';
 	return a;
 }
@@ -837,16 +887,30 @@ function renderPostContent(post, isSharedRender) {
 	h += '<pre class="caption" ' + captionStyle + '>' + post['post_caption'] + '</pre></div>';
 
 	// Media
+	var mediaHtml = "";
 	if (post['post_media_list']) {
-		h += renderMedia(post['post_media_list']);
+		mediaHtml = renderMedia(post['post_media_list']);
 	} else if (post['post_media'] != 0) {
 		// Fallback for single media legacy
-		h += '<center>';
+		mediaHtml += '<center>';
 		if (post['is_video'])
-			h += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + post['post_id'] + suffix + '" controls></video>';
+			mediaHtml += '<video style="max-height:500px; max-width: 100%" src="data/empty.mp4" type="video/mp4" id="video_pid-' + post['post_id'] + suffix + '" controls></video>';
 		else
-			h += '<img src="' + media_cdn + "&id=" + post['post_media'] + "&h=" + post['media_hash'] + '" style="max-width:100%;">';
-		h += '</center>';
+			mediaHtml += '<img src="' + media_cdn + "&id=" + post['post_media'] + "&h=" + post['media_hash'] + '" style="max-width:100%;">';
+		mediaHtml += '</center>';
+	}
+
+	if (post['is_spoiler'] == 1 && mediaHtml != "") {
+		h += '<div class="blurred-media-container" onclick="this.classList.add(\'revealed\')">';
+		h += '<div class="spoiler-overlay">';
+		h += '<i class="fa-solid fa-eye-slash"></i>';
+		h += '<div class="spoiler-text">Spoiler Content</div>';
+		h += '<button class="btn-view-spoiler">View Content</button>';
+		h += '</div>';
+		h += mediaHtml;
+		h += '</div>';
+	} else {
+		h += mediaHtml;
 	}
 
 	return h;
@@ -971,6 +1035,37 @@ function modal_open(type, pid = null) {
 				h += '</div>';
 				h += '</div>';
 
+				// Relationship Status
+				h += '<div style="margin-bottom:15px; display:flex; gap:15px;">';
+				h += '  <div style="flex:1;">';
+				h += '    <label class="input-label">Relationship Status</label>';
+				h += '    <select id="userstatus" class="index_input_box" onchange="_toggleRelationshipPartner(this.value)">';
+				h += '      <option value="N" ' + (data.user_status == 'N' ? 'selected' : '') + '>Not specified</option>';
+				h += '      <option value="S" ' + (data.user_status == 'S' ? 'selected' : '') + '>Single</option>';
+				h += '      <option value="L" ' + (data.user_status == 'L' ? 'selected' : '') + '>In a relationship</option>';
+				h += '      <option value="E" ' + (data.user_status == 'E' ? 'selected' : '') + '>Engaged</option>';
+				h += '      <option value="M" ' + (data.user_status == 'M' ? 'selected' : '') + '>Married</option>';
+				h += '      <option value="D" ' + (data.user_status == 'D' ? 'selected' : '') + '>Divorced</option>';
+				h += '      <option value="U" ' + (data.user_status == 'U' ? 'selected' : '') + '>Widowed</option>';
+				h += '    </select>';
+				h += '  </div>';
+
+				var showPartner = (['L', 'E', 'M'].indexOf(data.user_status) !== -1);
+				h += '  <div style="flex:1; ' + (showPartner ? '' : 'display:none;') + '" id="partner_selector_container">';
+				h += '    <label class="input-label">Partner</label>';
+				h += '    <select id="relationship_user_id" class="index_input_box">';
+				h += '      <option value="0">None</option>';
+				if (data.relationship_user_id > 0) {
+					h += '<option value="' + data.relationship_user_id + '" selected>' + data.relationship_partner_name + '</option>';
+				}
+				h += '    </select>';
+				h += '  </div>';
+				h += '</div>';
+
+				if (showPartner) {
+					setTimeout(() => { _loadFriendListForRelationship(data.relationship_user_id); }, 100);
+				}
+
 				h += '</div>'; // End Body
 
 				h += '<div class="upload-modal-footer">';
@@ -979,6 +1074,7 @@ function modal_open(type, pid = null) {
 				h += '</div>'; // End Container
 
 				content.innerHTML = h;
+				initCustomSelects();
 
 				// Reset Styles
 				content.style.padding = "0";
@@ -1014,6 +1110,7 @@ function modal_open(type, pid = null) {
 				h += '</div>';
 				h += '</div>';
 				content.innerHTML = h;
+				initCustomSelects();
 			}
 		});
 	} else if (type === '2fa_disable') {
@@ -1039,6 +1136,7 @@ function modal_open(type, pid = null) {
 		h += '</div>';
 		h += '</div>';
 		content.innerHTML = h;
+		initCustomSelects();
 	} else if (type === '2fa_select') {
 		const options = [
 			{
@@ -1083,6 +1181,7 @@ function modal_open(type, pid = null) {
 			</div>`;
 
 		content.innerHTML = h;
+		initCustomSelects();
 		// Ensure modal content can expand for ultra-wide support
 		const modalContent = gebi('modal-content');
 		modalContent.style.maxWidth = '1200px';
@@ -1117,6 +1216,7 @@ function modal_open(type, pid = null) {
 		h += '</div>';
 		h += '</div>';
 		content.innerHTML = h;
+		initCustomSelects();
 	}
 }
 // Replaced _load_comment and _load_next_comment_page
@@ -1316,6 +1416,7 @@ function _share(id) {
 		a += '</div>';
 
 		gebi("modal_content").innerHTML = a;
+		initCustomSelects();
 
 		$(document).ready(function () {
 			$('#imagefile').change(function () {
@@ -1414,6 +1515,39 @@ function fetch_friend_request(loc) {
 		changeUrlWork();
 	});
 }
+// Initialize Friends Page with Tabs
+function initFriendsPage() {
+	load_lang();
+	// Load friends list on page load
+	fetch_friend_list('fetch_friend_list.php');
+
+	// Load request count for badge
+	$.get(backend_url + 'friend_request_count.php', function (data) {
+		if (data && data.count > 0) {
+			$('#request-count-badge').text(data.count).show();
+		} else {
+			$('#request-count-badge').hide();
+		}
+	});
+
+	// Tab switching logic
+	$('.friends-tab').off('click').on('click', function () {
+		var tab = $(this).data('tab');
+
+		// Update active tab
+		$('.friends-tab').removeClass('active');
+		$(this).addClass('active');
+
+		// Update active content
+		$('.friends-content').removeClass('active');
+		$('#' + tab + '-content').addClass('active');
+
+		// Load content if not already loaded
+		if (tab === 'requests' && $('#friend_reqest_list').children().length === 0) {
+			fetch_friend_request('fetch_friend_request.php');
+		}
+	});
+}
 // Global storage for current viewing profile
 var _currentProfileData = null;
 
@@ -1490,8 +1624,7 @@ function _render_profile_header(data) {
 	// Actions Bar
 	h += '<div class="profile-actions-bar">';
 	if (data['flag'] == 0) { // Own profile (0 = Me)
-		// Edit
-		h += '<button class="btn-primary" onclick="modal_open(\'settings\')"><i class="fa-solid fa-pen"></i> Edit Profile</button>';
+		// Edit - Removed as per user request (moved to About tab)
 	} else {
 		// Friend Button
 		if (data['friendship_status'] != null) {
@@ -1545,6 +1678,9 @@ function _render_profile_header(data) {
 			case "D": statusText = window['lang__075']; break;
 			case "U": statusText = window['lang__076']; break;
 		}
+		if (data['relationship_user_id'] > 0 && data['relationship_partner_name']) {
+			statusText += ' with <a href="profile.php?id=' + data['relationship_user_id'] + '" onclick="route(event, this)" style="color:var(--color-text-primary); font-weight:600; text-decoration:none;">' + data['relationship_partner_name'] + '</a>';
+		}
 		h += '<span><i class="fa-solid fa-heart"></i> ' + statusText + '</span>';
 	}
 
@@ -1571,6 +1707,9 @@ function _render_profile_header(data) {
 	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'about\', \'' + (id_a || '') + '\', this)">About</div>';
 	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'friends\', \'' + (id_a || '') + '\', this)">Friends</div>';
 	h += '<div class="profile-tab-item" onclick="switchProfileTab(\'photos\', \'' + (id_a || '') + '\', this)">Photos</div>';
+	if (data['flag'] == 0) {
+		h += '<div class="profile-tab-item" onclick="switchProfileTab(\'likes\', \'' + (id_a || '') + '\', this)">Likes</div>';
+	}
 	h += '</div>';
 
 	h += '</div>'; // End Info Section
@@ -1637,6 +1776,8 @@ function switchProfileTab(tabName, id_a, tabElement) {
 		_load_profile_friends(id_a);
 	} else if (tabName === 'photos') {
 		_load_profile_photos(id_a);
+	} else if (tabName === 'likes') {
+		fetch_post("fetch_liked_posts.php" + id_a, true);
 	}
 }
 
@@ -1654,6 +1795,12 @@ function _load_profile_about() {
 	}
 
 	var h = '<div class="profile-about-container">';
+
+	if (d.flag == 0) {
+		h += '<div style="margin-bottom:20px; text-align:right;">';
+		h += '  <button class="btn-primary btn-sm" onclick="modal_open(\'settings\')"><i class="fa-solid fa-pen"></i> Edit About Info</button>';
+		h += '</div>';
+	}
 
 	// Bio/About Section
 	h += '<div class="about-card">';
@@ -1688,7 +1835,13 @@ function _load_profile_about() {
 			case "U": status = 'Widowed'; break;
 		}
 	}
-	h += _render_about_item('fa-heart', 'Relationship Status', status);
+
+	var statusHtml = status;
+	if (d.relationship_user_id > 0 && d.relationship_partner_name) {
+		statusHtml += ' with <a href="profile.php?id=' + d.relationship_user_id + '" onclick="route(event, this)" style="color:var(--color-primary); font-weight:600;">' + d.relationship_partner_name + '</a>';
+	}
+
+	h += _render_about_item('fa-heart', 'Relationship Status', statusHtml);
 
 	// Hometown
 	h += _render_about_item('fa-location-dot', 'Hometown', d.user_hometown || 'Not specified');
@@ -1761,7 +1914,8 @@ function _load_profile_photos(id_a) {
 			var isVideo = (m.media_format.indexOf('video') !== -1);
 			var mUrl = (isVideo ? video_cdn : media_cdn) + "&id=" + m.media_id + "&h=" + m.media_hash;
 
-			h += '<div class="media-grid-item" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
+			var spoilerClass = (m.is_spoiler == 1) ? ' is-spoiler' : '';
+			h += '<div class="media-grid-item' + spoilerClass + '" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
 			if (isVideo) {
 				h += '<video src="' + mUrl + '"></video>';
 				h += '<div class="media-type-icon"><i class="fa-solid fa-play"></i></div>';
@@ -1843,7 +1997,9 @@ function _render_group_header(d) {
 	// Name & Metadata Section
 	h += '<div class="profile-info-section">';
 	h += '  <div class="profile-names">';
-	h += '    <h1 class="profile-fullname">' + d.group_name + '</h1>';
+	h += '    <h1 class="profile-fullname">' + d.group_name;
+	if (d.verified > 0) h += ' <i class="fa-solid fa-badge-check verified_color_' + d.verified + '" title="Verified Community" style="font-size:0.8em; margin-left:8px;"></i>';
+	h += '</h1>';
 
 	// Privacy & Meta Badges
 	var privIcon = (d.group_privacy == 2) ? 'fa-globe' : (d.group_privacy == 1 ? 'fa-lock' : 'fa-eye-slash');
@@ -1975,7 +2131,8 @@ function _load_group_photos(id_a) {
 			var isVideo = (m.media_format.indexOf('video') !== -1);
 			var mUrl = (isVideo ? video_cdn : media_cdn) + "&id=" + m.media_id + "&h=" + m.media_hash;
 
-			h += '<div class="media-grid-item" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
+			var spoilerClass = (m.is_spoiler == 1) ? ' is-spoiler' : '';
+			h += '<div class="media-grid-item' + spoilerClass + '" onclick="_openPostMediaLightbox(' + m.post_id + ')">';
 			if (isVideo) {
 				h += '<video src="' + mUrl + '"></video>';
 				h += '<div class="media-type-icon"><i class="fa-solid fa-play"></i></div>';
@@ -2025,16 +2182,41 @@ function _load_group_members(id_a, query = '') {
 		}
 
 		var h = '<div class="profile-friend-grid">';
+		var myRole = _currentGroupData.my_role;
 		data.forEach(function (m) {
 			var pUrl = m.pfp_media_hash ? media_cdn + "&id=" + m.pfp_media_id + "&h=" + m.pfp_media_hash : "data/images/U.png";
 			var roleLabel = (m.role == 2) ? 'Admin' : (m.role == 1 ? 'Moderator' : 'Member');
 			var roleClass = (m.role >= 1) ? 'style="color:var(--color-primary); font-weight:bold;"' : '';
 
-			h += '<a href="profile.php?id=' + m.user_id + '" class="friend-card" onclick="route(event, this)">';
-			h += '  <img src="' + pUrl + '" class="friend-card-pfp">';
-			h += '  <div class="friend-card-name">' + m.user_firstname + ' ' + m.user_lastname + (m.verified == 1 ? ' <i class="fa-solid fa-circle-check" style="color:var(--color-primary); font-size:0.8em;"></i>' : '') + '</div>';
-			h += '  <div class="friend-card-username" ' + roleClass + '>' + roleLabel + '</div>';
-			h += '</a>';
+			h += '<div class="friend-card group-member-card">';
+			h += '  <a href="profile.php?id=' + m.user_id + '" onclick="route(event, this)" style="text-decoration:none; color:inherit; display:block; text-align:center;">';
+			h += '    <img src="' + pUrl + '" class="friend-card-pfp">';
+			h += '    <div class="friend-card-name">' + m.user_firstname + ' ' + m.user_lastname + (m.verified == 1 ? ' <i class="fa-solid fa-circle-check" style="color:var(--color-primary); font-size:0.8em;"></i>' : '') + '</div>';
+			h += '    <div class="friend-card-username" ' + roleClass + '>' + roleLabel + '</div>';
+			if (m.joined_time) {
+				h += '    <div class="friend-card-meta" style="font-size:0.75rem; color:var(--color-text-dim); margin-top:4px;">Joined ' + timeSince(m.joined_time * 1000) + ' ago</div>';
+			}
+			h += '  </a>';
+
+			// Management buttons
+			if (m.user_id != lsg('user_id')) {
+				h += '<div class="member-management-actions" style="margin-top:10px; display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">';
+				// Kick
+				if (myRole == 2 || (myRole == 1 && m.role == 0)) {
+					h += '<button class="btn-danger-outline btn-xs" onclick="_group_admin_action(' + _currentGroupData.group_id + ', ' + m.user_id + ', \'kick\')" title="Kick Member"><i class="fa-solid fa-user-xmark"></i></button>';
+				}
+				// Promote/Demote (Only Admin)
+				if (myRole == 2) {
+					if (m.role == 0) {
+						h += '<button class="btn-primary-outline btn-xs" onclick="_group_admin_action(' + _currentGroupData.group_id + ', ' + m.user_id + ', \'promote\')" title="Promote to Moderator"><i class="fa-solid fa-user-shield"></i></button>';
+					} else if (m.role == 1) {
+						h += '<button class="btn-warning-outline btn-xs" onclick="_group_admin_action(' + _currentGroupData.group_id + ', ' + m.user_id + ', \'demote\')" title="Demote to Member"><i class="fa-solid fa-user-minus"></i></button>';
+					}
+				}
+				h += '</div>';
+			}
+
+			h += '</div>';
 		});
 		h += '</div>';
 		mount.innerHTML = h;
@@ -2048,6 +2230,51 @@ function _debounce_group_member_search(id_a) {
 		var q = gebi('group-member-search-input').value;
 		_load_group_members(id_a, q);
 	}, 500);
+}
+
+
+function _group_admin_action(groupId, targetUserId, action) {
+	var actionLabel = (action === 'kick') ? 'kick this member' : (action === 'promote' ? 'promote this member to Moderator' : 'demote this moderator to Member');
+	_confirm_modal("Are you sure you want to " + actionLabel + "?", function () {
+		$.post(backend_url + "group_admin_action.php", { group_id: groupId, target_user_id: targetUserId, action: action }, function (data) {
+			if (data.success == 1) {
+				var id_a = '?id=' + groupId;
+				_load_group_members(id_a);
+				_alert_modal(data.message);
+			} else {
+				_alert_modal(data.message);
+			}
+		});
+	});
+}
+
+// Redefine _confirm_modal slightly to accept functions or strings
+function _confirm_modal(msg, callback) {
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:400px; text-align:center;">';
+	h += '<div class="upload-modal-header" style="justify-content:center;"><h2>Confirm</h2></div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">' + msg + '</div>';
+	h += '<div class="upload-modal-footer" style="justify-content:center; gap: 10px;">';
+	h += '<button class="btn-secondary-outline" onclick="modal_close()">Cancel</button>';
+
+	// Create a unique callback name if it's a function
+	var callbackStr = '';
+	if (typeof callback === 'function') {
+		var cbName = 'cb_' + Math.floor(Math.random() * 1000000);
+		window[cbName] = function () {
+			callback();
+			delete window[cbName];
+		};
+		callbackStr = 'window.' + cbName + '()';
+	} else {
+		callbackStr = callback;
+	}
+
+	h += '<button class="btn-primary" onclick="modal_close(); ' + callbackStr + '">Confirm</button>';
+	h += '</div></div>';
+	content.innerHTML = h;
+	gebi("modal").style.display = "flex";
 }
 
 function _group_membership(groupId, action) {
@@ -2275,7 +2502,9 @@ function _load_groups_discovery() {
 			h += '  </div>';
 			h += '  <div class="group-discovery-info">';
 			h += '    <img src="' + pfpUrl + '" class="group-discovery-pfp">';
-			h += '    <div class="group-discovery-name">' + g.group_name + '</div>';
+			h += '    <div class="group-discovery-name">' + g.group_name;
+			if (g.verified > 0) h += ' <i class="fa-solid fa-badge-check verified_color_' + g.verified + '" style="margin-left:5px;"></i>';
+			h += '</div>';
 			h += '    <div class="group-discovery-about">' + (g.group_about || 'No description.') + '</div>';
 			h += '    <div class="group-discovery-meta">';
 			h += '      <span class="meta-item"><i class="fa-solid fa-user-group"></i> ' + g.member_count + ' Members</span>';
@@ -3086,8 +3315,14 @@ function _load_2fa_status() {
 
 	$.get(backend_url + "2fa_status.php", function (r) {
 		if (r.success === 1) {
-			if (r.enabled) {
-				statusText.innerText = "Enabled";
+			var statusParts = [];
+			if (r.totp_enabled) statusParts.push('Authenticator');
+			if (r.security_keys && r.security_keys.length > 0) {
+				statusParts.push(r.security_keys.length + ' Key' + (r.security_keys.length > 1 ? 's' : ''));
+			}
+
+			if (statusParts.length > 0) {
+				statusText.innerText = statusParts.join(' + ');
 				statusText.style.color = "var(--color-primary)";
 				btn.innerText = "Manage";
 				btn.classList.add("primary");
@@ -3163,9 +3398,12 @@ function _show_2fa_manage_modal(data) {
 		h += '<div class="security-keys-list" style="display:flex; flex-direction:column; gap:10px;">';
 		data.security_keys.forEach(function (key) {
 			h += '<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:12px 15px; border-radius:12px;">';
-			h += '<div><i class="fa-solid fa-key" style="color:var(--color-primary); margin-right:10px;"></i> <strong>' + key.name + '</strong>';
+			h += '<div><i class="fa-solid fa-key" style="color:var(--color-primary); margin-right:10px;"></i> <strong id="key-name-' + key.id + '">' + key.name + '</strong>';
 			h += '<p style="margin:5px 0 0 0; font-size:0.8em; color:var(--color-text-dim);">Added: ' + key.created_at + '</p></div>';
+			h += '<div style="display:flex; gap:8px;">';
+			h += '<button class="btn-icon" onclick="_rename_security_key(' + key.id + ', \'' + key.name.replace(/'/g, "\\'") + '\')" title="Rename Key"><i class="fa-solid fa-pencil"></i></button>';
 			h += '<button class="btn-icon red_alert" onclick="_remove_security_key(' + key.id + ')" title="Remove Key"><i class="fa-solid fa-trash"></i></button>';
+			h += '</div>';
 			h += '</div>';
 		});
 		h += '</div>';
@@ -3196,6 +3434,52 @@ function _remove_security_key(id) {
 				_load_2fa_status(); // Update settings page text
 			} else {
 				alert('Error: ' + data.error);
+			}
+		});
+}
+
+function _rename_security_key(id, currentName) {
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:400px;">';
+	h += '<div class="upload-modal-header">';
+	h += '<h2>Rename Security Key</h2>';
+	h += '<i class="fa-solid fa-xmark close-modal-btn" onclick="_manage_2fa()"></i>';
+	h += '</div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">';
+	h += '<label style="display:block; margin-bottom:8px; color:var(--color-text-dim);">New Name</label>';
+	h += '<input type="text" id="rename-key-input" class="settings_input" value="' + currentName.replace(/"/g, '&quot;') + '" maxlength="100" style="width:100%; margin-bottom:20px;">';
+	h += '<div style="display:flex; gap:10px; justify-content:flex-end;">';
+	h += '<button class="setting-btn" onclick="_manage_2fa()">Cancel</button>';
+	h += '<button class="setting-btn primary" onclick="_submit_rename_key(' + id + ')">Save</button>';
+	h += '</div>';
+	h += '</div>';
+	h += '</div>';
+	content.innerHTML = h;
+	gebi("modal").style.display = "flex";
+	gebi("rename-key-input").focus();
+	gebi("rename-key-input").select();
+}
+
+function _submit_rename_key(id) {
+	var newName = gebi("rename-key-input").value.trim();
+	if (!newName || newName.length < 1) {
+		_error_modal('Name cannot be empty');
+		return;
+	}
+
+	fetch(backend_url + 'webauthn_rename.php', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ credential_id: id, name: newName })
+	})
+		.then(r => r.json())
+		.then(data => {
+			if (data.success) {
+				_manage_2fa(); // Refresh management modal
+				_load_2fa_status(); // Update settings page text
+			} else {
+				_error_modal('Error: ' + data.error);
 			}
 		});
 }
@@ -3340,7 +3624,9 @@ function _change_profile_infomation() {
 	var userhometown = gebi("userhometown").value;
 	var userabout = gebi("userabout").value;
 	var usergender = gebcn("usergender");
-	usergender = (usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U")));
+	var usergender = (usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U")));
+	var userstatus = gebi("userstatus").value;
+	var relationship_user_id = gebi("relationship_user_id").value;
 	d = new FormData();
 	d.append('type', 'ChangePofileInfomation');
 	d.append('userfirstname', userfirstname);
@@ -3349,6 +3635,8 @@ function _change_profile_infomation() {
 	d.append('userhometown', userhometown);
 	d.append('userabout', userabout);
 	d.append('usergender', usergender);
+	d.append('userstatus', userstatus);
+	d.append('relationship_user_id', relationship_user_id);
 	$.ajax(backend_url + 'change_account_infomation.php', {
 		method: "POST",
 		data: d,
@@ -3427,6 +3715,26 @@ function _change_infomation(c = null) {
 			m += '<input type="text" name="newusername" id="newusername" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
+
+			m += '</div>';
+
+			// Cooldown Check
+			var lastChange = window._lastUsernameChange || 0;
+			var now = Math.floor(Date.now() / 1000);
+			var cooldown = 90 * 86400; // 90 days
+			var diff = now - lastChange;
+
+			if (lastChange > 0 && diff < cooldown) {
+				var remaining = Math.ceil((cooldown - diff) / 86400);
+				m += '<div class="alert-box warning" style="margin-bottom:15px;">';
+				m += '<i class="fa-solid fa-clock"></i> You can change your username again in ' + remaining + ' days.';
+				m += '</div>';
+				setTimeout(function () {
+					gebi('newusername').disabled = true;
+					gebi('btnChangeInfo').disabled = true;
+					gebi('btnChangeInfo').classList.add('disabled');
+				}, 100);
+			}
 
 			m += '</div>';
 			break;
@@ -3758,17 +4066,16 @@ function _change_picture(isCover = 0, groupId = 0) {
 						$('#btnCrop').click(function () {
 							croppedImageDataURL = canvas.cropper('getCroppedCanvas').toDataURL("image/png");
 
-							// Visual Feedback only if needed, currently just hides canvas and shows save
-							canvas.css('display', 'none');
+							// Visual Feedback
 							$('#btnCrop').css('display', 'none');
 							$('#btnSavePicture').css('display', 'inline-block');
 							$('#cropper_box').css('display', 'none');
 
-							// Optional: Show preview in results
-							// $result.html('<img src="'+croppedImageDataURL+'" style="max-width:100%; border-radius:8px;">');
+							// Show preview in results
+							$result.html('<div style="padding:20px; text-align:center;"><img src="' + croppedImageDataURL + '" style="max-width:100%; border-radius:8px; box-shadow: var(--shadow-md);"></div>');
 
 							canvas.cropper('getCroppedCanvas').toBlob(function (blob) {
-								$('#btnSavePicture').click(function () {
+								$('#btnSavePicture').off('click').on('click', function () {
 									var formData = new FormData();
 									formData.append('fileUpload', blob, 'media_cropped.jpg');
 									formData.append('type', (isCover == 1) ? 'cover' : 'profile'); // Fixed type
@@ -4261,6 +4568,14 @@ function removeFile(index) {
 	updatePreview();
 }
 
+function handleFiles(files) {
+	for (let i = 0; i < files.length; i++) {
+		if (dt.files.length >= 60) break;
+		dt.items.add(files[i]);
+	}
+	updatePreview();
+}
+
 
 function make_post(groupId = 0) {
 	gebtn('body')[0].style.overflowY = "hidden";
@@ -4309,6 +4624,7 @@ function make_post(groupId = 0) {
 	a += '<i class="fa-regular fa-image" style="font-size:1.6rem; color:var(--color-primary);"></i>';
 	a += '<input type="file" accept="image/*,video/*" name="fileUpload[]" id="imagefile" multiple style="display:none;">';
 	a += '</label>';
+	a += '<div id="spoiler-toggle" class="spoiler-toggle" onclick="this.classList.toggle(\'active\')" title="Mark as Spoiler" style="cursor:pointer; font-size:1.6rem; color:var(--color-text-secondary);"><i class="fa-solid fa-eye-slash"></i></div>';
 	a += '</div>';
 	a += '<input type="button" class="btn-primary" value="' + window["lang__001"] + '" onclick="return validatePost(0)" style="padding: 10px 30px; font-size:1rem; border-radius:10px;">';
 	a += '</div>';
@@ -4344,6 +4660,8 @@ function _f() {
 	f.append("post", 'post');
 	f.append("private", is_private);
 	f.append("caption", gebtn("textarea")[0].value);
+	var spoilerToggle = gebi('spoiler-toggle');
+	if (spoilerToggle) f.append("is_spoiler", spoilerToggle.classList.contains('active') ? 1 : 0);
 
 	var gId = gebi('post_group_id');
 	if (gId) f.append("group_id", gId.value);
@@ -4485,7 +4803,9 @@ function _search(page = 0) {
 						if (g.my_status == 1) statusText = ' <span class="group-stat-badge" style="background:var(--color-primary-alpha); color:var(--color-primary); margin-left:8px; display:inline-flex; vertical-align:middle; border-radius:12px; padding:2px 10px; font-size:0.75rem;"><i class="fa-solid fa-check"></i> Joined</span>';
 						else if (g.my_status == 0) statusText = ' <span class="group-stat-badge" style="background:var(--color-surface-hover); margin-left:8px; display:inline-flex; vertical-align:middle; border-radius:12px; padding:2px 10px; font-size:0.75rem;"><i class="fa-solid fa-clock"></i> Requested</span>';
 
-						a += '    <div class="group-discovery-name">' + g.group_name + statusText + '</div>';
+						a += '    <div class="group-discovery-name">' + g.group_name;
+						if (g.verified > 0) a += ' <i class="fa-solid fa-badge-check verified_color_' + g.verified + '" style="margin-left:5px;"></i>';
+						a += statusText + '</div>';
 						a += '    <div class="group-discovery-about">' + g.group_about + '</div>';
 						a += '    <div class="group-discovery-meta">';
 						a += '      <span><i class="fa-solid fa-user-group"></i> ' + g.member_count + ' Members</span>';
@@ -4537,6 +4857,7 @@ function _populate_joined_communities() {
 					select.appendChild(opt);
 				}
 			});
+			initCustomSelects(true);
 		}
 	});
 }
@@ -4770,8 +5091,61 @@ document.addEventListener('readystatechange', function (e) {
 		onResizeEvent();
 		changeUrlWork();
 		textAreaRework();
+		initCustomSelects(); // Premium Custom Selects
 	}
 });
+
+function initCustomSelects(force = false) {
+	// Support various select classes
+	$('.premium-select, .setting-select, .premium-select-sm, .index_input_box, .modal-privacy-select').each(function () {
+		if (!$(this).is('select')) return; // Only target actual selects
+		const $this = $(this);
+		if ($this.next('.custom-select-container').length > 0) {
+			if (force) $this.next('.custom-select-container').remove();
+			else return; // Already initialized
+		}
+
+		const options = $this.find('option');
+		const selectedOption = $this.find('option:selected');
+
+		const container = $('<div class="custom-select-container"></div>');
+		const trigger = $('<div class="custom-select-trigger"><span>' + selectedOption.text() + '</span><i class="fa-solid fa-chevron-down"></i></div>');
+		const dropdown = $('<div class="custom-select-dropdown"></div>');
+
+		options.each(function () {
+			const $opt = $(this);
+			const optUI = $('<div class="custom-select-option" data-value="' + $opt.val() + '">' + $opt.text() + '</div>');
+			if ($opt.is(':selected')) optUI.addClass('selected');
+
+			optUI.on('click', function (e) {
+				e.stopPropagation();
+				container.find('.custom-select-option').removeClass('selected');
+				$(this).addClass('selected');
+				trigger.find('span').text($(this).text());
+				$this.val($(this).data('value')).trigger('change');
+				container.removeClass('open');
+			});
+
+			dropdown.append(optUI);
+		});
+
+		trigger.on('click', function (e) {
+			e.stopPropagation();
+			// Close other selects
+			$('.custom-select-container').not(container).removeClass('open');
+			// Close post options
+			$('.post-options-menu').removeClass('active');
+			container.toggleClass('open');
+		});
+
+		container.append(trigger).append(dropdown);
+		$this.after(container);
+		$this.hide();
+
+		// Special case for search page: hide the old manual chevron if it exists in the wrapper
+		$this.siblings('.select-icon').hide();
+	});
+}
 function isMobile() {
 	let check = false;
 	(function (a) { if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true; })(navigator.userAgent || navigator.vendor || window.opera);
@@ -4988,6 +5362,11 @@ document.addEventListener('click', function (e) {
 		const allMenus = document.querySelectorAll('.post-options-menu');
 		allMenus.forEach(m => m.classList.remove('active'));
 	}
+
+	// Close custom selects
+	if (!e.target.closest('.custom-select-container')) {
+		$('.custom-select-container').removeClass('open');
+	}
 });
 
 // Initial Load
@@ -5037,6 +5416,7 @@ function _load_settings() {
 	$.get(backend_url + "fetch_profile_setting_info.php", function (d) {
 		if (d.success === 1) {
 			// Account Tab
+			window._lastUsernameChange = d.last_username_change;
 			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = '@' + d.user_nickname;
 			if (gebi("usernickname")) gebi("usernickname").value = d.user_nickname;
 
@@ -5166,16 +5546,28 @@ function _alert_modal(msg) {
 	gebi("modal").style.display = "flex";
 }
 
-function _confirm_modal(msg, callbackName) {
-	var content = gebi("modal_content");
-	var h = '';
-	h += '<div class="upload-modal-container" style="max-width:400px; text-align:center;">';
-	h += '<div class="upload-modal-header" style="justify-content:center;"><h2>Confirm</h2></div>';
-	h += '<div class="upload-modal-body" style="padding:20px;">' + msg + '</div>';
-	h += '<div class="upload-modal-footer" style="justify-content:center;">';
-	h += '<button class="btn-danger-outline" onclick="modal_close()">Cancel</button>';
-	h += '<button class="btn-primary" onclick="modal_close(); ' + callbackName + '">Confirm</button>';
-	h += '</div></div>';
-	content.innerHTML = h;
-	gebi("modal").style.display = "flex";
+function _toggleRelationshipPartner(val) {
+	var partnerContainer = gebi('partner_selector_container');
+	if (['L', 'E', 'M'].indexOf(val) !== -1) {
+		partnerContainer.style.display = 'block';
+		_loadFriendListForRelationship();
+	} else {
+		partnerContainer.style.display = 'none';
+		gebi('relationship_user_id').value = 0;
+	}
+}
+
+function _loadFriendListForRelationship(currentPartnerId = 0) {
+	var select = gebi('relationship_user_id');
+	$.get(backend_url + "fetch_friend_list.php", function (data) {
+		if (data.success === 1) {
+			var h = '<option value="0">None</option>';
+			var count = Object.keys(data).length - 1;
+			for (let i = 0; i < count; i++) {
+				var f = data[i];
+				h += '<option value="' + f.user_id + '" ' + (f.user_id == currentPartnerId ? 'selected' : '') + '>' + f.user_firstname + ' ' + f.user_lastname + '</option>';
+			}
+			select.innerHTML = h;
+		}
+	});
 }
