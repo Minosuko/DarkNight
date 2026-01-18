@@ -49,6 +49,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
 					if ($group_id > 0) {
+						$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media, group_id) VALUES ('%s updated the community picture.', 2, $timestamp, {$data['user_id']}, $media_id, $group_id)",
+							$conn->real_escape_string($gInfo['group_name'])
+						);
+						$query5 = $conn->query($sql5);
 						$sql7 = "UPDATE groups SET pfp_media_id = $media_id WHERE group_id = $group_id";
 						$query7 = $conn->query($sql7);
 					} else {
@@ -65,6 +69,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				$success = 0;
 				if(move_uploaded_file($_FILES["fileUpload"]["tmp_name"], $filepath)){
 					if ($group_id > 0) {
+						$sql5 = sprintf("INSERT INTO posts (post_caption, post_public, post_time, post_by, post_media, group_id) VALUES ('%s updated the community cover.', 2, $timestamp, {$data['user_id']}, $media_id, $group_id)",
+							$conn->real_escape_string($gInfo['group_name'])
+						);
+						$query5 = $conn->query($sql5);
 						$sql7 = "UPDATE groups SET cover_media_id = $media_id WHERE group_id = $group_id";
 						$query7 = $conn->query($sql7);
 					} else {

@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			if($NewPassword != $VerifyPassword) die('{"success":0,"code":0}');
 			if(!password_verify($CurrentPassword, $data['user_password'])) die('{"success":0,"code":1}');
 			$hashPassword = password_hash($NewPassword, PASSWORD_DEFAULT);
-			$sql = "UPDATE users SET user_password = '$hashPassword' WHERE user_id = {$data['user_id']}";
+			$sql = sprintf("UPDATE users SET user_password = '%s' WHERE user_id = %d", $conn->real_escape_string($hashPassword), $data['user_id']);
 			if($LogAllsDevice == 1){
 				$esql = sprintf(
 					"DELETE FROM session WHERE user_id = %d AND session_id != '%s'",
@@ -59,7 +59,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 				if(time() - $data['last_username_change'] < (86400*90))
 					die('{"success":0,"code":3}');
 			$time = time();
-			$sql = "UPDATE users SET user_password = '$NewUsername', last_username_change = $time WHERE user_id = {$data['user_id']}";
+			$sql = sprintf("UPDATE users SET user_nickname = '%s', last_username_change = %d WHERE user_id = %d", $conn->real_escape_string($NewUsername), $time, $data['user_id']);
 			$conn->query($sql);
 			$MailBody = $GLOBALS['Mailer_Header']
 			.'
@@ -147,27 +147,32 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 			echo '{"success":1}';
 			break;
 		case 'ChangePofileInfomation':
-			if(!isset($_POST['userfirstname']) && !isset($_POST['userlastname']) && !isset($_POST['userlastname']) && !isset($_POST['birthday']) && !isset($_POST['usergender']) && !isset($_POST['userhometown']) && !isset($_POST['userabout']))
+			if(!isset($_POST['userfirstname']) && !isset($_POST['userlastname']) && !isset($_POST['birthday']) && !isset($_POST['usergender']) && !isset($_POST['userhometown']) && !isset($_POST['userabout']) && !isset($_POST['userstatus']))
 				die('{"success":-1}');
 			$userfirstname	= str_replace([' ','	',"\r","\n"],'',trim($_POST['userfirstname']));
 			$userlastname	= str_replace([' ','	',"\r","\n"],'',trim($_POST['userlastname']));
 			$usergender		= $_POST['usergender'];
 			$userhometown	= $_POST['userhometown'];
 			$userabout		= $_POST['userabout'];
+			$userstatus		= $_POST['userstatus'];
+			$relationship_id = isset($_POST['relationship_user_id']) ? (int)$_POST['relationship_user_id'] : 0;
 			if(empty($userfirstname)) die('{"success":0,"code":0}');
 			if(empty($userlastname)) die('{"success":0,"code":0}');
 			if(strlen($userhometown) > 255) die('{"success":0,"code":1}');
 			if(!validateDate($_POST['birthday'])) die('{"success":0,"code":2}');
 			$userbirthdate	= strtotime($_POST['birthday']);
 			$usergender		= in_array($usergender,["F","M","U"]) ? $usergender : "U";
+			$userstatus		= in_array($userstatus,["N","S","E","M","L","D","U"]) ? $userstatus : "N";
 			$sql = sprintf(
-				"UPDATE users SET user_birthdate = %d, user_firstname = '%s', user_lastname = '%s', user_gender = '%s', user_hometown = '%s', user_about = '%s'  WHERE user_id = %d",
+				"UPDATE users SET user_birthdate = %d, user_firstname = '%s', user_lastname = '%s', user_gender = '%s', user_hometown = '%s', user_about = '%s', user_status = '%s', relationship_user_id = %d WHERE user_id = %d",
 				$userbirthdate,
 				$conn->real_escape_string($userfirstname),
 				$conn->real_escape_string($userlastname),
 				$usergender,
 				$conn->real_escape_string($userhometown),
 				$conn->real_escape_string($userabout),
+				$userstatus,
+				$relationship_id,
 				$data['user_id']
 			);
 			$conn->query($sql);

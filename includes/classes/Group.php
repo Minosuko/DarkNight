@@ -98,6 +98,21 @@ class Group {
         return ($query && $query->num_rows > 0);
     }
 
+    public function removeMember($group_id, $user_id) {
+        $group_id = (int)$group_id;
+        $user_id = (int)$user_id;
+        $sql = "DELETE FROM group_members WHERE group_id = $group_id AND user_id = $user_id";
+        return $this->db->query($sql);
+    }
+
+    public function updateMemberRole($group_id, $user_id, $role) {
+        $group_id = (int)$group_id;
+        $user_id = (int)$user_id;
+        $role = (int)$role; // 0: Member, 1: Mod, 2: Admin
+        $sql = "UPDATE group_members SET role = $role WHERE group_id = $group_id AND user_id = $user_id";
+        return $this->db->query($sql);
+    }
+
     public function getPosts($group_id, $limit = 10, $offset = 0) {
         $group_id = (int)$group_id;
         $limit = (int)$limit;
@@ -105,7 +120,7 @@ class Group {
         
         // This is a simplified version, ideally it should return post IDs and then 
         // the Post class handles the hydration.
-        $sql = "SELECT post_id FROM posts WHERE group_id = $group_id ORDER BY post_time DESC LIMIT $limit OFFSET $offset";
+        $sql = "SELECT post_id FROM posts WHERE group_id = $group_id ORDER BY is_pinned DESC, post_time DESC LIMIT $limit OFFSET $offset";
         $query = $this->db->query($sql);
         $posts = [];
         if ($query) {

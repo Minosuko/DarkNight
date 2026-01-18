@@ -42,6 +42,13 @@ if (empty($feed)) {
             'post_by' => $row['post_by'],
             'post_media' => $row['post_media'],
             'is_share' => $row['is_share'],
+            'is_pinned' => isset($row['is_pinned']) ? $row['is_pinned'] : 0,
+            'is_spoiler' => isset($row['is_spoiler']) ? $row['is_spoiler'] : 0,
+            'is_mine' => ($row['user_id'] == $viewer_id) ? 1 : 0,
+            'can_delete' => ($row['user_id'] == $viewer_id) ? 1 : 0,
+            'group_id' => isset($row['group_id']) ? $row['group_id'] : 0,
+            'group_name' => isset($row['group_name']) ? $row['group_name'] : null,
+            'group_verified' => isset($row['group_verified']) ? $row['group_verified'] : 0,
             
             'user_firstname' => $row['user_firstname'],
             'user_lastname' => $row['user_lastname'],
@@ -115,6 +122,7 @@ if (empty($feed)) {
             $post['share']['user_nickname'] = $row['shared_nickname'];
             $post['share']['user_gender'] = $row['shared_gender'];
             $post['share']['verified'] = $row['shared_verified'];
+            $post['share']['is_spoiler'] = isset($row['shared_spoiler']) ? $row['shared_spoiler'] : 0;
             
             $post['share']['post_caption'] = Utils::captionTrim($row['shared_caption']);
             $post['share']['post_time'] = $row['shared_time'];

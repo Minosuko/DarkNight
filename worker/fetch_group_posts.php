@@ -47,6 +47,13 @@ $i = 0;
 foreach ($post_ids as $pid) {
     $p_info = Post::getPost($pid, $user_id);
     if ($p_info) {
+        // Inject permission to pin if admin
+        // group_info['my_role'] >= 2 means Admin/Creator
+        $p_info['can_pin'] = ($group_info['my_role'] >= 2) ? 1 : 0;
+        
+        // can_delete = owner OR admin
+        $p_info['can_delete'] = ($p_info['is_mine'] == 1 || $group_info['my_role'] >= 2) ? 1 : 0;
+        
         $posts_data[$i] = $p_info;
         $i++;
     }

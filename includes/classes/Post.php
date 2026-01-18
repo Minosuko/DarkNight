@@ -19,9 +19,9 @@ class Post {
         
         // 1. My Posts
         $myPosts = "
-            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
-                   p.group_id, NULL as group_name
+                   p.group_id, NULL as group_name, 0 as group_verified
             FROM posts p
             JOIN users u ON p.post_by = u.user_id
             WHERE u.user_id = $userId AND p.group_id = 0
@@ -29,9 +29,9 @@ class Post {
 
         // 2. Followed Users Posts
         $followedPosts = "
-            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
-                   p.group_id, NULL as group_name
+                   p.group_id, NULL as group_name, 0 as group_verified
             FROM posts p
             JOIN follows f ON p.post_by = f.user2_id
             JOIN users u ON p.post_by = u.user_id
@@ -40,9 +40,9 @@ class Post {
 
         // 3. Friends Posts
         $friendsPosts = "
-            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
-                   p.group_id, NULL as group_name
+                   p.group_id, NULL as group_name, 0 as group_verified
             FROM posts p
             JOIN users u ON p.post_by = u.user_id 
             JOIN (
@@ -55,9 +55,9 @@ class Post {
 
         // 4. Community Posts (From joined groups)
         $communityPosts = "
-            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+            SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
-                   p.group_id, g.group_name
+                   p.group_id, g.group_name, g.verified as group_verified
             FROM posts p
             JOIN users u ON p.post_by = u.user_id
             JOIN group_members gm ON p.group_id = gm.group_id
@@ -87,6 +87,7 @@ class Post {
                 shared_p.post_public as shared_public,
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
+            shared_p.is_spoiler as shared_spoiler,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
@@ -127,8 +128,82 @@ class Post {
             LIMIT $limit OFFSET $offset
         ";
         
-        $result = $db->query($sql);
-        return $result->fetch_all(MYSQLI_ASSOC);
+        $query = $conn->query($sql);
+        return $query->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public static function getLikedPosts($userId, $page = 0) {
+        $db = Database::getInstance();
+        $conn = $db->getConnection();
+        
+        $limit = 30;
+        $offset = intval($page) * $limit;
+        $userId = intval($userId);
+
+        // Subqueries for counts
+        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = p.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = p.post_id";
+        $isLikedSub = "1"; // Since we are viewing liked posts, they are obviously liked by the viewer
+
+        $sql = "
+            SELECT 
+                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                g.group_id, g.group_name, g.verified as group_verified,
+                
+                ($likesSub) as total_like,
+                ($commentsSub) as total_comment,
+                ($sharesSub) as total_share,
+                $isLikedSub as is_liked,
+                
+                l.like_time as hot_score, -- Order by like time for liked posts? Or post time? Usually desc like time.
+                
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
+                
+                m_pfp.media_hash as pfp_media_hash,
+                
+                shared_p.post_caption as shared_caption,
+                shared_p.post_time as shared_time,
+                shared_p.post_public as shared_public,
+                shared_p.post_media as shared_media,
+                shared_p.post_by as shared_by_id,
+            shared_p.is_spoiler as shared_spoiler,
+                
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
+                
+                shared_u.user_firstname as shared_firstname,
+                shared_u.user_lastname as shared_lastname,
+                shared_u.user_nickname as shared_nickname,
+                shared_u.user_gender as shared_gender,
+                shared_u.pfp_media_id as shared_pfp_id,
+                shared_u.verified as shared_verified,
+                
+                m_shared_pfp.media_hash as shared_pfp_hash
+
+            FROM likes l
+            JOIN posts p ON l.post_id = p.post_id
+            JOIN users u ON p.post_by = u.user_id
+            LEFT JOIN groups g ON p.group_id = g.group_id
+            LEFT JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
+            LEFT JOIN media m ON m_map.media_id = m.media_id
+            LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
+            
+            -- Shared Post Joins
+            LEFT JOIN posts shared_p ON p.is_share = shared_p.post_id
+            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            
+            WHERE l.user_id = $userId
+            GROUP BY p.post_id
+            ORDER BY l.like_time DESC
+            LIMIT $limit OFFSET $offset
+        ";
+
+        $query = $conn->query($sql);
+        return $query->fetch_all(MYSQLI_ASSOC);
     }
 
     public static function getProfilePosts($targetUserId, $viewerUserId, $page = 0) {
@@ -171,9 +246,10 @@ class Post {
 
         $sql = "
             SELECT 
-                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.group_id, p.is_spoiler,
                 u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                 u.user_birthdate, u.user_hometown, u.user_status, u.user_about,
+                g.group_name, g.verified as group_verified,
                 
                 ($likesSub) as total_like,
                 ($commentsSub) as total_comment,
@@ -189,6 +265,7 @@ class Post {
                 shared_p.post_public as shared_public,
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
+            shared_p.is_spoiler as shared_spoiler,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
@@ -217,6 +294,7 @@ class Post {
             LEFT JOIN media m ON m_map.media_id = m.media_id
             LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
             LEFT JOIN media m_legacy ON p.post_media = m_legacy.media_id
+            LEFT JOIN groups g ON p.group_id = g.group_id
             
             LEFT JOIN posts shared_p ON p.is_share = shared_p.post_id
             LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
@@ -227,7 +305,7 @@ class Post {
 
             WHERE p.post_by = $targetUserId AND $privacyCondition AND p.group_id = 0
             GROUP BY p.post_id
-            ORDER BY p.post_time DESC
+            ORDER BY p.is_pinned DESC, p.post_time DESC
             LIMIT $limit OFFSET $offset
         ";
 
@@ -275,7 +353,8 @@ class Post {
         if ($scope === 'all' || $scope === 'me') {
             $parts[] = "
                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
-                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified
+                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                       p.group_id, NULL as group_name, 0 as group_verified
                 FROM posts p
                 JOIN users u ON p.post_by = u.user_id
                 WHERE u.user_id = $viewerUserId AND $baseCond $pCond
@@ -286,7 +365,8 @@ class Post {
         if ($scope === 'all') {
             $parts[] = "
                  SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
-                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified
+                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                       p.group_id, NULL as group_name, 0 as group_verified
                 FROM posts p
                 JOIN users u ON p.post_by = u.user_id
                 WHERE p.post_public = 2 AND $baseCond $pCond
@@ -298,7 +378,8 @@ class Post {
             // Friend's Privacy-Restricted Posts
             $parts[] = "
                  SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
-                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified
+                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                       p.group_id, NULL as group_name, 0 as group_verified
                 FROM posts p
                 JOIN users u ON p.post_by = u.user_id 
                 JOIN (
@@ -312,7 +393,8 @@ class Post {
             // Followed Public Posts
             $parts[] = "
                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
-                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified
+                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                       p.group_id, NULL as group_name, 0 as group_verified
                 FROM posts p
                 JOIN follows f ON p.post_by = f.user2_id
                 JOIN users u ON p.post_by = u.user_id
@@ -326,11 +408,13 @@ class Post {
             $groupCond = $specificGroupId > 0 ? "p.group_id = $specificGroupId" : "p.group_id > 0";
             
             $parts[] = "
-                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
-                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified
+                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
+                       u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                       p.group_id, g.group_name, g.verified as group_verified
                 FROM posts p
                 JOIN users u ON p.post_by = u.user_id
                 JOIN group_members gm ON p.group_id = gm.group_id
+                JOIN groups g ON p.group_id = g.group_id
                 WHERE gm.user_id = $viewerUserId AND gm.status = 1 AND p.post_caption LIKE '%$escapedQuery%'
                 AND $groupCond
                 " . ($startDate ? " AND p.post_time >= " . strtotime($startDate) : "") . "
@@ -346,6 +430,7 @@ class Post {
         $sql = "
              SELECT 
                 feed.*,
+                feed.group_name, feed.group_verified,
                 ($likesSub) as total_like,
                 ($commentsSub) as total_comment,
                 ($sharesSub) as total_share,
@@ -360,6 +445,7 @@ class Post {
                 shared_p.post_public as shared_public,
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
+            shared_p.is_spoiler as shared_spoiler,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
@@ -402,7 +488,7 @@ class Post {
  
          return $db->query($sql)->fetch_all(MYSQLI_ASSOC);
     }
-    public static function create($userId, $caption, $public, $fileData = null, $groupId = 0) {
+    public static function create($userId, $caption, $public, $fileData = null, $groupId = 0, $isSpoiler = 0) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
         $userId = intval($userId);
@@ -410,8 +496,9 @@ class Post {
         $timestamp = time();
         $captionClean = $db->escape($caption);
         $groupId = intval($groupId);
+        $isSpoiler = intval($isSpoiler);
         
-        $sql = "INSERT INTO posts (post_caption, post_public, post_time, post_by, group_id) VALUES ('$captionClean', '$public', $timestamp, $userId, $groupId)";
+        $sql = "INSERT INTO posts (post_caption, post_public, post_time, post_by, group_id, is_spoiler) VALUES ('$captionClean', '$public', $timestamp, $userId, $groupId, $isSpoiler)";
         
         // Handle Multiple Files
         $hasMedia = false;
@@ -630,8 +717,9 @@ class Post {
 
         $sql = "
             SELECT 
-                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler, p.group_id,
                 u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                g.group_name, g.verified as group_verified,
                 
                 ($likesSub) as total_like,
                 ($commentsSub) as total_comment,
@@ -647,6 +735,7 @@ class Post {
                 shared_p.post_public as shared_public,
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
+            shared_p.is_spoiler as shared_spoiler,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
@@ -671,6 +760,7 @@ class Post {
                 
             FROM posts p
             JOIN users u ON p.post_by = u.user_id
+            LEFT JOIN groups g ON p.group_id = g.group_id
             LEFT JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
             LEFT JOIN media m ON m_map.media_id = m.media_id
             LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
@@ -692,6 +782,9 @@ class Post {
         
         $post = $res->fetch_assoc();
         
+        // Inject is_mine flag
+        $post['is_mine'] = ($post['post_by'] == $viewerUserId) ? 1 : 0;
+        
         // Visibility check
         $can_view = false;
         if ($post['post_public'] == 2) {
@@ -711,15 +804,81 @@ class Post {
         return $post;
     }
 
+    public static function togglePin($postId, $userId) {
+        $db = Database::getInstance();
+        $postId = intval($postId);
+        $userId = intval($userId);
+
+        // 1. Get Post Info
+        $res = $db->query("SELECT group_id, post_by, is_pinned FROM posts WHERE post_id = $postId");
+        if ($res->num_rows == 0) return ['success' => 0, 'err' => 'post_not_found'];
+        $post = $res->fetch_assoc();
+        
+        $groupId = intval($post['group_id']);
+        $postOwner = intval($post['post_by']);
+        $currentPinned = intval($post['is_pinned']);
+
+        // 2. Permission Check
+        $canPin = false;
+        if ($groupId > 0) {
+            // Group Context: User must be Admin of the group
+            // We need a way to check if user is admin. The Group class has a check but we are in Post.
+            // Let's do a direct query for speed or duplicate logic.
+            // Access level: 2 = Admin, 1 = Member. Assuming 2 is admin/creator.
+            $check = $db->query("SELECT role FROM group_members WHERE group_id = $groupId AND user_id = $userId AND status = 1");
+            if ($check->num_rows > 0) {
+                $role = $check->fetch_assoc()['role'];
+                if ($role >= 2) $canPin = true;
+            }
+        } else {
+            // Profile Context: User must be the owner of the post AND the post must be on their profile (which is implied if it's their post unless we have wall posts)
+            // For now, assuming only self-posts can be pinned on profile.
+            if ($postOwner == $userId) $canPin = true;
+        }
+
+        if (!$canPin) return ['success' => 0, 'err' => 'unauthorized'];
+
+        // 3. Logic: If pinning (current is 0), unpin ALL other posts in this context first.
+        if ($currentPinned == 0) {
+            if ($groupId > 0) {
+                $db->query("UPDATE posts SET is_pinned = 0 WHERE group_id = $groupId");
+            } else {
+                $db->query("UPDATE posts SET is_pinned = 0 WHERE post_by = $userId AND group_id = 0");
+            }
+            // Pin this one
+            $db->query("UPDATE posts SET is_pinned = 1 WHERE post_id = $postId");
+            return ['success' => 1, 'status' => 'pinned'];
+        } else {
+            // Unpinning
+            $db->query("UPDATE posts SET is_pinned = 0 WHERE post_id = $postId");
+            return ['success' => 1, 'status' => 'unpinned'];
+        }
+    }
+
     public static function delete($postId, $userId) {
         $db = Database::getInstance();
         $postId = $db->escape($postId);
         $userId = $db->escape($userId);
 
-        // Verify ownership
-        $check = $db->query("SELECT post_id FROM posts WHERE post_id = $postId AND post_by = $userId");
-        if ($check->num_rows == 0) {
-            return ["success" => 0, "err" => "Unauthorized or post not found"];
+        // Verify ownership OR Group Admin permission
+        $res = $db->query("SELECT post_by, group_id FROM posts WHERE post_id = $postId");
+        if ($res->num_rows == 0) return ["success" => 0, "err" => "post_not_found"];
+        $post = $res->fetch_assoc();
+        
+        $can_delete = false;
+        if ($post['post_by'] == $userId) {
+            $can_delete = true;
+        } elseif ($post['group_id'] > 0) {
+            // Check if user is admin of this group
+            $checkAdmin = $db->query("SELECT role FROM group_members WHERE group_id = {$post['group_id']} AND user_id = $userId AND status = 1");
+            if ($checkAdmin->num_rows > 0) {
+                $role = $checkAdmin->fetch_assoc()['role'];
+                if ($role >= 2) $can_delete = true;
+            }
+        }
+
+        if (!$can_delete) {
+            return ["success" => 0, "err" => "Unauthorized"];
         }
 
         // Delete post
@@ -785,7 +944,7 @@ class Post {
         // Query first media item per post (one thumbnail per post, not per image)
         $sql = "
             SELECT 
-                m.media_id, m.media_hash, m.media_format, p.post_id,
+                m.media_id, m.media_hash, m.media_format, p.post_id, p.is_spoiler,
                 (SELECT COUNT(*) FROM post_media_mapping WHERE post_id = p.post_id) as media_count
             FROM posts p
             JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
@@ -824,7 +983,7 @@ class Post {
         // Query media items for this group
         $sql = "
             SELECT 
-                m.media_id, m.media_hash, m.media_format, p.post_id,
+                m.media_id, m.media_hash, m.media_format, p.post_id, p.is_spoiler,
                 (SELECT COUNT(*) FROM post_media_mapping WHERE post_id = p.post_id) as media_count
             FROM posts p
             JOIN post_media_mapping m_map ON p.post_id = m_map.post_id

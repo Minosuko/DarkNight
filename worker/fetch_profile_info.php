@@ -16,11 +16,11 @@ if(!is_user_exists($current_id)){
 	$flag = 0;
 }
 if($flag == 0) {
-	$profilesql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
+	$profilesql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.relationship_user_id, users.user_birthdate, users.user_firstname, users.user_lastname, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
 				  FROM users
 				  WHERE users.user_id = $current_id";
 } else {
-	$profilesql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.user_birthdate, users.user_firstname, users.user_lastname, userfriends.friendship_status, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
+	$profilesql = "SELECT users.user_id, users.user_nickname, users.user_gender, users.user_hometown, users.user_status, users.relationship_user_id, users.user_birthdate, users.user_firstname, users.user_lastname, userfriends.friendship_status, users.pfp_media_id, users.cover_media_id, users.user_about, users.verified
 					FROM users
 					LEFT JOIN (
 						SELECT friendship.user1_id AS user_id, friendship.friendship_status
@@ -52,6 +52,18 @@ if($total_rows == 0){
 	$row_d["is_followed"] = $data['user_id'] != $row_d['user_id'] ? (is_follow($data['user_id'], $row_d['user_id']) ? 1 : 0) : 2;
 	$row_d["total_following"] = total_following($row_d['user_id']);
 	$row_d["total_follower"] = total_follower($row_d['user_id']);
+	
+	// Fetch Relationship Partner Info
+	$row_d['relationship_partner_name'] = null;
+	if ($row_d['relationship_user_id'] > 0) {
+		$partner_id = (int)$row_d['relationship_user_id'];
+		$partner_sql = "SELECT user_firstname, user_lastname FROM users WHERE user_id = $partner_id";
+		$partner_query = $conn->query($partner_sql);
+		if ($partner_query && $partner_row = $partner_query->fetch_assoc()) {
+			$row_d['relationship_partner_name'] = $partner_row['user_firstname'] . ' ' . $partner_row['user_lastname'];
+		}
+	}
+
 	$row_d["success"] = 1;
 	echo json_encode($row_d);
 }

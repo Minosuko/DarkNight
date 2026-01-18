@@ -40,6 +40,7 @@ if (empty($media)) {
             'media_hash' => $row['media_hash'],
             'media_format' => $row['media_format'],
             'is_video' => (substr($row['media_format'], 0, 5) == 'video'),
+            'is_spoiler' => intval($row['is_spoiler']),
             'media_count' => isset($row['media_count']) ? intval($row['media_count']) : 1
         ];
         $formatted[$i] = $item;

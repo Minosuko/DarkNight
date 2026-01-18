@@ -30,6 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $response = Post::update($postId, $user_id, $caption, $public);
             echo json_encode($response);
             break;
+        case 'pin':
+            $response = Post::togglePin($postId, $user_id);
+            echo json_encode($response);
+            break;
         default:
             echo json_encode(["success" => 0, "err" => "Invalid action"]);
             break;

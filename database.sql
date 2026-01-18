@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS `posts` (
   `post_media` int(11) NOT NULL DEFAULT 0,
   `is_share` int(11) NOT NULL DEFAULT 0,
   `allow_comment` int(1) NOT NULL DEFAULT 1,
+  `is_pinned` int(1) NOT NULL DEFAULT 0,
+  `is_spoiler` int(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`post_id`),
   KEY `post_by` (`post_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `user_birthdate` int(11) NOT NULL,
   `user_create_date` int(11) NOT NULL,
   `user_status` char(1) CHARACTER SET utf8 DEFAULT 'N',
+  `relationship_user_id` INT(11) NOT NULL DEFAULT 0
   `user_about` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `user_hometown` varchar(255) CHARACTER SET utf8 NOT NULL,
   `pfp_media_id` int(11) NOT NULL,
@@ -156,6 +159,8 @@ CREATE TABLE IF NOT EXISTS `groups` (
   `cover_media_id` int(11) NOT NULL DEFAULT 0,
   `created_by` int(11) NOT NULL,
   `created_time` int(11) NOT NULL,
+  `verified` int(1) NOT NULL DEFAULT 0,
+  `group_rules` text DEFAULT NULL,
   PRIMARY KEY (`group_id`),
   KEY `created_by` (`created_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

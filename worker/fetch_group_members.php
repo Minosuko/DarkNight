@@ -36,7 +36,7 @@ if ($query_term !== '') {
     $searchCond = " AND (u.user_firstname LIKE '%$query_term%' OR u.user_lastname LIKE '%$query_term%' OR u.user_nickname LIKE '%$query_term%')";
 }
 
-$sql = "SELECT m.user_id, m.role, m.status, 
+$sql = "SELECT m.user_id, m.role, m.status, m.joined_time, 
                u.user_firstname, u.user_lastname, u.user_nickname, u.pfp_media_id, u.verified
         FROM group_members m
         JOIN users u ON m.user_id = u.user_id

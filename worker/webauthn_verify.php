@@ -15,7 +15,8 @@ $webauthn = new WebAuthn();
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // For login flow, we might not have a user yet, or we might
     $userId = null;
-    if (_is_session_valid(false)) {
+    // Use ignore2FA = true so users in 2FA pending state can still authenticate
+    if (_is_session_valid(false, true)) {
         $data = _get_data_from_token();
         $userId = $data['user_id'];
     }

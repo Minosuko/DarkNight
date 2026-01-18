@@ -681,7 +681,7 @@ function checkActive(){
     return false;
 }
 
-function _is_session_valid($checkActive = true){
+function _is_session_valid($checkActive = true, $ignore2FA = false){
     if(!isset($_COOKIE['access_token']) || !isset($_COOKIE['browser_id'])){
         return false;
     }
@@ -724,7 +724,7 @@ function _is_session_valid($checkActive = true){
     }
 
     // 2FA Check if required (auth_2fa field in JWT)
-    if(isset($payload['auth_2fa']) && $payload['auth_2fa'] == 0) {
+    if(!$ignore2FA && isset($payload['auth_2fa']) && $payload['auth_2fa'] == 0) {
         // 2FA pending
         // This function is usually called to check if fully logged in.
         // If we want to allow partial login for verify page, we need logic.
@@ -815,8 +815,7 @@ function email_exists($email){
 	return ($query->fetch_assoc()['count'] > 0);
 }
 function _is_username_valid($userName){
-	$validChar = 'QWERTYUIOPASDFGHJKLZXCVBNM0123456789qwertyuiopasdfghjklzxcvbnm_';
-	return empty(str_replace(str_split($validChar),'',$userName));
+	return preg_match('/^[a-zA-Z0-9_.]+$/', $userName);
 }
 function caesarShift($str, $amount) {
 	if ($amount < 0) {

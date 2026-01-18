@@ -61,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         'post_by' => $row['post_by'],
                         'post_media' => $row['post_media'],
                         'is_share' => $row['is_share'],
+                        'is_spoiler' => isset($row['is_spoiler']) ? $row['is_spoiler'] : 0,
+                        'group_id' => $row['group_id'] ?? 0,
+                        'group_name' => $row['group_name'] ?? null,
+                        'group_verified' => $row['group_verified'] ?? 0,
                         
                         'user_firstname' => $row['user_firstname'],
                         'user_lastname' => $row['user_lastname'],
@@ -131,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $post['share']['user_nickname'] = $row['shared_nickname'];
                         $post['share']['user_gender'] = $row['shared_gender'];
                         $post['share']['verified'] = $row['shared_verified'];
+                        $post['share']['is_spoiler'] = isset($row['shared_spoiler']) ? $row['shared_spoiler'] : 0;
                         
                         $post['share']['post_caption'] = Utils::captionTrim($row['shared_caption']);
                         $post['share']['post_time'] = $row['shared_time'];
