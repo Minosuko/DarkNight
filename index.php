@@ -33,10 +33,8 @@ $_SESSION['refresh_captcha'] = 1;
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" type="text/css" href="resources/css/main.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/index.css">
-        <!-- Google Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="resources/css/font-awesome/all.css">
 	</head>
 	<body>
         <div class="bg-animation">
@@ -87,8 +85,8 @@ $_SESSION['refresh_captcha'] = 1;
                     <div class="captcha-group">
                         <div class="captcha-img-wrapper">
                             <img src="data/captcha.php" alt='captchaimg' id="captchaimg0">
-                            <button type="button" class="refresh-captcha" onclick="document.getElementById('captchaimg0').src='data/captcha.php?'+Math.random();">↻</button>
                         </div>
+                        <button type="button" class="refresh-captcha" onclick="document.getElementById('captchaimg0').src='data/captcha.php?'+Math.random();"><i class="fa-solid fa-rotate-right"></i></button>
                         <div class="input-group">
                             <input type="text" name="captcha" id="captcha_0" required placeholder=" ">
                             <label for="captcha_0">Captcha</label>
@@ -99,6 +97,9 @@ $_SESSION['refresh_captcha'] = 1;
                     <button class="btn-primary" name="login" onclick="validateLogin()">
                         <lang lang="lang__022">Login</lang>
                     </button>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <a href="verify.php?t=forgot" class="btn-link">Forgot Password?</a>
+                    </div>
                 </section>
 
                 <!-- Register Form -->
@@ -141,9 +142,25 @@ $_SESSION['refresh_captcha'] = 1;
                         </div>
                     </div>
 
-                    <div class="input-group">
-                        <input type="date" id="birthday" name="birthday" value="<?php echo date('Y-m-d', time()); ?>">
-                        <label for="birthday" class="static-label"><lang lang="lang__029">Birthday</lang></label>
+                    <div class="birthday-group">
+                        <label class="group-label"><lang lang="lang__029">Birthday</lang></label>
+                        <div class="birthday-selects">
+                            <select id="birth_day" name="birth_day" class="custom-select">
+                                <option value="" disabled selected>Day</option>
+                                <?php for($i=1; $i<=31; $i++) echo "<option value='".sprintf("%02d", $i)."'>$i</option>"; ?>
+                            </select>
+                            <select id="birth_month" name="birth_month" class="custom-select">
+                                <option value="" disabled selected>Month</option>
+                                <?php 
+                                $months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                foreach($months as $k => $v) echo "<option value='".sprintf("%02d", $k+1)."'>$v</option>"; 
+                                ?>
+                            </select>
+                            <select id="birth_year" name="birth_year" class="custom-select">
+                                <option value="" disabled selected>Year</option>
+                                <?php for($i=date('Y'); $i>=1900; $i--) echo "<option value='$i'>$i</option>"; ?>
+                            </select>
+                        </div>
                         <div class="required"></div>
                     </div>
 
@@ -166,18 +183,27 @@ $_SESSION['refresh_captcha'] = 1;
                                 <span>Other</span>
                             </label>
                         </div>
+                        <div class="required"></div>
                     </div>
 
                     <div class="captcha-group">
                         <div class="captcha-img-wrapper">
                             <img src="data/captcha.php" alt='captchaimg' id="captchaimg1">
-                             <button type="button" class="refresh-captcha" onclick="document.getElementById('captchaimg1').src='data/captcha.php?'+Math.random();">↻</button>
                         </div>
+                        <button type="button" class="refresh-captcha" onclick="document.getElementById('captchaimg1').src='data/captcha.php?'+Math.random();"><i class="fa-solid fa-rotate-right"></i></button>
                         <div class="input-group">
                             <input type="text" name="captcha" id="captcha_1" required placeholder=" ">
                             <label for="captcha_1">Captcha</label>
                             <div class="required" id="required_1"></div>
                         </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="custom-checkbox">
+                            <input type="checkbox" name="tos_agree" id="tos_agree" required>
+                            <span class="checkmark"></span>
+                            <span>I agree to the <a href="pages/tos/" target="_blank" onclick="event.stopPropagation();">Terms of Service</a></span>
+                        </label>
                     </div>
 
                     <button class="btn-primary" name="register" onclick="validateRegister()">
@@ -187,6 +213,12 @@ $_SESSION['refresh_captcha'] = 1;
             </div>
 		</main>
 		<script src="resources/js/jquery.js"></script>
+		<script src="resources/js/custom-select.js?v=<?php echo time(); ?>"></script>
 		<script src="resources/js/index.js?v=<?php echo time(); ?>"></script>
+        <script>
+            $(document).ready(function() {
+                initCustomSelects();
+            });
+        </script>
 	</body>
 </html>

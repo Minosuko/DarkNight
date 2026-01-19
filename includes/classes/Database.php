@@ -2,14 +2,22 @@
 class Database {
     private static $instance = null;
     private $conn;
+    public $db_user;
+    public $db_post;
+    public $db_media;
 
     private function __construct() {
         // Assuming this file is in includes/classes/
         $configPath = __DIR__ . '/../config/database.php';
         if (file_exists($configPath)) {
             require $configPath;
-            // $host, $username, $dbpassword, $dbdatabase are defined in database.php
-            $this->conn = new mysqli($host, $username, $dbpassword, $dbdatabase);
+            // $host, $username, $dbpassword, $db_user, $db_post, $db_media are defined in database.php
+            $this->db_user = $db_user;
+            $this->db_post = $db_post;
+            $this->db_media = $db_media;
+            
+            // Connect to user database by default
+            $this->conn = new mysqli($host, $username, $dbpassword, $db_user);
 
             if ($this->conn->connect_error) {
                 die("Connection failed: " . $this->conn->connect_error);
@@ -50,3 +58,4 @@ class Database {
         return $this->conn->insert_id;
     }
 }
+?>

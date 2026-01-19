@@ -6,7 +6,17 @@ media_cdn = 'data/images.php?t=media';
 video_cdn = 'data/videos.php?t=media';
 backend_url = "/worker/";
 _activeProfileTab = 'timeline'; // Track which profile tab is active
-supported_language = [['en-us', 'English'], ['vi-vn', 'Tiếng Việt']];
+supported_language = [
+	['en-us', 'English'],
+	['ko-kr', '한국어'],
+	['ja-jp', '日本語'],
+	['zh-cn', '简体中文'],
+	['vi-vn', 'Tiếng Việt'],
+	['fil-ph', 'Filipino'],
+	['id-id', 'Bahasa Indonesia'],
+	['th-th', 'ไทย'],
+	['fr-fr', 'Français']
+];
 
 if (typeof (Storage) !== "undefined") {
 	a = lsg("language");
@@ -282,8 +292,15 @@ function lsg(n) {
 function lss(n, v) {
 	return localStorage.setItem(n, v);
 }
-function gebi(i) {
-	return document.getElementById(i);
+function gebi(id) { return document.getElementById(id); }
+
+function getVerifiedBadge(level, style = "", customTitle = null) {
+	if (level <= 0) return "";
+	let icon = "fa-badge-check";
+	let title = customTitle || window["lang_badge_" + level] || window["lang__016"];
+	if (level == 20) icon = "fa-paw-claws";
+
+	return `<i class="fa-solid ${icon} verified_color_${level} verified-badge" style="${style}" title="${title}"></i>`;
 }
 function gebcn(i) {
 	return document.getElementsByClassName(i);
@@ -328,7 +345,7 @@ function _revoke_all_sessions(confirmed = false) {
 		return;
 	}
 
-	$.post(backend_url + "session.php", { revoke_all: 1 }, function (response) {
+	$.post(backend_url + "Auth.php", { action: 'revoke_session', revoke_all: 1 }, function (response) {
 		if (response.success === 1) {
 			_load_sessions(); // Refresh list
 			_alert_modal("All other sessions have been revoked.");
@@ -340,7 +357,7 @@ function _revoke_all_sessions(confirmed = false) {
 
 function _pin_post(postId) {
 	togglePostOptions(postId);
-	$.post(backend_url + "post_action.php", { action: 'pin', post_id: postId }, function (r) {
+	$.post(backend_url + "Post.php", { action: 'pin', post_id: postId }, function (r) {
 		if (r.success === 1) {
 			const postEl = gebi('post_id-' + postId);
 			if (!postEl) {
@@ -383,7 +400,7 @@ function _delete_post(postId, confirmed = false) {
 		return;
 	}
 
-	$.post(backend_url + "post_action.php", { action: 'delete', post_id: postId }, function (r) {
+	$.post(backend_url + "Post.php", { action: 'delete', post_id: postId }, function (r) {
 		if (r.success === 1) {
 			const post = gebi('post_id-' + postId);
 			if (post) post.remove();
@@ -397,7 +414,7 @@ function _delete_post(postId, confirmed = false) {
 
 function _open_edit_post(postId) {
 	togglePostOptions(postId); // Close the menu
-	$.get(backend_url + "fetch_post_info.php?id=" + postId, function (data) {
+	$.get(backend_url + "Post.php?scope=single&id=" + postId, function (data) {
 		if (data.success === 1) {
 			modal_open('edit_post', postId);
 			var content = gebi("modal_content");
@@ -440,12 +457,12 @@ function _open_edit_post(postId) {
 function _submit_post_edit(postId) {
 	const caption = gebi('edit_caption').value;
 	const privacy = gebi('edit_privacy').value;
-	$.post(backend_url + "post_action.php", { action: 'update', post_id: postId, caption: caption, private: privacy }, function (r) {
+	$.post(backend_url + "Post.php", { action: 'update', post_id: postId, caption: caption, private: privacy }, function (r) {
 		if (r.success === 1) {
 			modal_close();
 			// Refresh feed or update DOM
 			// For now, let's just refresh the post if we are in SPA
-			fetch_post("fetch_post.php");
+			fetch_post("Post.php?scope=feed");
 		} else {
 			_alert_modal(r.err || "Failed to update post.");
 		}
@@ -549,7 +566,7 @@ function timeSince(d) {
 }
 function _load_info() {
 	$.ajax({
-		url: backend_url + "fetch_profile_setting_info.php",
+		url: backend_url + "User.php?action=settings",
 		type: 'GET',
 		success: function (res) {
 			gebi('online_status').value = res['online_status'];
@@ -558,7 +575,7 @@ function _load_info() {
 	});
 }
 function _like(id) {
-	$.get(backend_url + "likes.php?post_id=" + id, function (d) {
+	$.post(backend_url + "Post.php", { action: 'like', post_id: id }, function (d) {
 		s = d.split(";");
 		l = gebi("post-like-" + id);
 		c = "icon-heart fa-heart icon-click";
@@ -600,7 +617,8 @@ function changeUrl(u) {
 function processAjaxData(r, u) {
 	e = document.createElement("html");
 	e.innerHTML = r;
-	tl = e.getElementsByTagName('title')[0].innerHTML;
+	var titleTags = e.getElementsByTagName('title');
+	tl = (titleTags.length > 0) ? titleTags[0].innerHTML : "";
 	c = e.getElementsByClassName('container');
 	s = e.getElementsByTagName('style');
 	d = gebtn('style');
@@ -619,20 +637,34 @@ function processAjaxData(r, u) {
 		}
 	}
 	load_lang();
-	document.title = tl;
+	if (tl) document.title = tl;
 	window.history.pushState({
 		"html": r,
 		"pageTitle": tl
 	}, "", u);
-	if (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php") {
-		_feedLoading = false;
-		window['xel'] = e;
-		gebcn('container')[0].innerHTML = c[0].innerHTML;
 
-		// fetch_profile will handle loading posts after profile header is ready
-		fetch_profile(e);
+	const mainContainer = gebcn('container')[0];
+	if (!mainContainer) {
+		console.warn("Target .container not found in current page.");
+		loading_bar(0);
+		return;
+	}
+
+	if (c.length > 0) {
+		if (u.substring(0, 12) === "/profile.php" || u.substring(0, 11) === "profile.php") {
+			_feedLoading = false;
+			window['xel'] = e;
+			mainContainer.innerHTML = c[0].innerHTML;
+
+			// fetch_profile will handle loading posts after profile header is ready
+			fetch_profile(e);
+		} else {
+			mainContainer.innerHTML = c[0].innerHTML;
+		}
 	} else {
-		gebcn('container')[0].innerHTML = c[0].innerHTML;
+		console.warn("New content does not contain a .container element.");
+		// Fallback: If it's a full page but without our SPA structure, just reload it?
+		// Or inject the body. For now, we do nothing and let the user see the console error/warning
 	}
 
 	loading_bar(0);
@@ -643,7 +675,7 @@ function processAjaxData(r, u) {
 	_feedLoading = false;
 
 	if (u === "/home.php" || u === "home.php" || u === "/" || u === "/index.php" || u === "index.php")
-		fetch_post("fetch_post.php", true);
+		fetch_post("Post.php?scope=feed", true);
 	if (u === "/logout.php" || u === "logout.php")
 		location.reload();
 	if (u === "/friends.php" || u === "friends.php")
@@ -702,7 +734,7 @@ function fetch_pfp_box() {
 			i = lsg('pfp_media_id');
 			h = lsg('pfp_media_hash');
 			g = lsg('user_gender');
-			$.get(backend_url + "profile_image.php", function (d) {
+			$.get(backend_url + "Account.php?action=profile_images", function (d) {
 				if (d["pfp_media_id"] != i) lss("pfp_media_id", d["pfp_media_id"]);
 				if (d["pfp_media_hash"] != h) lss("pfp_media_hash", d["pfp_media_hash"]);
 				if (d["user_gender"] != g) lss("user_gender", d["user_gender"]);
@@ -742,12 +774,12 @@ function createPostHTML(s) {
 	a += '<div class="user_name">';
 	a += '<a class="profilelink" href="profile.php?id=' + s['user_id'] + '">' + s['user_firstname'] + ' ' + s['user_lastname'] + '</a>';
 	if (s['verified'] > 0)
-		a += '<i class="fa-solid fa-badge-check verified_color_' + s['verified'] + '" style="margin-left:5px;" title="' + window["lang__016"] + '"></i>';
+		a += getVerifiedBadge(s['verified'], "margin-left:5px;");
 
 	if (s.group_id > 0 && s.group_name) {
 		a += ' <i class="fa-solid fa-caret-right" style="margin:0 5px; color:var(--color-text-dim); font-size:0.8em;"></i> ';
 		a += '<a href="group.php?id=' + s.group_id + '" class="profilelink" onclick="changeUrl(\'group.php?id=' + s.group_id + '\'); return false;" style="color:var(--color-text-main); font-weight:600;">' + s.group_name + '</a>';
-		if (s.group_verified > 0) a += '<i class="fa-solid fa-badge-check verified_color_' + s.group_verified + '" style="margin-left:5px;" title="Verified Community"></i>';
+		if (s.group_verified > 0) a += getVerifiedBadge(s.group_verified, "margin-left:5px;", "Verified Community");
 	}
 	a += '</div>';
 
@@ -811,7 +843,7 @@ function createPostHTML(s) {
 			a += '" width="40px" height="40px">';
 			a += '<div class="header-info">';
 			a += '<div class="user_name"><a class="profilelink" href="profile.php?id=' + post['user_id'] + '">' + post['user_firstname'] + ' ' + post['user_lastname'] + '</a>';
-			if (post['verified'] > 0) a += '<i class="fa-solid fa-badge-check verified_color_' + post['verified'] + '" style="margin-left:5px;"></i>';
+			if (post['verified'] > 0) a += getVerifiedBadge(post['verified'], "margin-left:5px;");
 			a += '</div>';
 			a += '<div class="postedtime"><span class="nickname">@' + post['user_nickname'] + '</span> • <span title="' + timeConverter(post['post_time'] * 1000) + '">' + timeSince(post['post_time'] * 1000) + '</span></div>';
 			a += '</div></div><br>';
@@ -976,7 +1008,7 @@ function modal_open(type, pid = null) {
 		_load_post(pid);
 	} else if (type === 'settings') {
 		// Fetch current info to pre-fill
-		$.get(backend_url + "fetch_profile_info.php", function (data) {
+		$.get(backend_url + "User.php?action=profile", function (data) {
 			if (data.success === 1) {
 				var h = '';
 				h += '<div class="upload-modal-container">';
@@ -1083,7 +1115,7 @@ function modal_open(type, pid = null) {
 			}
 		});
 	} else if (type === '2fa_setup') {
-		$.get(backend_url + "2fa_setup.php", function (r) {
+		$.get(backend_url + "Auth.php?action=2fa_setup", function (r) {
 			if (r.success === 1) {
 				var h = '';
 				h += '<div class="upload-modal-container">';
@@ -1255,7 +1287,7 @@ function loadComments(postId, page = -1, reset = false) {
 		btn.style.pointerEvents = 'none';
 	}
 
-	$.get(backend_url + "fetch_comment.php?id=" + postId + "&page=" + page, function (data) {
+	$.get(backend_url + "Post.php?scope=comments&id=" + postId + "&page=" + page, function (data) {
 
 		// Reset Button State
 		if (btn) {
@@ -1294,7 +1326,7 @@ function loadComments(postId, page = -1, reset = false) {
 				html += '<div class="comment-header">';
 				html += '<a class="comment-user" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if (data[i]['verified'] > 0)
-					html += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" style="margin-left:4px; font-size: 11px;"></i>';
+					html += getVerifiedBadge(data[i]['verified'], "margin-left:4px; font-size: 11px;");
 				html += '</a>';
 				html += '<span class="comment-time" title="' + timeConverter(data[i]['comment_time'] * 1000) + '">' + timeSince(data[i]['comment_time'] * 1000) + '</span>';
 				html += '</div>';
@@ -1462,7 +1494,7 @@ function fetch_friend_list(loc, from_blob = false) {
 				a += '<br>';
 				a += '<a class="flist_link" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if (data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + window["lang__016"] + '"></i>';
+					a += getVerifiedBadge(data[i]['verified']);
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '</center>';
@@ -1496,7 +1528,7 @@ function fetch_friend_request(loc) {
 				a += '<br>';
 				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
 				if (data[i]['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data[i]['verified'] + '" title="' + window["lang__016"] + '"></i>';
+					a += getVerifiedBadge(data[i]['verified']);
 				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
 				a += '</a>';
 				a += '<div id="toggle-fr-' + data[i]['user_id'] + '">';
@@ -1519,10 +1551,10 @@ function fetch_friend_request(loc) {
 function initFriendsPage() {
 	load_lang();
 	// Load friends list on page load
-	fetch_friend_list('fetch_friend_list.php');
+	fetch_friend_list('User.php?action=friends');
 
 	// Load request count for badge
-	$.get(backend_url + 'friend_request_count.php', function (data) {
+	$.get(backend_url + 'User.php?action=requests&type=count', function (data) {
 		if (data && data.count > 0) {
 			$('#request-count-badge').text(data.count).show();
 		} else {
@@ -1561,7 +1593,7 @@ function fetch_profile(e = null) {
 	// Note: We do not modify 'e' (the temp DOM) here because we want to load data asynchronously.
 	// The skeleton from profile.php will be injected by processAjaxData first.
 
-	$.get(backend_url + "fetch_profile_info.php" + id_a, function (data) {
+	$.get(backend_url + "User.php?action=profile" + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (data['success'] != 1) {
 			// If user not found, maybe redirect or show error
 			if (window.location.href.indexOf("profile.php") > -1) {
@@ -1651,7 +1683,7 @@ function _render_profile_header(data) {
 	h += '<div class="profile-fullname">';
 	h += data['user_firstname'] + ' ' + data['user_lastname'];
 	if (data['verified'] > 0)
-		h += ' <i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" title="' + window["lang__016"] + '"></i>';
+		h += ' ' + getVerifiedBadge(data['verified']);
 	h += '</div>';
 	h += '<div class="profile-username">@' + data['user_nickname'] + '</div>';
 	h += '</div>';
@@ -1748,27 +1780,10 @@ function switchProfileTab(tabName, id_a, tabElement) {
 	oldFeed.parentNode.replaceChild(feed, oldFeed);
 
 	if (tabName === 'timeline') {
-		// Load Timeline
-		// We can reuse fetch_post but we need to ensure it targets 'feed' or we reconstruct the wrapper
-		// Creating a wrapper for posts if needed
 		feed.innerHTML = '<div id="profile-posts-container"></div>';
-		// Actually fetch_post appends to 'feed' by default if no logic changes,
-		// but wait, fetch_post implementation (checked earlier) usually appends to `gebi('feed')` or specific container?
-		// Let's check fetch_profile_post logic.
-		// Existing logic: fetch_post("fetch_profile_post.php" + id_a, true);
-		// The 2nd arg 'true' might mean "is profile" or "reset"?
-		// Checking fetch_post signature in my memory or I should have checked.
-		// Assuming standard behavior: it appends to a list container.
 
-		// To be safe, we'll assume fetch_post handles the "feed" element.
-		// We simply call it.
-		// But first add the "Create Post" box if it's my profile?
-		// The "Create Post" box is usually part of the feed stream or added separately.
-		// In the old code, it wasn't explicitly added in fetch_profile.
-		// It might be in profile.php static HTML? No, profile.php has <div id="feed"></div>.
-		// So `fetch_post("fetch_profile_post.php"...)` likely renders it.
-
-		fetch_post("fetch_profile_post.php" + id_a, true);
+		var sep = (id_a && id_a.includes('?')) ? '&' : '?';
+		fetch_post("Post.php" + (id_a || '') + sep + "scope=profile", true);
 
 	} else if (tabName === 'about') {
 		_load_profile_about();
@@ -1777,7 +1792,8 @@ function switchProfileTab(tabName, id_a, tabElement) {
 	} else if (tabName === 'photos') {
 		_load_profile_photos(id_a);
 	} else if (tabName === 'likes') {
-		fetch_post("fetch_liked_posts.php" + id_a, true);
+		var sep = (id_a && id_a.includes('?')) ? '&' : '?';
+		fetch_post("Post.php" + (id_a || '') + sep + "scope=liked", true);
 	}
 }
 
@@ -1870,7 +1886,7 @@ function _load_profile_friends(id_a) {
 	// Initial skeleton
 	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	$.get(backend_url + "fetch_friend_list.php" + id_a, function (data) {
+	$.get(backend_url + "User.php?action=friends" + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (_activeProfileTab !== 'friends') return;
 
 		if (data.success == 2 || data.success == 3) {
@@ -1899,7 +1915,7 @@ function _load_profile_photos(id_a) {
 	// Initial skeleton
 	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	$.get(backend_url + "fetch_profile_photos.php" + id_a, function (data) {
+	$.get(backend_url + "User.php?action=photos" + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (_activeProfileTab !== 'photos') return;
 
 		if (data.success == 2 || data.success == 3) {
@@ -1939,9 +1955,9 @@ var _activeGroupTab = 'timeline';
 function fetch_group() {
 	var id = get("id");
 	var id_a = '';
-	if (typeof (id) != 'undefined') id_a = '?id=' + id;
+	if (typeof (id) != 'undefined') id_a = '&id=' + id;
 
-	$.get(backend_url + "fetch_group_info.php" + id_a, function (data) {
+	$.get(backend_url + 'Group.php?action=info' + id_a, function (data) {
 		if (data['success'] != 1) {
 			gebi('feed').innerHTML = '<div class="empty-state" style="padding:40px; text-align:center;"><p>' + (data.message || 'Group not found') + '</p></div>';
 			return;
@@ -1998,7 +2014,7 @@ function _render_group_header(d) {
 	h += '<div class="profile-info-section">';
 	h += '  <div class="profile-names">';
 	h += '    <h1 class="profile-fullname">' + d.group_name;
-	if (d.verified > 0) h += ' <i class="fa-solid fa-badge-check verified_color_' + d.verified + '" title="Verified Community" style="font-size:0.8em; margin-left:8px;"></i>';
+	if (d.verified > 0) h += ' ' + getVerifiedBadge(d.verified, "font-size:0.8em; margin-left:8px;", "Verified Community");
 	h += '</h1>';
 
 	// Privacy & Meta Badges
@@ -2067,7 +2083,7 @@ function switchGroupTab(tabName, id_a, tabElement) {
 		}
 
 		// Group Feed
-		fetch_post("fetch_group_posts.php" + id_a, false); // false = append/don't reset feed as we just added create box manually
+		fetch_post("post.php?scope=group" + id_a.replace('?', '&'), false); // false = append/don't reset feed as we just added create box manually
 	} else if (tabName === 'about') {
 		var d = _currentGroupData;
 		var h = '<div class="profile-about-container">';
@@ -2116,7 +2132,7 @@ function _load_group_photos(id_a) {
 	if (!feed) return;
 	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	$.get(backend_url + "fetch_group_photos.php" + id_a, function (data) {
+	$.get(backend_url + 'Group.php?action=photos' + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (_activeGroupTab !== 'photos') return;
 
 		if (data.success == 2 || data.success == 3) {
@@ -2170,7 +2186,7 @@ function _load_group_members(id_a, query = '') {
 
 	mount.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	var url = backend_url + "fetch_group_members.php" + id_a;
+	var url = backend_url + 'Group.php?action=members' + ((id_a) ? '&' + id_a.substring(1) : '');
 	if (query !== '') url += "&query=" + encodeURIComponent(query);
 
 	$.get(url, function (data) {
@@ -2191,7 +2207,7 @@ function _load_group_members(id_a, query = '') {
 			h += '<div class="friend-card group-member-card">';
 			h += '  <a href="profile.php?id=' + m.user_id + '" onclick="route(event, this)" style="text-decoration:none; color:inherit; display:block; text-align:center;">';
 			h += '    <img src="' + pUrl + '" class="friend-card-pfp">';
-			h += '    <div class="friend-card-name">' + m.user_firstname + ' ' + m.user_lastname + (m.verified == 1 ? ' <i class="fa-solid fa-circle-check" style="color:var(--color-primary); font-size:0.8em;"></i>' : '') + '</div>';
+			h += '    <div class="friend-card-name">' + m.user_firstname + ' ' + m.user_lastname + getVerifiedBadge(m.verified, "font-size:0.8em;") + '</div>';
 			h += '    <div class="friend-card-username" ' + roleClass + '>' + roleLabel + '</div>';
 			if (m.joined_time) {
 				h += '    <div class="friend-card-meta" style="font-size:0.75rem; color:var(--color-text-dim); margin-top:4px;">Joined ' + timeSince(m.joined_time * 1000) + ' ago</div>';
@@ -2236,7 +2252,7 @@ function _debounce_group_member_search(id_a) {
 function _group_admin_action(groupId, targetUserId, action) {
 	var actionLabel = (action === 'kick') ? 'kick this member' : (action === 'promote' ? 'promote this member to Moderator' : 'demote this moderator to Member');
 	_confirm_modal("Are you sure you want to " + actionLabel + "?", function () {
-		$.post(backend_url + "group_admin_action.php", { group_id: groupId, target_user_id: targetUserId, action: action }, function (data) {
+		$.post(backend_url + 'Group.php', { group_id: groupId, target_user_id: targetUserId, action: action }, function (data) {
 			if (data.success == 1) {
 				var id_a = '?id=' + groupId;
 				_load_group_members(id_a);
@@ -2312,7 +2328,7 @@ function _confirm_join_group(groupId, action = 'join') {
 		modal_close();
 	}
 
-	$.post(backend_url + "group_membership.php", { id: groupId, action: action }, function (data) {
+	$.post(backend_url + 'Group.php', { id: groupId, action: action }, function (data) {
 		if (data.success == 1) {
 			fetch_group(); // Refresh header
 		} else {
@@ -2414,7 +2430,7 @@ function _delete_group(groupId) {
 	btn.disabled = true;
 	btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
 
-	$.post(backend_url + "delete_group.php", { id: groupId, password: encryptPassword(pass), code: code }, function (data) {
+	$.post(backend_url + 'Group.php?action=delete', { id: groupId, password: encryptPassword(pass), code: code }, function (data) {
 		btn.disabled = false;
 		btn.innerHTML = 'Confirm Delete';
 
@@ -2438,7 +2454,7 @@ function _submit_group_settings(groupId) {
 	var privacy = gebi('edit_group_privacy').value;
 	var rules = gebi('edit_group_rules').value;
 
-	$.post(backend_url + "update_group.php", {
+	$.post(backend_url + 'Group.php?action=update', {
 		id: groupId,
 		name: name,
 		about: about,
@@ -2464,7 +2480,7 @@ function _create_group() {
 		return;
 	}
 
-	$.post(backend_url + "create_group.php", { name: name, about: about, privacy: privacy }, function (data) {
+	$.post(backend_url + 'Group.php?action=create', { name: name, about: about, privacy: privacy }, function (data) {
 		if (data.success == 1) {
 			modal_close();
 			window.location.href = 'group.php?id=' + data.group_id;
@@ -2478,7 +2494,7 @@ function _load_groups_discovery() {
 	var mount = gebi('groups-discovery-mount');
 	if (!mount) return;
 
-	$.get(backend_url + "fetch_groups.php", function (data) {
+	$.get(backend_url + 'Group.php?action=list', function (data) {
 		if (data.length === 0) {
 			mount.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-solid fa-users fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No communities found. Why not create one?</p></div>';
 			return;
@@ -2503,7 +2519,7 @@ function _load_groups_discovery() {
 			h += '  <div class="group-discovery-info">';
 			h += '    <img src="' + pfpUrl + '" class="group-discovery-pfp">';
 			h += '    <div class="group-discovery-name">' + g.group_name;
-			if (g.verified > 0) h += ' <i class="fa-solid fa-badge-check verified_color_' + g.verified + '" style="margin-left:5px;"></i>';
+			if (g.verified > 0) h += getVerifiedBadge(g.verified, "margin-left:5px;", "Verified Community");
 			h += '</div>';
 			h += '    <div class="group-discovery-about">' + (g.group_about || 'No description.') + '</div>';
 			h += '    <div class="group-discovery-meta">';
@@ -2527,7 +2543,7 @@ function _openPostMediaLightbox(postId) {
 	// Initial skeleton
 	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	$.get(backend_url + "fetch_profile_photos.php" + (id_a || ''), function (data) {
+	$.get(backend_url + "User.php?action=photos" + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (data.success === 1 || data.success === 3) {
 
 			var keys = Object.keys(data).filter(k => !isNaN(k));
@@ -2607,7 +2623,7 @@ function _openPostMediaLightbox(postId) {
 	document.addEventListener('keydown', _lightboxKeyHandler);
 
 	// Fetch all media for this post
-	$.get(backend_url + "fetch_post_media.php?id=" + postId, function (data) {
+	$.get(backend_url + "post.php?scope=media&id=" + postId, function (data) {
 		if (data.success === 1 && data.media && data.media.length > 0) {
 			_photoLightboxData = data.media.map(function (m) {
 				return {
@@ -2702,7 +2718,7 @@ function _load_profile_friends(id_a) {
 	// Initial skeleton or loading state
 	feed.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>';
 
-	$.get(backend_url + "fetch_friend_list.php" + (id_a || ''), function (data) {
+	$.get(backend_url + "User.php?action=friends" + ((id_a) ? '&' + id_a.substring(1) : ''), function (data) {
 		if (data.success === 1 || data.success === 3) {
 
 			// Check if list is empty (object keys length check minus success key)
@@ -2725,7 +2741,7 @@ function _load_profile_friends(id_a) {
 				html += '<div class="friend-card-name">';
 				html += u['user_firstname'] + ' ' + u['user_lastname'];
 				if (u['verified'] > 0)
-					html += ' <i class="fa-solid fa-badge-check verified_color_' + u['verified'] + '" style="font-size:0.9em;"></i>';
+					html += ' ' + getVerifiedBadge(u['verified'], "font-size:0.9em;");
 				html += '</div>';
 				html += '<div class="friend-card-username">@' + u['user_nickname'] + '</div>';
 				html += '</a>';
@@ -2967,7 +2983,7 @@ function _friend_request_toggle(id, accept) {
 		ac = 'accept';
 	else
 		ac = 'ignore';
-	$.get(backend_url + "friend_request_toggle.php?id=" + id + "&" + ac, function (data) {
+	$.get(backend_url + 'User.php?action=friend_respond&id=' + id + '&' + ac, function (data) {
 		if (data['success'] == 1) {
 			t = gebi('toggle-fr-' + data['id']);
 			a = '';
@@ -2983,10 +2999,12 @@ function send_comment() {
 	if (text === "") return;
 
 	f = new FormData();
+	f.append('action', 'comment');
+	f.append('post_id', get("id"));
 	f.append('comment', text);
 	$.ajax({
 		type: "POST",
-		url: backend_url + "comment.php?id=" + get("id"),
+		url: backend_url + "Post.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -3011,7 +3029,7 @@ function send_comment() {
 				a += '<div class="comment-header">';
 				a += '<a class="comment-user" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'];
 				if (data['verified'] > 0)
-					a += '<i class="fa-solid fa-badge-check verified_color_' + data['verified'] + '" style="margin-left:4px; font-size: 11px;"></i>';
+					a += getVerifiedBadge(data['verified'], "margin-left:4px; font-size: 11px;");
 				a += '</a>';
 				a += '<span class="comment-time">' + timeSince(Date.now()) + '</span>';
 				a += '</div>';
@@ -3039,7 +3057,7 @@ function _friend_toggle() {
 	f.append(special.name, '1');
 	$.ajax({
 		type: "POST",
-		url: backend_url + "friend_toggle.php?id=" + get("id"),
+		url: backend_url + 'User.php?action=friend_request&id=' + get("id"),
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -3061,7 +3079,7 @@ function _follow_toggle() {
 	f.append('id', get("id"));
 	$.ajax({
 		type: "POST",
-		url: backend_url + "follow_toggle.php",
+		url: backend_url + 'User.php?action=follow',
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -3084,7 +3102,7 @@ function showMore(id) {
 }
 function _online() {
 	$.ajax({
-		url: backend_url + "online.php",
+		url: backend_url + 'User.php?action=online',
 		type: 'GET',
 		success: function (res) {
 			if (res == 0)
@@ -3095,7 +3113,7 @@ function _online() {
 }
 function _fr_count() {
 	$.ajax({
-		url: backend_url + "friend_request_count.php",
+		url: backend_url + "User.php?action=requests&type=count",
 		type: 'GET',
 		success: function (res) {
 			var el = gebi('friend_req_count');
@@ -3108,7 +3126,7 @@ function _fr_count() {
 }
 
 function _notification_count() {
-	$.get(backend_url + "fetch_notification.php?action=count", function (r) {
+	$.get(backend_url + "Notification.php?action=count", function (r) {
 		if (r.success === 1) {
 			var el = gebi('notification_count');
 			if (el) {
@@ -3123,48 +3141,47 @@ function loadNotifications() {
 	var list = gebi('notification-list');
 	if (!list) return;
 
-	$.get(backend_url + "fetch_notification.php")
-		.done(function (r) {
-			if (r.success === 1) {
-				var h = '';
-				if (!r.notifications || r.notifications.length === 0) {
-					h = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);">';
-					h += '<i class="fa-regular fa-bell-slash fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i>';
-					h += '<p>No notifications yet.</p></div>';
-				} else {
-					r.notifications.forEach(function (n) {
-						var pfp = (n.pfp_media_id > 0) ? pfp_cdn + '&id=' + n.pfp_media_id + "&h=" + n.pfp_media_hash : getDefaultUserImage(n.user_gender);
-						var msg = '';
-						switch (n.type) {
-							case 'like': msg = 'liked your post'; break;
-							case 'comment': msg = 'commented on your post'; break;
-							case 'share': msg = 'shared your post'; break;
-							default: msg = 'interacted with your content';
-						}
-
-						h += '<li class="notification-item' + (n.is_read == 0 ? ' unread' : '') + '" onclick="modal_open(\'view_post\',' + n.reference_id + ')">';
-						h += '<img src="' + pfp + '" class="notification-pfp">';
-						h += '<div class="notification-info">';
-						h += '<p class="notification-text"><strong>' + n.user_firstname + ' ' + n.user_lastname + '</strong> ' + msg + '</p>';
-						h += '<span class="notification-time">' + timeSince(new Date(n.created_time).getTime()) + '</span>';
-						h += '</div>';
-						if (n.is_read == 0) h += '<div class="unread-dot"></div>';
-						h += '</li>';
-					});
-				}
-				list.innerHTML = h;
-				_notification_count(); // Update counter when list is loaded
+	$.get(backend_url + "Notification.php", function (r) {
+		if (r.success === 1) {
+			var h = '';
+			if (!r.notifications || r.notifications.length === 0) {
+				h = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);">';
+				h += '<i class="fa-regular fa-bell-slash fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i>';
+				h += '<p>No notifications yet.</p></div>';
 			} else {
-				list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);"><p>Failed to load notifications</p></div>';
+				r.notifications.forEach(function (n) {
+					var pfp = (n.pfp_media_id > 0) ? pfp_cdn + '&id=' + n.pfp_media_id + "&h=" + n.pfp_media_hash : getDefaultUserImage(n.user_gender);
+					var msg = '';
+					switch (n.type) {
+						case 'like': msg = 'liked your post'; break;
+						case 'comment': msg = 'commented on your post'; break;
+						case 'share': msg = 'shared your post'; break;
+						default: msg = 'interacted with your content';
+					}
+
+					h += '<li class="notification-item' + (n.is_read == 0 ? ' unread' : '') + '" onclick="modal_open(\'view_post\',' + n.reference_id + ')">';
+					h += '<img src="' + pfp + '" class="notification-pfp">';
+					h += '<div class="notification-info">';
+					h += '<p class="notification-text"><strong>' + n.user_firstname + ' ' + n.user_lastname + '</strong> ' + msg + '</p>';
+					h += '<span class="notification-time">' + timeSince(new Date(n.created_time).getTime()) + '</span>';
+					h += '</div>';
+					if (n.is_read == 0) h += '<div class="unread-dot"></div>';
+					h += '</li>';
+				});
 			}
-		})
+			list.innerHTML = h;
+			_notification_count(); // Update counter when list is loaded
+		} else {
+			list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);"><p>Failed to load notifications</p></div>';
+		}
+	})
 		.fail(function () {
 			list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);"><p>Error connecting to server</p></div>';
 		});
 }
 
 function markAllRead() {
-	$.get(backend_url + "fetch_notification.php?action=read_all", function (r) {
+	$.get(backend_url + "Notification.php?action=read_all", function (r) {
 		if (r.success === 1) {
 			loadNotifications();
 			_notification_count();
@@ -3188,132 +3205,15 @@ function _load_hljs() {
 	});
 	changeUrlWork();
 }
-function _load_settings() {
-	tab = get("tab");
-	if (tab == undefined)
-		tab = 'account';
-	current_tab = gebi('tab-' + tab);
-	if (current_tab != null)
-		current_tab.classList.add("active");
-	current_setting_tab = gebi('setting-tab-' + tab);
-	if (current_setting_tab != null)
-		current_setting_tab.style.display = "block";
-	l_user_about = lsg('user_about');
-	l_user_hometown = lsg('user_hometown');
-	l_usernickname = lsg('user_nickname');
-	l_userfirstname = lsg('userfirstname');
-	l_userlastname = lsg('userlastname');
-	l_user_email = lsg('user_email');
-	l_cover_media_id = lsg('cover_media_id');
-	l_cover_media_hash = lsg('cover_media_hash');
-	l_pfp_media_id = lsg('pfp_media_id');
-	l_pfp_media_hash = lsg('pfp_media_hash');
-	l_user_gender = lsg('user_gender');
-	l_user_birthdate = lsg('user_birthdate');
-	l_verified = lsg('verified');
-	$.ajax({
-		url: backend_url + "fetch_profile_setting_info.php",
-		type: 'GET',
-		success: function (r) {
-			if (l_user_about != r['user_about']) lss('user_about', r['user_about']);
-			if (l_user_hometown != r['user_hometown']) lss('user_hometown', r['user_hometown']);
-			if (l_usernickname != r['user_nickname']) lss('user_nickname', r['user_nickname']);
-			if (l_userfirstname != r['user_firstname']) lss('user_firstname', r['user_firstname']);
-			if (l_userlastname != r['user_lastname']) lss('user_lastname', r['user_lastname']);
-			if (l_user_email != r['user_email']) lss('user_email', r['user_email']);
-			if (l_cover_media_id != r['cover_media_id']) lss('cover_media_id', r['cover_media_id']);
-			if (l_cover_media_hash != r['cover_media_hash']) lss('cover_media_hash', r['cover_media_hash']);
-			if (l_pfp_media_id != r['pfp_media_id']) lss('pfp_media_id', r['pfp_media_id']);
-			if (l_pfp_media_hash != r['pfp_media_hash']) lss('pfp_media_hash', r['pfp_media_hash']);
-			if (l_user_gender != r['user_gender']) lss('user_gender', r['user_gender']);
-			if (l_user_birthdate != r['user_birthdate']) lss('user_birthdate', r['user_birthdate']);
-			if (l_verified != r['verified']) lss('verified', r['verified']);
-		}
-	});
-	updateThemeIcon();
-	updateColorPresetsUI();
 
-	var langSelect = gebi('setting-language-select');
-	if (langSelect) {
-		langSelect.value = lsg("language") || 'en-us';
-	}
-	usernickname = gebi('usernickname');
-	userfirstname = gebi('userfirstname');
-	userlastname = gebi('userlastname');
-	malegender = gebi('malegender');
-	femalegender = gebi('femalegender');
-	othergender = gebi('othergender');
-	email = gebi('email');
-	user_hometown = gebi('userhometown');
-	user_about = gebi('userabout');
-	verified = gebi('verified');
-	verified_text = gebi('verified-text');
-	birthday = gebi('birthday');
-	profile_picture = gebi('profile_picture');
-	setting_profile_cover = gebi('setting_profile_cover');
-	psrc = '';
-	user_about.value = l_user_about != null ? l_user_about : lsg('user_about');
-	user_hometown.value = l_user_hometown != null ? l_user_hometown : lsg('user_hometown');
-	usernickname.value = l_usernickname != null ? l_usernickname : lsg('user_nickname');
-	userfirstname.value = l_userfirstname != null ? l_userfirstname : lsg('user_firstname');
-	userlastname.value = l_userlastname != null ? l_userlastname : lsg('user_lastname');
-	email.value = l_user_email != null ? l_user_email : lsg('user_email');
-	l_cover_media_id = l_cover_media_id != null ? l_cover_media_id : lsg('cover_media_id');
-	l_cover_media_hash = l_cover_media_hash != null ? l_cover_media_hash : lsg('cover_media_hash');
-	l_pfp_media_id = l_pfp_media_id != null ? l_pfp_media_id : lsg('pfp_media_id');
-	l_pfp_media_hash = l_pfp_media_hash != null ? l_pfp_media_hash : lsg('pfp_media_hash');
-	user_gender = l_user_gender != null ? l_user_gender : lsg('user_gender');
-	l_verified = l_verified != null ? l_verified : lsg('verified');
-	if (l_cover_media_id > 0)
-		setting_profile_cover.style.backgroundImage = 'url("' + pfp_cdn + '&id=' + l_cover_media_id + '&h=' + l_cover_media_hash + '")';
-	psrc = (l_pfp_media_id > 0) ? pfp_cdn + '&id=' + l_pfp_media_id + "&h=" + l_pfp_media_hash : getDefaultUserImage(l_user_gender != null ? l_user_gender : lsg('user_gender'));
-	profile_picture.src = psrc;
-	birthday.value = birthdateConverter((l_user_birthdate != null ? l_user_birthdate : lsg('user_birthdate')) * 1000);
-	if (user_gender == 'F')
-		femalegender.checked = true;
-	else if (user_gender == 'M')
-		malegender.checked = true;
-	else
-		othergender.checked = true;
-	if (l_verified > 0) {
-		switch (Number(l_verified)) {
-			case 1:
-				verified_text.innerText = "Standard Verified";
-				break;
-			case 2:
-				verified_text.innerText = "Moderator Verified";
-				break;
-			case 20:
-				verified_text.innerText = "Admin Verified";
-				break;
-			default:
-				verified_text.innerText = "Special Verified";
-				break;
-		}
-		verified.classList.add("fa-solid");
-		verified.classList.add("fa-badge-check");
-		verified.classList.add('verified_color_' + l_verified);
-	} else {
-		verified_text.innerText = "Not Verified";
-		verified.classList.add("fa-solid");
-		verified.classList.add("fa-x");
-	}
 
-	// Update display spans for settings page
-	if (gebi('display_nickname')) gebi('display_nickname').innerText = usernickname.value;
-	if (gebi('display_email')) gebi('display_email').innerText = email.value;
-
-	_load_2fa_status();
-
-	changeUrlWork();
-}
 
 function _load_2fa_status() {
 	var statusText = gebi('2fa-status-text');
 	var btn = gebi('2fa-btn');
 	if (!statusText || !btn) return;
 
-	$.get(backend_url + "2fa_status.php", function (r) {
+	$.get(backend_url + "Auth.php?action=2fa_status", function (r) {
 		if (r.success === 1) {
 			var statusParts = [];
 			if (r.totp_enabled) statusParts.push('Authenticator');
@@ -3346,7 +3246,7 @@ function _manage_2fa() {
 	var content = gebi("modal_content");
 	content.innerHTML = '<div class="upload-modal-container"><div class="upload-modal-body" style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><p style="margin-top:15px;">Loading 2FA settings...</p></div></div>';
 
-	$.get(backend_url + '2fa_status.php', function (r) {
+	$.get(backend_url + 'Auth.php?action=2fa_status', function (r) {
 		if (r.success === 1) {
 			if (!r.enabled) {
 				modal_open('2fa_select');
@@ -3422,7 +3322,7 @@ function _show_2fa_manage_modal(data) {
 function _remove_security_key(id) {
 	if (!confirm('Are you sure you want to remove this security key?')) return;
 
-	fetch(backend_url + 'webauthn_remove.php', {
+	fetch(backend_url + 'Auth.php?action=webauthn_remove', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ credential_id: id })
@@ -3468,7 +3368,7 @@ function _submit_rename_key(id) {
 		return;
 	}
 
-	fetch(backend_url + 'webauthn_rename.php', {
+	fetch(backend_url + 'Auth.php?action=webauthn_rename', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ credential_id: id, name: newName })
@@ -3493,7 +3393,7 @@ function _setup_security_key() {
 	content.innerHTML = '<div class="upload-modal-container"><div class="upload-modal-body" style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x"></i><p style="margin-top:15px;">Preparing Security Key registration...</p></div></div>';
 
 	// Get registration options
-	fetch(backend_url + 'webauthn_register.php')
+	fetch(backend_url + 'Auth.php?action=webauthn_register')
 		.then(r => r.json())
 		.then(data => {
 			if (!data.success) {
@@ -3523,7 +3423,7 @@ function _setup_security_key() {
 						attestationObject: _bufferToBase64Url(credential.response.attestationObject)
 					};
 
-					return fetch(backend_url + 'webauthn_register.php', {
+					return fetch(backend_url + 'Auth.php?action=webauthn_register', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ response: response })
@@ -3637,7 +3537,7 @@ function _change_profile_infomation() {
 	d.append('usergender', usergender);
 	d.append('userstatus', userstatus);
 	d.append('relationship_user_id', relationship_user_id);
-	$.ajax(backend_url + 'change_account_infomation.php', {
+	$.ajax(backend_url + 'Account.php', {
 		method: "POST",
 		data: d,
 		processData: false,
@@ -3809,7 +3709,7 @@ function _change_infomation(c = null) {
 				d.append('type', 'RequestEmailCode');
 				d.append('CurrentPassword', btoa(gebi('currentpassword').value));
 				d.append('NewEmail', v.value);
-				$.ajax(backend_url + 'change_account_infomation.php', {
+				$.ajax(backend_url + 'Account.php', {
 					method: "POST",
 					data: d,
 					processData: false,
@@ -3837,7 +3737,7 @@ function _change_infomation(c = null) {
 				});
 				b = gebi('gcb');
 				b.classList.add('disabled');
-				p.prop('disabled', true);
+				p.prop('disabled', false);
 				setTimeout(function () {
 					b.classList.remove('disabled');
 					p.prop('disabled', false);
@@ -3918,7 +3818,7 @@ function _change_infomation(c = null) {
 				return 0;
 		}
 
-		$.ajax(backend_url + 'change_account_infomation.php', {
+		$.ajax(backend_url + 'Account.php', {
 			method: "POST",
 			data: f,
 			processData: false,
@@ -3979,6 +3879,7 @@ function _change_infomation(c = null) {
 			}
 		});
 	});
+
 }
 function _change_picture(isCover = 0, groupId = 0) {
 	gebtn('body')[0].style.overflowY = "hidden";
@@ -4084,7 +3985,7 @@ function _change_picture(isCover = 0, groupId = 0) {
 									// Show loading state?
 									$(this).text('Saving...').prop('disabled', true);
 
-									$.ajax(backend_url + 'change_picture.php', {
+									$.ajax(backend_url + 'Account.php', {
 										method: "POST",
 										data: formData,
 										processData: false,
@@ -4682,7 +4583,7 @@ function _f() {
 
 	$.ajax({
 		type: "POST",
-		url: backend_url + "post.php",
+		url: backend_url + "Post.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -4702,9 +4603,9 @@ function _f() {
 			if (r["success"] == 1) {
 				var gId = gebi('post_group_id');
 				if (gId) {
-					fetch_post("fetch_group_posts.php?id=" + gId.value, true);
+					fetch_post("Post.php?scope=group&id=" + gId.value, true);
 				} else {
-					fetch_post("fetch_post.php", true);
+					fetch_post("Post.php?scope=feed", true);
 				}
 			}
 
@@ -4739,7 +4640,7 @@ function _search(page = 0) {
 	}
 	$.ajax({
 		type: "POST",
-		url: backend_url + "search.php",
+		url: backend_url + 'User.php?action=search',
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -4770,7 +4671,7 @@ function _search(page = 0) {
 						a += '<a class="user-card-name" href="profile.php?id=' + r[i]['user_id'] + '">';
 						a += r[i]['user_firstname'] + ' ' + r[i]['user_lastname'];
 						if (r[i]['verified'] > 0)
-							a += ' <i class="fa-solid fa-badge-check verified_color_' + r[i]['verified'] + '" title="' + window["lang__016"] + '"></i>';
+							a += ' ' + getVerifiedBadge(r[i]['verified'], "margin-left:5px;");
 						a += '</a>';
 						a += '<span class="user-card-username">@' + r[i]['user_nickname'] + '</span>';
 						a += '</div>';
@@ -4792,8 +4693,8 @@ function _search(page = 0) {
 					search.className = 'groups-discovery-grid';
 					for (let i = 0; i < (Object.keys(r).length - 1); i++) {
 						var g = r[i];
-						var coverUrl = g.cover_media_hash ? media_cdn + "&id=" + g.cover_media_id + "&h=" + g.cover_media_hash : "resources/images/default_cover.png";
-						var pfpUrl = g.pfp_media_hash ? media_cdn + "&id=" + g.pfp_media_id + "&h=" + g.pfp_media_hash : "resources/images/default_group.png";
+						var coverUrl = g.cover_media_hash ? media_cdn + "&id=" + g.cover_media_id + "&h=" + g.cover_media_hash : "data/images/default_cover.png";
+						var pfpUrl = g.pfp_media_hash ? media_cdn + "&id=" + g.pfp_media_id + "&h=" + g.pfp_media_hash : "data/images/default_group.png";
 
 						a += '<a href="group.php?id=' + g.group_id + '" class="group-discovery-card" onclick="route(event, this)">';
 						a += '  <div class="group-discovery-cover" style="background-image: url(' + coverUrl + ');"></div>';
@@ -4804,7 +4705,7 @@ function _search(page = 0) {
 						else if (g.my_status == 0) statusText = ' <span class="group-stat-badge" style="background:var(--color-surface-hover); margin-left:8px; display:inline-flex; vertical-align:middle; border-radius:12px; padding:2px 10px; font-size:0.75rem;"><i class="fa-solid fa-clock"></i> Requested</span>';
 
 						a += '    <div class="group-discovery-name">' + g.group_name;
-						if (g.verified > 0) a += ' <i class="fa-solid fa-badge-check verified_color_' + g.verified + '" style="margin-left:5px;"></i>';
+						if (g.verified > 0) a += ' ' + getVerifiedBadge(g.verified, "margin-left:5px;", "Verified Community");
 						a += statusText + '</div>';
 						a += '    <div class="group-discovery-about">' + g.group_about + '</div>';
 						a += '    <div class="group-discovery-meta">';
@@ -4847,7 +4748,7 @@ function _populate_joined_communities() {
 	var select = gebi('search-comm-id');
 	if (!select || select.children.length > 1) return; // Already populated or missing
 
-	$.get(backend_url + "fetch_groups.php?joined=1", function (r) {
+	$.get(backend_url + "Group.php?action=list&joined=1", function (r) {
 		if (r && r.length > 0) {
 			r.forEach(function (g) {
 				if (g.my_status == 1) {
@@ -4868,14 +4769,9 @@ function _share_feed() {
 	// If share allows upload, we update it too. But share usually doesn't upload new files in this app logic (from previous reading).
 	// Let's stick to simple caption for share for now.
 
-	// Wait, original _share_feed grabbed imagefile. If user uploads on share it might be creating a new post with reference?
-	// worker/share.php handles fileUpload. So yes, allow upload.
-	// But modal is different? ValidatePost(1) calls _share_feed.
-	// Where is the share modal? It's likely using same modal but different content?
-	// No, usually share button triggers a specific share modal logic.
-	// I will leave _share_feed as single file for now or update if I see the share modal generator.
+	f = new FormData();
+	f.append("action", 'share');
 
-	is_private = gebi('private').value;
 	post_id = gebi('post_id').value;
 	// Final Safety Check
 	if (typeof dt !== 'undefined' && dt.files.length > 60) {
@@ -4908,7 +4804,7 @@ function _share_feed() {
 
 	$.ajax({
 		type: "POST",
-		url: backend_url + "share.php",
+		url: backend_url + "Post.php",
 		processData: false,
 		mimeType: "multipart/form-data",
 		contentType: false,
@@ -4930,7 +4826,7 @@ function _share_feed() {
 				"counter": parseInt(splt[1])
 			});
 			setTimeout(null, 100);
-			fetch_post("fetch_post.php");
+			fetch_post("Post.php?scope=feed");
 			if (pContainer) pContainer.style.display = 'none';
 		},
 		error: function () {
@@ -4966,7 +4862,7 @@ function _setup_2fa() {
 		_alert_modal("Please enter a 6-digit code.");
 		return;
 	}
-	$.post(backend_url + "2fa_setup.php", { code: code }, function (r) {
+	$.post(backend_url + "Auth.php?action=setup_2fa", { code: code }, function (r) {
 		if (r.success === 1) {
 			modal_close();
 			_success_modal("2FA Enabled Successfully!");
@@ -4984,7 +4880,7 @@ function _disable_2fa() {
 		_alert_modal("Please fill in all fields.");
 		return;
 	}
-	$.post(backend_url + "2fa_disable.php", { password: pass, code: code }, function (r) {
+	$.post(backend_url + "Auth.php", { action: 'disable_2fa', password: pass, code: code }, function (r) {
 		if (r.success === 1) {
 			modal_close();
 			_success_modal("2FA Disabled Successfully.");
@@ -4994,77 +4890,7 @@ function _disable_2fa() {
 		}
 	});
 }
-function _load_settings() {
-	$.get(backend_url + "fetch_profile_setting_info.php", function (d) {
-		if (d.success === 1) {
-			// Account Tab
-			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = '@' + d.user_nickname;
-			if (gebi("usernickname")) gebi("usernickname").value = d.user_nickname;
 
-			if (gebi("display_email")) gebi("display_email").innerHTML = d.user_email;
-			if (gebi("email")) gebi("email").value = d.user_email;
-
-			// Verification
-			if (gebi("verified-text")) {
-				if (d.verified > 0) {
-					gebi("verified-text").innerHTML = "Verified";
-					gebi("verified-text").style.color = "var(--color-primary)";
-					gebi("verified").className = "fa-solid fa-badge-check verified_color_" + d.verified;
-				} else {
-					gebi("verified-text").innerHTML = "Not Verified";
-					gebi("verified-text").style.color = "var(--color-text-secondary)";
-					gebi("verified").className = "";
-				}
-			}
-
-			// 2FA Status
-			if (gebi("2fa-status-text")) {
-				if (d.twofa_enabled == 1) {
-					gebi("2fa-status-text").innerHTML = '<span style="color:#28a745"><i class="fa-solid fa-check-circle"></i> Enabled</span>';
-				} else {
-					gebi("2fa-status-text").innerHTML = '<span style="color:var(--color-text-secondary)">Disabled</span>';
-				}
-			}
-
-			// Profile Tab Inputs
-			if (gebi("userfirstname")) gebi("userfirstname").value = d.user_firstname;
-			if (gebi("userlastname")) gebi("userlastname").value = d.user_lastname;
-			if (gebi("userabout")) gebi("userabout").value = d.user_about;
-			if (gebi("userhometown")) gebi("userhometown").value = d.user_hometown;
-			if (gebi("birthday")) gebi("birthday").value = birthdateConverter(d.user_birthdate * 1000);
-
-			// Gender
-			if (d.user_gender == 'M' && gebi("malegender")) gebi("malegender").checked = true;
-			if (d.user_gender == 'F' && gebi("femalegender")) gebi("femalegender").checked = true;
-			if (d.user_gender == 'O' && gebi("othergender")) gebi("othergender").checked = true;
-
-			// Profile Images
-			if (gebi("profile_picture")) {
-				var pfpSrc = (d.pfp_media_id > 0) ? pfp_cdn + '&id=' + d.pfp_media_id + "&h=" + d.pfp_media_hash : getDefaultUserImage(d.user_gender);
-				gebi("profile_picture").src = pfpSrc;
-			}
-			if (gebi("setting_profile_cover")) {
-				var coverStyle = (d.cover_media_id > 0) ? 'url(\'' + pfp_cdn + '&id=' + d.cover_media_id + '&h=' + d.cover_media_hash + '\')' : 'none';
-				gebi("setting_profile_cover").style.backgroundImage = coverStyle;
-				if (d.cover_media_id <= 0) gebi("setting_profile_cover").style.backgroundColor = "var(--color-background)";
-			}
-		} else {
-			// Handle logical error (e.g. user not found)
-			if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Error loading data.";
-			_alert_modal("Failed to load settings data. Code: " + (d.success || "Unknown"));
-		}
-	}).fail(function () {
-		// Handle network/server error
-		if (gebi("display_nickname")) gebi("display_nickname").innerHTML = "Connection Error.";
-		_alert_modal("Failed to connect to server to fetch settings.");
-	});
-
-	// Also load sessions if device tab is active
-	var urlParams = new URLSearchParams(window.location.search);
-	if (urlParams.get('tab') === 'device') {
-		_load_sessions();
-	}
-}
 
 function HighLightHLJS() {
 	if (lsg("load_hightlightjs") == "no")
@@ -5097,7 +4923,7 @@ document.addEventListener('readystatechange', function (e) {
 
 function initCustomSelects(force = false) {
 	// Support various select classes
-	$('.premium-select, .setting-select, .premium-select-sm, .index_input_box, .modal-privacy-select').each(function () {
+	$('.premium-select, .setting-select, .premium-select-sm, .index_input_box, .modal-privacy-select, .custom-select').each(function () {
 		if (!$(this).is('select')) return; // Only target actual selects
 		const $this = $(this);
 		if ($this.next('.custom-select-container').length > 0) {
@@ -5177,7 +5003,7 @@ function changeUrlWork() {
 		gebtn('body')[0].style.fontSize = "200%";
 	}
 	$("a").each(function () {
-		if (this.href != '' && this.className != "post-link") {
+		if (this.href != '' && this.className != "post-link" && this.target != "_blank") {
 			if (!this.hasAttribute("linked")) {
 				this.setAttribute("linked", "true");
 				this.addEventListener("click", function (e) {
@@ -5310,7 +5136,7 @@ $(window).scroll(function () {
 	if (shouldLoad) {
 		// Feed / Home
 		if (u === "/home.php" || u === "home.php" || u === "/") {
-			fetch_post("fetch_post.php");
+			fetch_post("post.php?scope=feed");
 		}
 		// Profile - only load posts if on Timeline tab
 		else if (u.startsWith("/profile.php") || u.startsWith("profile.php")) {
@@ -5326,7 +5152,7 @@ $(window).scroll(function () {
 			var p = gebi('page');
 			if (p && p.value != -1) {
 				var next = Number(p.value) + 1;
-				fetch_friend_list('fetch_friend_list.php?page=' + next);
+				fetch_friend_list('User.php?action=friends&page=' + next);
 				p.value = next;
 			}
 		}
@@ -5371,7 +5197,7 @@ document.addEventListener('click', function (e) {
 
 // Initial Load
 if (window.location.href.indexOf("home.php") > -1) {
-	fetch_post("fetch_post.php", true);
+	fetch_post("post.php?scope=feed", true);
 }
 
 // Settings Page Logic
@@ -5413,7 +5239,7 @@ function _load_settings() {
 	var tab = urlParams.get('tab') || 'account';
 	changeTab(tab);
 
-	$.get(backend_url + "fetch_profile_setting_info.php", function (d) {
+	$.get(backend_url + "User.php?action=settings", function (d) {
 		if (d.success === 1) {
 			// Account Tab
 			window._lastUsernameChange = d.last_username_change;
@@ -5428,7 +5254,7 @@ function _load_settings() {
 				if (d.verified > 0) {
 					gebi("verified-text").innerHTML = "Verified";
 					gebi("verified-text").style.color = "var(--color-primary)";
-					gebi("verified").className = "fa-solid fa-badge-check verified_color_" + d.verified;
+					gebi("verified").outerHTML = getVerifiedBadge(d.verified);
 				} else {
 					gebi("verified-text").innerHTML = "Not Verified";
 					gebi("verified-text").style.color = "var(--color-text-secondary)";
@@ -5486,7 +5312,7 @@ function _load_sessions() {
 
 	container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--color-text-dim);"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading sessions...</div>';
 
-	$.get(backend_url + "session.php", function (response) {
+	$.get(backend_url + "Auth.php?action=session_list", function (response) {
 		if (response.success === 1) {
 			var html = '';
 			if (response.sessions.length === 0) {
@@ -5522,7 +5348,7 @@ function _revoke_session(sessionId, confirmed = false) {
 		return;
 	}
 
-	$.post(backend_url + "session.php", { session_id: sessionId }, function (response) {
+	$.post(backend_url + "Auth.php", { action: 'revoke_session', session_id: sessionId }, function (response) {
 		if (response.success === 1) {
 			var el = document.getElementById('session-' + sessionId);
 			if (el) el.remove();
@@ -5559,7 +5385,7 @@ function _toggleRelationshipPartner(val) {
 
 function _loadFriendListForRelationship(currentPartnerId = 0) {
 	var select = gebi('relationship_user_id');
-	$.get(backend_url + "fetch_friend_list.php", function (data) {
+	$.get(backend_url + "User.php?action=friends", function (data) {
 		if (data.success === 1) {
 			var h = '<option value="0">None</option>';
 			var count = Object.keys(data).length - 1;

@@ -129,7 +129,7 @@ function validateLogin() {
 		d.append('captcha', captcha);
 		if (rememberme)
 			d.append('remember_me', '1');
-		$.ajax('/worker/login_register.php', {
+		$.ajax('/worker/Auth.php', {
 			method: "POST",
 			data: d,
 			processData: false,
@@ -155,12 +155,19 @@ function validateRegister() {
 	var usernickname = document.getElementById("usernickname").value;
 	var userpass = document.getElementById("userpass").value;
 	var userpassconfirm = document.getElementById("userpassconfirm").value;
-	var birthday = document.getElementById("birthday").value;
+	var birth_day = document.getElementById("birth_day").value;
+	var birth_month = document.getElementById("birth_month").value;
+	var birth_year = document.getElementById("birth_year").value;
 	var useremail = document.getElementById("useremail").value;
 	var usergender = document.getElementsByClassName("usergender");
 	var captcha = document.getElementById("captcha_1").value;
-	usergender[2].checked = true;
+	var tosAgree = document.getElementById("tos_agree").checked;
+
 	var result = true;
+	if (!tosAgree) {
+		error("tos_not_checked");
+		result = false;
+	}
 	if (userfirstname == "") {
 		required[2].innerHTML = window['lang__46'];
 		result = false;
@@ -173,28 +180,32 @@ function validateRegister() {
 		required[4].innerHTML = window['lang__46'];
 		result = false;
 	}
-	if (userpass == "") {
+	if (useremail == "") {
 		required[5].innerHTML = window['lang__46'];
 		result = false;
+	} else if (!validateEmail(useremail)) {
+		required[5].innerHTML = window['lang__48'];
+		result = false;
 	}
-	if (userpassconfirm == "") {
+	if (userpass == "") {
 		required[6].innerHTML = window['lang__46'];
 		result = false;
 	}
-	if (userpass != "" && userpassconfirm != "" && userpass != userpassconfirm) {
-		required[5].innerHTML = window['lang__47'];
-		required[6].innerHTML = window['lang__47'];
-		result = false;
-	}
-	if (useremail == "") {
+	if (userpassconfirm == "") {
 		required[7].innerHTML = window['lang__46'];
 		result = false;
-	} else if (!validateEmail(useremail)) {
-		required[7].innerHTML = window['lang__48'];
+	}
+	if (userpass != "" && userpassconfirm != "" && userpass != userpassconfirm) {
+		required[6].innerHTML = window['lang__47'];
+		required[7].innerHTML = window['lang__47'];
+		result = false;
+	}
+	if (birth_day == "" || birth_month == "" || birth_year == "") {
+		required[8].innerHTML = window['lang__46'];
 		result = false;
 	}
 	if (!usergender[0].checked && !usergender[1].checked && !usergender[2].checked) {
-		required[8].innerHTML = window['lang__49'];
+		required[9].innerHTML = window['lang__49'];
 		result = false;
 	}
 	if (result) {
@@ -205,10 +216,10 @@ function validateRegister() {
 		d.append('usernickname', usernickname);
 		d.append('userpass', btoa(userpass));
 		d.append('useremail', useremail);
-		d.append('birthday', birthday);
-		d.append('usergender', (usergender[0].checked ? "M" : (usergender[1].checked ? "F" : (usergender[2].checked ? "U" : "U"))));
+		d.append('birthday', birth_year + "-" + birth_month + "-" + birth_day);
+		d.append('usergender', (usergender[0].checked ? "M" : (usergender[1].checked ? "F" : "U")));
 		d.append('captcha', captcha);
-		$.ajax('/worker/login_register.php', {
+		$.ajax('/worker/Auth.php', {
 			method: "POST",
 			data: d,
 			processData: false,
@@ -261,7 +272,7 @@ function get(n) {
 function error(e) {
 	switch (e) {
 		case "exist_email":
-			document.getElementsByClassName("required")[7].innerHTML = window["lang__050"];
+			document.getElementsByClassName("required")[5].innerHTML = window["lang__050"];
 			break;
 		case "exist_nickname":
 			document.getElementsByClassName("required")[4].innerHTML = window["lang__051"];
@@ -273,7 +284,7 @@ function error(e) {
 			document.getElementsByClassName("required")[8].innerHTML = window["lang__053"];
 			break;
 		case "invalid_email":
-			document.getElementsByClassName("required")[7].innerHTML = window["lang__054"];
+			document.getElementsByClassName("required")[5].innerHTML = window["lang__054"];
 			break;
 		case "invalid_login":
 			document.getElementsByClassName("required")[0].innerHTML = window["lang__055"];
@@ -284,6 +295,9 @@ function error(e) {
 			break;
 		case "invalid_captcha_1":
 			document.getElementById('required_1').innerHTML = window['lang__080'];
+			break;
+		case "tos_not_checked":
+			document.getElementsByClassName("required")[9].innerHTML = "Please accept the Terms of Service";
 			break;
 	}
 }
@@ -299,7 +313,8 @@ for (let x = 0; x < 2; x++) {
 		l = setTimeout(() => {
 			d = new FormData();
 			d.append('captcha', e.target.value);
-			$.ajax('/worker/checkCaptcha.php', {
+			d.append('action', 'check_captcha');
+			$.ajax('/worker/Auth.php', {
 				method: "POST",
 				data: d,
 				processData: false,
@@ -317,3 +332,57 @@ for (let x = 0; x < 2; x++) {
 		}, 500);
 	});
 }
+
+function initCustomSelects(force = false) {
+	$('.custom-select').each(function () {
+		if (!$(this).is('select')) return;
+		const $this = $(this);
+		if ($this.next('.custom-select-container').length > 0) {
+			if (force) $this.next('.custom-select-container').remove();
+			else return;
+		}
+
+		const options = $this.find('option');
+		const selectedOption = $this.find('option:selected');
+
+		const container = $('<div class="custom-select-container"></div>');
+		const trigger = $('<div class="custom-select-trigger"><span>' + selectedOption.text() + '</span><i class="fa-solid fa-chevron-down"></i></div>');
+		const dropdown = $('<div class="custom-select-dropdown"></div>');
+
+		options.each(function () {
+			const $opt = $(this);
+			const optUI = $('<div class="custom-select-option" data-value="' + $opt.val() + '">' + $opt.text() + '</div>');
+			if ($opt.is(':selected')) optUI.addClass('selected');
+
+			optUI.on('click', function (e) {
+				e.stopPropagation();
+				container.find('.custom-select-option').removeClass('selected');
+				$(this).addClass('selected');
+				trigger.find('span').text($(this).text());
+				$this.val($(this).data('value')).trigger('change');
+				container.removeClass('open');
+			});
+
+			dropdown.append(optUI);
+		});
+
+		trigger.on('click', function (e) {
+			e.stopPropagation();
+			$('.custom-select-container').not(container).removeClass('open');
+			container.toggleClass('open');
+		});
+
+		container.append(trigger).append(dropdown);
+		$this.after(container);
+		$this.hide();
+	});
+}
+
+$(document).ready(function () {
+	initCustomSelects();
+
+	// Close dropdowns when clicking outside
+	$(document).on('click', function () {
+		$('.custom-select-container').removeClass('open');
+	});
+});

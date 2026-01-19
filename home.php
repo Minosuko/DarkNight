@@ -32,7 +32,7 @@
 		</div>
 		
 		<script>
-			fetch_post("fetch_post.php");
+			fetch_post("Post.php?scope=feed");
 		</script>
 	</body>
 </html>

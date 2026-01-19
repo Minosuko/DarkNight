@@ -35,7 +35,8 @@ class WebAuthn {
         
         // Get existing credentials to exclude
         $excludeCredentials = [];
-        $result = $this->db->query("SELECT credential_id FROM webauthn_credentials WHERE user_id = $userId");
+        $db_user = $this->db->db_user;
+        $result = $this->db->query("SELECT credential_id FROM $db_user.webauthn_credentials WHERE user_id = $userId");
         while ($row = $result->fetch_assoc()) {
             $excludeCredentials[] = [
                 'type' => 'public-key',
@@ -140,8 +141,9 @@ class WebAuthn {
         $escapedCredId = $this->db->escape($credIdB64);
         $escapedPubKey = $this->db->escape($pubKeyB64);
         $name = isset($response['name']) ? $this->db->escape($response['name']) : 'Security Key';
+        $db_user = $this->db->db_user;
         
-        $sql = "INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, name) 
+        $sql = "INSERT INTO $db_user.webauthn_credentials (user_id, credential_id, public_key, counter, name) 
                 VALUES ($userId, '$escapedCredId', '$escapedPubKey', $signCount, '$name')";
         
         if ($this->db->query($sql)) {
@@ -161,7 +163,8 @@ class WebAuthn {
         $allowCredentials = [];
         if ($userId) {
             $_SESSION['webauthn_auth_user_id'] = $userId;
-            $result = $this->db->query("SELECT credential_id FROM webauthn_credentials WHERE user_id = $userId");
+            $db_user = $this->db->db_user;
+            $result = $this->db->query("SELECT credential_id FROM $db_user.webauthn_credentials WHERE user_id = $userId");
             while ($row = $result->fetch_assoc()) {
                 $allowCredentials[] = [
                     'type' => 'public-key',
@@ -203,7 +206,8 @@ class WebAuthn {
         // Find credential
         $credentialId = $response['credentialId'];
         $escapedCredId = $this->db->escape($credentialId);
-        $result = $this->db->query("SELECT * FROM webauthn_credentials WHERE credential_id = '$escapedCredId'");
+        $db_user = $this->db->db_user;
+        $result = $this->db->query("SELECT * FROM $db_user.webauthn_credentials WHERE credential_id = '$escapedCredId'");
         
         if ($result->num_rows === 0) {
             return ['success' => false, 'error' => 'Unknown credential'];
@@ -241,7 +245,7 @@ class WebAuthn {
             return ['success' => false, 'error' => 'Invalid signature'];
         }
 
-        $this->db->query("UPDATE webauthn_credentials SET counter = $signCount, last_used = NOW() WHERE id = {$credential['id']}");
+        $this->db->query("UPDATE $db_user.webauthn_credentials SET counter = $signCount, last_used = NOW() WHERE id = {$credential['id']}");
         
         return [
             'success' => true,
@@ -304,7 +308,8 @@ class WebAuthn {
      * Get user's registered security keys
      */
     public function getUserCredentials($userId) {
-        $result = $this->db->query("SELECT id, name, created_at, last_used FROM webauthn_credentials WHERE user_id = $userId ORDER BY created_at DESC");
+        $db_user = $this->db->db_user;
+        $result = $this->db->query("SELECT id, name, created_at, last_used FROM $db_user.webauthn_credentials WHERE user_id = $userId ORDER BY created_at DESC");
         $credentials = [];
         while ($row = $result->fetch_assoc()) {
             $credentials[] = $row;
@@ -317,7 +322,8 @@ class WebAuthn {
      */
     public function removeCredential($userId, $credentialId) {
         $escapedId = (int)$credentialId;
-        return $this->db->query("DELETE FROM webauthn_credentials WHERE id = $escapedId AND user_id = $userId");
+        $db_user = $this->db->db_user;
+        return $this->db->query("DELETE FROM $db_user.webauthn_credentials WHERE id = $escapedId AND user_id = $userId");
     }
     
     /**
@@ -326,14 +332,16 @@ class WebAuthn {
     public function renameCredential($userId, $credentialId, $newName) {
         $escapedId = (int)$credentialId;
         $escapedName = $this->db->escape($newName);
-        return $this->db->query("UPDATE webauthn_credentials SET name = '$escapedName' WHERE id = $escapedId AND user_id = $userId");
+        $db_user = $this->db->db_user;
+        return $this->db->query("UPDATE $db_user.webauthn_credentials SET name = '$escapedName' WHERE id = $escapedId AND user_id = $userId");
     }
     
     /**
      * Check if user has any security keys
      */
     public function hasSecurityKeys($userId) {
-        $result = $this->db->query("SELECT COUNT(*) as cnt FROM webauthn_credentials WHERE user_id = $userId");
+        $db_user = $this->db->db_user;
+        $result = $this->db->query("SELECT COUNT(*) as cnt FROM $db_user.webauthn_credentials WHERE user_id = $userId");
         return $result->fetch_assoc()['cnt'] > 0;
     }
     

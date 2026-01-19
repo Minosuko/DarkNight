@@ -56,10 +56,11 @@ function decryptPassword($password){
 	return base64_decode($password);
 }
 function _verify_2FA($code, $userID){
+    global $db_user;
     $conn = $GLOBALS['conn'];
     $IP2Geo = $GLOBALS['IP2Geo'];
     $sql = sprintf(
-        "SELECT * FROM `twofactorauth` WHERE user_id = %d AND is_enabled = 1",
+        "SELECT * FROM $db_user.twofactorauth WHERE user_id = %d AND is_enabled = 1",
         $conn->real_escape_string($userID)
     );
     $query = $conn->query($sql);
@@ -95,11 +96,29 @@ function _upgrade_session_2fa($userID) {
     
     // Update DB for "Active Sessions" visibility
     if (isset($payload['session_id'])) {
+        global $db_user;
         $conn = $GLOBALS['conn'];
         $sid = $conn->real_escape_string($payload['session_id']);
-        $conn->query("UPDATE session SET session_valid = 1 WHERE session_id = '$sid'");
+        $conn->query("UPDATE $db_user.session SET session_valid = 1 WHERE session_id = '$sid'");
     }
     return true;
+}
+
+/**
+ * Calculate age based on birthday
+ * @param string $birthday Format: YYYY-MM-DD
+ * @return int
+ */
+function _get_age($birthday) {
+    if (empty($birthday)) return 0;
+    try {
+        $birthDate = new DateTime($birthday);
+        $today = new DateTime('today');
+        $age = $birthDate->diff($today)->y;
+        return $age;
+    } catch (Exception $e) {
+        return 0;
+    }
 }
 function video_stream($file_path){
 	$VidStream = new VideoStream($file_path);
@@ -169,10 +188,33 @@ function SendVerifyMail($email, $name, $link){
 		['isHTML' => true, 'From' => 'DarkNight', 'to' => $name]
 	);
 }
+function SendResetMail($email, $name, $link){
+	$Mailer = $GLOBALS['Mailer'];
+	$MailBody = $GLOBALS['Mailer_Header'].
+	'
+						<p>Hello '.$name.',</p>
+						<p>You recently requested to reset your password for your Darknight Social account. Click the button below to proceed.</p>
+						<br>
+						<a href="'.$link.'"><button>Reset Password</button></a>
+						<br>
+						<br>
+						<p>If you did not request a password reset, please ignore this email or contact support if you have questions.</p>
+						<br>
+						<p>Thanks</p>
+						<center><b>- DarkNightDev - </b></center>'
+	.$GLOBALS['Mailer_Footer'];
+	$Mailer->send(
+		$email,
+		"DarkNight - Password Reset",
+		$MailBody,
+		['isHTML' => true, 'From' => 'DarkNight', 'to' => $name]
+	);
+}
 function is_user_exists($id){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM users WHERE user_id = %d",
+		"SELECT * FROM $db_user.users WHERE user_id = %d",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -181,9 +223,10 @@ function is_user_exists($id){
 	return false;
 }
 function is_post_exists($id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM posts WHERE post_id = %d",
+		"SELECT * FROM $db_post.posts WHERE post_id = %d",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -192,9 +235,10 @@ function is_post_exists($id){
 	return false;
 }
 function getInfoPostID($id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM posts WHERE post_id = %d",
+		"SELECT * FROM $db_post.posts WHERE post_id = %d",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -555,10 +599,11 @@ function lunar_hash($str){
 	return $hexOut;
 }
 function Has2FA($userID){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	// Check TOTP
 	$sql = sprintf(
-		"SELECT * FROM twofactorauth WHERE user_id = %d AND is_enabled = 1",
+		"SELECT * FROM $db_user.twofactorauth WHERE user_id = %d AND is_enabled = 1",
 		$conn->real_escape_string($userID)
 	);
 	$query = $conn->query($sql);
@@ -566,7 +611,7 @@ function Has2FA($userID){
 	
 	// Check WebAuthn
 	$sql = sprintf(
-		"SELECT * FROM webauthn_credentials WHERE user_id = %d",
+		"SELECT * FROM $db_user.webauthn_credentials WHERE user_id = %d",
 		$conn->real_escape_string($userID)
 	);
 	$query = $conn->query($sql);
@@ -575,9 +620,10 @@ function Has2FA($userID){
 	return false;
 }
 function _verify($username, $email, $hash){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM users WHERE user_nickname LIKE '%s' AND user_email LIKE '%s' AND active = 0",
+		"SELECT * FROM $db_user.users WHERE user_nickname LIKE '%s' AND user_email LIKE '%s' AND active = 0",
 		$conn->real_escape_string($username),
 		$conn->real_escape_string($email)
 	);
@@ -586,7 +632,7 @@ function _verify($username, $email, $hash){
 		$fetch = $query->fetch_assoc();
 		if(hash('sha256',($fetch['user_password'].$fetch['user_create_date'])) == $hash){
 			$sql = sprintf(
-				"UPDATE users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
+				"UPDATE $db_user.users SET active = 1 WHERE user_nickname LIKE '%s' AND user_email LIKE '%s'",
 				$conn->real_escape_string($username),
 				$conn->real_escape_string($email)
 			);
@@ -597,9 +643,10 @@ function _verify($username, $email, $hash){
 	return false;
 }
 function _is_same_browser($userID){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM session WHERE user_id = %d AND browser_id = '%s'",
+		"SELECT * FROM $db_user.session WHERE user_id = %d AND browser_id = '%s'",
 		$userID,
 		$conn->real_escape_string($_COOKIE['browser_id'])
 	);
@@ -632,8 +679,9 @@ function new_session($time, $userID, $auth2FA){
         $browser_ver = $conn->real_escape_string($browserInfo['version']);
         
         // Insert into DB for "Active Sessions" UI, but NOT for validation
+        global $db_user;
         $sql = sprintf(
-            "INSERT INTO session (session_id, session_token, session_device, session_os, session_browser, session_os_ver, session_browser_ver, user_id, session_ip, session_valid, last_online, browser_id, login_time) VALUES ('%s','%s','%s','%s','%s',NULL,'%s',%d,'%s',%d,%d,'%s',%d)",
+            "INSERT INTO $db_user.session (session_id, session_token, session_device, session_os, session_browser, session_os_ver, session_browser_ver, user_id, session_ip, session_valid, last_online, browser_id, login_time) VALUES ('%s','%s','%s','%s','%s',NULL,'%s',%d,'%s',%d,%d,'%s',%d)",
             $session_id,
             $session_token,
             $conn->real_escape_string($_SERVER['HTTP_USER_AGENT']),
@@ -699,9 +747,10 @@ function _is_session_valid($checkActive = true, $ignore2FA = false){
     }
     
     // Revocation Check: Verify session exists in DB
+    global $db_user;
     $conn = $GLOBALS['conn'];
     $sid = $conn->real_escape_string($payload['session_id']);
-    $res = $conn->query("SELECT session_id FROM session WHERE session_id = '$sid' LIMIT 1");
+    $res = $conn->query("SELECT session_id FROM $db_user.session WHERE session_id = '$sid' LIMIT 1");
     if($res->num_rows == 0){
         return false; // Session revoked/deleted
     }
@@ -715,7 +764,7 @@ function _is_session_valid($checkActive = true, $ignore2FA = false){
         // Let's perform a lightweight lookup or cache it.
         // For strictness + load reduction: simple PK lookup is fast.
          $uid = $payload['user_id'];
-         $res = $conn->query("SELECT active FROM users WHERE user_id = $uid LIMIT 1");
+         $res = $conn->query("SELECT active FROM $db_user.users WHERE user_id = $uid LIMIT 1");
          if($res && $row = $res->fetch_assoc()) {
              if ($row['active'] == 0) return false;
          } else {
@@ -736,9 +785,10 @@ function _is_session_valid($checkActive = true, $ignore2FA = false){
 }
 
 function _get_last_online($id){
+    global $db_user;
     $conn = $GLOBALS['conn'];
     $sql = sprintf(
-        "SELECT last_online FROM session WHERE user_id = %d ORDER BY last_online DESC",
+        "SELECT last_online FROM $db_user.session WHERE user_id = %d ORDER BY last_online DESC",
         $conn->real_escape_string($id)
     );
     $query = $conn->query($sql);
@@ -757,9 +807,10 @@ function _get_data_from_token(){
 }
 
 function _get_data_from_id($id){
+    global $db_user;
     $conn = $GLOBALS['conn'];
     $sql = sprintf(
-        "SELECT * FROM users WHERE user_id = %d",
+        "SELECT * FROM $db_user.users WHERE user_id = %d",
         $conn->real_escape_string($id)
     );
     $query = $conn->query($sql);
@@ -767,9 +818,10 @@ function _get_data_from_id($id){
     return $fetch;
 }
 function _get_hash_from_media_id($id){
+	global $db_media;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM media WHERE media_id = '%d'",
+		"SELECT * FROM $db_media.media WHERE media_id = '%d'",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -777,9 +829,10 @@ function _get_hash_from_media_id($id){
 	return $fetch['media_hash'];
 }
 function _media_format($id){
+	global $db_media;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM media WHERE media_id = '%d'",
+		"SELECT * FROM $db_media.media WHERE media_id = '%d'",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -787,9 +840,10 @@ function _media_format($id){
 	return $fetch['media_format'];
 }
 function _is_video($id){
+	global $db_media;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM media WHERE media_id = '%d'",
+		"SELECT * FROM $db_media.media WHERE media_id = '%d'",
 		$conn->real_escape_string($id)
 	);
 	$query = $conn->query($sql);
@@ -797,18 +851,20 @@ function _is_video($id){
 	return (substr($fetch['media_format'],0,5) == 'video');
 }
 function username_exists($username){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(user_nickname) as count FROM users WHERE user_nickname LIKE '%s'",
+		"SELECT COUNT(user_nickname) as count FROM $db_user.users WHERE user_nickname LIKE '%s'",
 		$conn->real_escape_string($username)
 	);
 	$query = $conn->query($sql);
 	return ($query->fetch_assoc()['count'] > 0);
 }
 function email_exists($email){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(user_email) as count FROM users WHERE user_email LIKE '%s'",
+		"SELECT COUNT(user_email) as count FROM $db_user.users WHERE user_email LIKE '%s'",
 		$conn->real_escape_string($email)
 	);
 	$query = $conn->query($sql);
@@ -867,9 +923,10 @@ function _caption_trim($caption){
 	return $html;
 }
 function is_friend($user_id, $target_id){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM friendship WHERE user1_id = %d AND user12_id = %d AND friendship_status = 1",
+		"SELECT * FROM $db_user.friendship WHERE user1_id = %d AND user12_id = %d AND friendship_status = 1",
 		$conn->real_escape_string($user_id),
 		$conn->real_escape_string($target_id)
 	);
@@ -879,9 +936,10 @@ function is_friend($user_id, $target_id){
 	return false;
 }
 function is_liked($user_id, $post_id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM likes WHERE user_id = %d AND post_id = %d",
+		"SELECT * FROM $db_post.likes WHERE user_id = %d AND post_id = %d",
 		$conn->real_escape_string($user_id),
 		$conn->real_escape_string($post_id)
 	);
@@ -891,9 +949,10 @@ function is_liked($user_id, $post_id){
 	return false;
 }
 function is_follow($user1_id, $user2_id){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT * FROM follows WHERE user1_id = %d AND user2_id = %d",
+		"SELECT * FROM $db_user.follows WHERE user1_id = %d AND user2_id = %d",
 		$conn->real_escape_string($user1_id),
 		$conn->real_escape_string($user2_id)
 	);
@@ -903,45 +962,50 @@ function is_follow($user1_id, $user2_id){
 	return false;
 }
 function total_like($post_id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(*) as count FROM likes WHERE post_id = %d",
+		"SELECT COUNT(*) as count FROM $db_post.likes WHERE post_id = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
 	return $query->fetch_assoc()['count'];
 }
 function total_share($post_id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(*) as count FROM posts WHERE is_share = %d",
+		"SELECT COUNT(*) as count FROM $db_post.posts WHERE is_share = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
 	return $query->fetch_assoc()['count'];
 }
 function total_comment($post_id){
+	global $db_post;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(*) as count FROM comments WHERE post_id = %d",
+		"SELECT COUNT(*) as count FROM $db_post.comments WHERE post_id = %d",
 		$conn->real_escape_string($post_id)
 	);
 	$query = $conn->query($sql);
 	return $query->fetch_assoc()['count'];
 }
 function total_following($user_id){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(*) as count FROM follows WHERE user1_id = %d",
+		"SELECT COUNT(*) as count FROM $db_user.follows WHERE user1_id = %d",
 		$conn->real_escape_string($user_id)
 	);
 	$query = $conn->query($sql);
 	return $query->fetch_assoc()['count'];
 }
 function total_follower($user_id){
+	global $db_user;
 	$conn = $GLOBALS['conn'];
 	$sql = sprintf(
-		"SELECT COUNT(*) as count FROM follows WHERE user2_id = %d",
+		"SELECT COUNT(*) as count FROM $db_user.follows WHERE user2_id = %d",
 		$conn->real_escape_string($user_id)
 	);
 	$query = $conn->query($sql);

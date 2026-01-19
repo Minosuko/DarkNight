@@ -6,24 +6,27 @@ class Post {
     public static function getFeed($userId, $page = 0) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         
         $limit = 30;
         $offset = intval($page) * $limit;
         $userId = intval($userId);
 
         // Subqueries for counts to avoid N+1 and allow scoring
-        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = feed.post_id";
-        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = feed.post_id";
-        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = feed.post_id";
-        $isLikedSub = "SELECT COUNT(*) FROM likes WHERE post_id = feed.post_id AND user_id = $userId";
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = feed.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = feed.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = feed.post_id";
+        $isLikedSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = feed.post_id AND user_id = $userId";
         
         // 1. My Posts
         $myPosts = "
             SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                    p.group_id, NULL as group_name, 0 as group_verified
-            FROM posts p
-            JOIN users u ON p.post_by = u.user_id
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id
             WHERE u.user_id = $userId AND p.group_id = 0
         ";
 
@@ -32,9 +35,9 @@ class Post {
             SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                    p.group_id, NULL as group_name, 0 as group_verified
-            FROM posts p
-            JOIN follows f ON p.post_by = f.user2_id
-            JOIN users u ON p.post_by = u.user_id
+            FROM $db_post.posts p
+            JOIN $db_user.follows f ON p.post_by = f.user2_id
+            JOIN $db_user.users u ON p.post_by = u.user_id
             WHERE p.post_public = 2 AND f.user1_id = $userId AND p.group_id = 0
         ";
 
@@ -43,12 +46,12 @@ class Post {
             SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                    p.group_id, NULL as group_name, 0 as group_verified
-            FROM posts p
-            JOIN users u ON p.post_by = u.user_id 
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id 
             JOIN (
-                SELECT user1_id AS friend_id FROM friendship WHERE user2_id = $userId AND friendship_status = 1
+                SELECT user1_id AS friend_id FROM $db_user.friendship WHERE user2_id = $userId AND friendship_status = 1
                 UNION
-                SELECT user2_id AS friend_id FROM friendship WHERE user1_id = $userId AND friendship_status = 1
+                SELECT user2_id AS friend_id FROM $db_user.friendship WHERE user1_id = $userId AND friendship_status = 1
             ) friends ON friends.friend_id = p.post_by
             WHERE p.post_public >= 1 AND p.group_id = 0
         ";
@@ -58,10 +61,10 @@ class Post {
             SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.is_spoiler,
                    u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                    p.group_id, g.group_name, g.verified as group_verified
-            FROM posts p
-            JOIN users u ON p.post_by = u.user_id
-            JOIN group_members gm ON p.group_id = gm.group_id
-            JOIN groups g ON p.group_id = g.group_id
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id
+            JOIN $db_post.group_members gm ON p.group_id = gm.group_id
+            JOIN $db_post.groups g ON p.group_id = g.group_id
             WHERE gm.user_id = $userId AND gm.status = 1 AND p.group_id > 0
         ";
 
@@ -89,7 +92,7 @@ class Post {
                 shared_p.post_by as shared_by_id,
             shared_p.is_spoiler as shared_spoiler,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared_pfp.media_hash, ''), ':', IFNULL(m_shared_pfp.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -105,23 +108,23 @@ class Post {
                 m_shared_legacy.media_hash as shared_media_hash,
                 m_shared_legacy.media_format as shared_media_format,
 
-                (SELECT COUNT(*) FROM friendship WHERE 
+                (SELECT COUNT(*) FROM $db_user.friendship WHERE 
                     (user1_id = $userId AND user2_id = shared_p.post_by AND friendship_status = 1) OR
                     (user2_id = $userId AND user1_id = shared_p.post_by AND friendship_status = 1)
                 ) as is_friend_with_shared
                 
             FROM ($unionSql) as feed
-            LEFT JOIN post_media_mapping m_map ON feed.post_id = m_map.post_id
-            LEFT JOIN media m ON m_map.media_id = m.media_id
-            LEFT JOIN media m_pfp ON feed.pfp_media_id = m_pfp.media_id
-            LEFT JOIN media m_legacy ON feed.post_media = m_legacy.media_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON feed.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON feed.pfp_media_id = m_pfp.media_id
+            LEFT JOIN $db_media.media m_legacy ON feed.post_media = m_legacy.media_id
             
-            LEFT JOIN posts shared_p ON feed.is_share = shared_p.post_id
-            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
-            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
-            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
-            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
-            LEFT JOIN media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
+            LEFT JOIN $db_post.posts shared_p ON feed.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_media.media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
             
             GROUP BY feed.post_id
             ORDER BY hot_score DESC
@@ -135,15 +138,18 @@ class Post {
     public static function getLikedPosts($userId, $page = 0) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         
         $limit = 30;
         $offset = intval($page) * $limit;
         $userId = intval($userId);
 
         // Subqueries for counts
-        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id";
-        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = p.post_id";
-        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = p.post_id";
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = p.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = p.post_id";
         $isLikedSub = "1"; // Since we are viewing liked posts, they are obviously liked by the viewer
 
         $sql = "
@@ -157,7 +163,7 @@ class Post {
                 ($sharesSub) as total_share,
                 $isLikedSub as is_liked,
                 
-                l.like_time as hot_score, -- Order by like time for liked posts? Or post time? Usually desc like time.
+                p.post_time as hot_score,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
                 
@@ -168,7 +174,7 @@ class Post {
                 shared_p.post_public as shared_public,
                 shared_p.post_media as shared_media,
                 shared_p.post_by as shared_by_id,
-            shared_p.is_spoiler as shared_spoiler,
+                shared_p.is_spoiler as shared_spoiler,
                 
                 GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
@@ -181,24 +187,24 @@ class Post {
                 
                 m_shared_pfp.media_hash as shared_pfp_hash
 
-            FROM likes l
-            JOIN posts p ON l.post_id = p.post_id
-            JOIN users u ON p.post_by = u.user_id
-            LEFT JOIN groups g ON p.group_id = g.group_id
-            LEFT JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
-            LEFT JOIN media m ON m_map.media_id = m.media_id
-            LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
+            FROM $db_post.likes l
+            JOIN $db_post.posts p ON l.post_id = p.post_id
+            JOIN $db_user.users u ON p.post_by = u.user_id
+            LEFT JOIN $db_post.groups g ON p.group_id = g.group_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON u.pfp_media_id = m_pfp.media_id
             
             -- Shared Post Joins
-            LEFT JOIN posts shared_p ON p.is_share = shared_p.post_id
-            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
-            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
-            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
-            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_post.posts shared_p ON p.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
             
             WHERE l.user_id = $userId
             GROUP BY p.post_id
-            ORDER BY l.like_time DESC
+            ORDER BY p.post_time DESC
             LIMIT $limit OFFSET $offset
         ";
 
@@ -208,6 +214,9 @@ class Post {
 
     public static function getProfilePosts($targetUserId, $viewerUserId, $page = 0) {
         $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $limit = 30;
         $offset = intval($page) * $limit;
         $targetUserId = intval($targetUserId);
@@ -219,7 +228,7 @@ class Post {
         if ($targetUserId == $viewerUserId) {
             $relationship = 0;
         } else {
-            $sql = "SELECT friendship_status FROM friendship WHERE 
+            $sql = "SELECT friendship_status FROM $db_user.friendship WHERE 
                     (user1_id = $targetUserId AND user2_id = $viewerUserId) OR 
                     (user1_id = $viewerUserId AND user2_id = $targetUserId)";
             $res = $db->query($sql);
@@ -239,10 +248,10 @@ class Post {
         }
 
         // Reusing the optimize subqueries from getFeed
-        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id";
-        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = p.post_id";
-        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = p.post_id";
-        $isLikedSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id AND user_id = $viewerUserId";
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = p.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = p.post_id";
+        $isLikedSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id AND user_id = $viewerUserId";
 
         $sql = "
             SELECT 
@@ -267,7 +276,7 @@ class Post {
                 shared_p.post_by as shared_by_id,
             shared_p.is_spoiler as shared_spoiler,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared_pfp.media_hash, ''), ':', IFNULL(m_shared_pfp.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -283,25 +292,25 @@ class Post {
                 m_shared_legacy.media_hash as shared_media_hash,
                 m_shared_legacy.media_format as shared_media_format,
 
-                (SELECT COUNT(*) FROM friendship WHERE 
+                (SELECT COUNT(*) FROM $db_user.friendship WHERE 
                     (user1_id = $viewerUserId AND user2_id = shared_p.post_by AND friendship_status = 1) OR
                     (user2_id = $viewerUserId AND user1_id = shared_p.post_by AND friendship_status = 1)
                 ) as is_friend_with_shared
                 
-            FROM posts p
-            JOIN users u ON p.post_by = u.user_id
-            LEFT JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
-            LEFT JOIN media m ON m_map.media_id = m.media_id
-            LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
-            LEFT JOIN media m_legacy ON p.post_media = m_legacy.media_id
-            LEFT JOIN groups g ON p.group_id = g.group_id
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON u.pfp_media_id = m_pfp.media_id
+            LEFT JOIN $db_media.media m_legacy ON p.post_media = m_legacy.media_id
+            LEFT JOIN $db_post.groups g ON p.group_id = g.group_id
             
-            LEFT JOIN posts shared_p ON p.is_share = shared_p.post_id
-            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
-            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
-            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
-            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
-            LEFT JOIN media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
+            LEFT JOIN $db_post.posts shared_p ON p.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_media.media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
 
             WHERE p.post_by = $targetUserId AND $privacyCondition AND p.group_id = 0
             GROUP BY p.post_id
@@ -314,6 +323,9 @@ class Post {
     
     public static function searchPosts($query, $viewerUserId, $page = 0, $filters = []) {
         $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $limit = 30;
         $offset = intval($page) * $limit;
         $viewerUserId = intval($viewerUserId);
@@ -342,21 +354,21 @@ class Post {
         }
 
         // Subqueries
-        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = feed.post_id";
-        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = feed.post_id";
-        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = feed.post_id";
-        $isLikedSub = "SELECT COUNT(*) FROM likes WHERE post_id = feed.post_id AND user_id = $viewerUserId";
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = feed.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = feed.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = feed.post_id";
+        $isLikedSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = feed.post_id AND user_id = $viewerUserId";
 
         $parts = [];
 
         // PART 1: My Posts (Always see all my own matching posts if scope allows)
         if ($scope === 'all' || $scope === 'me') {
             $parts[] = "
-                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
                        u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                        p.group_id, NULL as group_name, 0 as group_verified
-                FROM posts p
-                JOIN users u ON p.post_by = u.user_id
+                FROM $db_post.posts p
+                JOIN $db_user.users u ON p.post_by = u.user_id
                 WHERE u.user_id = $viewerUserId AND $baseCond $pCond
             ";
         }
@@ -364,11 +376,11 @@ class Post {
         // PART 2: Public Posts (Global)
         if ($scope === 'all') {
             $parts[] = "
-                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
                        u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                        p.group_id, NULL as group_name, 0 as group_verified
-                FROM posts p
-                JOIN users u ON p.post_by = u.user_id
+                FROM $db_post.posts p
+                JOIN $db_user.users u ON p.post_by = u.user_id
                 WHERE p.post_public = 2 AND $baseCond $pCond
             ";
         }
@@ -377,27 +389,27 @@ class Post {
         if ($scope === 'all' || $scope === 'friends') {
             // Friend's Privacy-Restricted Posts
             $parts[] = "
-                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
                        u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                        p.group_id, NULL as group_name, 0 as group_verified
-                FROM posts p
-                JOIN users u ON p.post_by = u.user_id 
+                FROM $db_post.posts p
+                JOIN $db_user.users u ON p.post_by = u.user_id 
                 JOIN (
-                    SELECT user1_id AS friend_id FROM friendship WHERE user2_id = $viewerUserId AND friendship_status = 1
+                    SELECT user1_id AS friend_id FROM $db_user.friendship WHERE user2_id = $viewerUserId AND friendship_status = 1
                     UNION
-                    SELECT user2_id AS friend_id FROM friendship WHERE user1_id = $viewerUserId AND friendship_status = 1
+                    SELECT user2_id AS friend_id FROM $db_user.friendship WHERE user1_id = $viewerUserId AND friendship_status = 1
                 ) friends ON friends.friend_id = p.post_by
                 WHERE p.post_public >= 1 AND $baseCond $pCond
             ";
 
             // Followed Public Posts
             $parts[] = "
-                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share,
+                SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
                        u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                        p.group_id, NULL as group_name, 0 as group_verified
-                FROM posts p
-                JOIN follows f ON p.post_by = f.user2_id
-                JOIN users u ON p.post_by = u.user_id
+                FROM $db_post.posts p
+                JOIN $db_user.follows f ON p.post_by = f.user2_id
+                JOIN $db_user.users u ON p.post_by = u.user_id
                 WHERE p.post_public = 2 AND f.user1_id = $viewerUserId AND $baseCond $pCond
             ";
         }
@@ -411,10 +423,10 @@ class Post {
                 SELECT p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_spoiler,
                        u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
                        p.group_id, g.group_name, g.verified as group_verified
-                FROM posts p
-                JOIN users u ON p.post_by = u.user_id
-                JOIN group_members gm ON p.group_id = gm.group_id
-                JOIN groups g ON p.group_id = g.group_id
+                FROM $db_post.posts p
+                JOIN $db_user.users u ON p.post_by = u.user_id
+                JOIN $db_post.group_members gm ON p.group_id = gm.group_id
+                JOIN $db_post.groups g ON p.group_id = g.group_id
                 WHERE gm.user_id = $viewerUserId AND gm.status = 1 AND p.post_caption LIKE '%$escapedQuery%'
                 AND $groupCond
                 " . ($startDate ? " AND p.post_time >= " . strtotime($startDate) : "") . "
@@ -447,7 +459,7 @@ class Post {
                 shared_p.post_by as shared_by_id,
             shared_p.is_spoiler as shared_spoiler,
                 
-                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared.media_hash, ''), ':', IFNULL(m_shared.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared_pfp.media_hash, ''), ':', IFNULL(m_shared_pfp.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
                 
                 shared_u.user_firstname as shared_firstname,
                 shared_u.user_lastname as shared_lastname,
@@ -463,23 +475,23 @@ class Post {
                 m_shared_legacy.media_hash as shared_media_hash,
                 m_shared_legacy.media_format as shared_media_format,
  
-                (SELECT COUNT(*) FROM friendship WHERE 
+                (SELECT COUNT(*) FROM $db_user.friendship WHERE 
                     (user1_id = $viewerUserId AND user2_id = shared_p.post_by AND friendship_status = 1) OR
                     (user2_id = $viewerUserId AND user1_id = shared_p.post_by AND friendship_status = 1)
                 ) as is_friend_with_shared
                 
             FROM ($unionSql) as feed
-            LEFT JOIN post_media_mapping m_map ON feed.post_id = m_map.post_id
-            LEFT JOIN media m ON m_map.media_id = m.media_id
-            LEFT JOIN media m_pfp ON feed.pfp_media_id = m_pfp.media_id
-            LEFT JOIN media m_legacy ON feed.post_media = m_legacy.media_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON feed.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON feed.pfp_media_id = m_pfp.media_id
+            LEFT JOIN $db_media.media m_legacy ON feed.post_media = m_legacy.media_id
             
-            LEFT JOIN posts shared_p ON feed.is_share = shared_p.post_id
-            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
-            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
-            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
-            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
-            LEFT JOIN media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
+            LEFT JOIN $db_post.posts shared_p ON feed.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_media.media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
             
             GROUP BY feed.post_id
             ORDER BY feed.post_time DESC
@@ -491,6 +503,8 @@ class Post {
     public static function create($userId, $caption, $public, $fileData = null, $groupId = 0, $isSpoiler = 0) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $userId = intval($userId);
         $public = intval($public);
         $timestamp = time();
@@ -498,7 +512,7 @@ class Post {
         $groupId = intval($groupId);
         $isSpoiler = intval($isSpoiler);
         
-        $sql = "INSERT INTO posts (post_caption, post_public, post_time, post_by, group_id, is_spoiler) VALUES ('$captionClean', '$public', $timestamp, $userId, $groupId, $isSpoiler)";
+        $sql = "INSERT INTO $db_post.posts (post_caption, post_public, post_time, post_by, group_id, is_spoiler) VALUES ('$captionClean', '$public', $timestamp, $userId, $groupId, $isSpoiler)";
         
         // Handle Multiple Files
         $hasMedia = false;
@@ -534,13 +548,15 @@ class Post {
     public static function share($userId, $originalPostId, $caption, $public, $fileData = null) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $userId = intval($userId);
         $originalPostId = intval($originalPostId);
         $public = intval($public);
         $timestamp = time();
         $captionClean = $db->escape($caption);
         
-        $sql = "INSERT INTO posts (post_caption, post_public, post_time, post_by, is_share) VALUES ('$captionClean', '$public', $timestamp, $userId, $originalPostId)";
+        $sql = "INSERT INTO $db_post.posts (post_caption, post_public, post_time, post_by, is_share) VALUES ('$captionClean', '$public', $timestamp, $userId, $originalPostId)";
         
         $db->query($sql);
         $lastId = $db->getLastId();
@@ -555,7 +571,7 @@ class Post {
             require_once __DIR__ . '/Notification.php';
             $notif = new Notification();
             // Get owner of ORIGINAL post
-            $originalPostQuery = $db->query("SELECT post_by FROM posts WHERE post_id = $originalPostId");
+            $originalPostQuery = $db->query("SELECT post_by FROM $db_post.posts WHERE post_id = $originalPostId");
             if ($originalPostQuery && $originalPostQuery->num_rows > 0) {
                 $originalOwnerId = $originalPostQuery->fetch_assoc()['post_by'];
                 if ($originalOwnerId != $userId) {
@@ -571,6 +587,8 @@ class Post {
 
     private static function handleMediaUpload($postId, $fileData) {
         $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $files = [];
         $uploadedList = [];
 
@@ -655,10 +673,10 @@ class Post {
                 }
                 
                 if ($uploadAllowed) {
-                    $check = $db->query("SELECT media_id FROM media WHERE media_hash = '$mediaHash'");
+                    $check = $db->query("SELECT media_id FROM $db_media.media WHERE media_hash = '$mediaHash'");
                     $mediaId = 0;
                     if ($check->num_rows == 0) {
-                        $db->query("INSERT INTO media (media_format, media_hash, media_ext) VALUES ('$mediaFormat','$mediaHash', '$filetype')");
+                        $db->query("INSERT INTO $db_media.media (media_format, media_hash, media_ext) VALUES ('$mediaFormat','$mediaHash', '$filetype')");
                         $mediaId = $db->getLastId();
                     } else {
                         $mediaId = $check->fetch_assoc()["media_id"];
@@ -681,10 +699,10 @@ class Post {
 
                     if ($moveSuccess) {
                             // index in $files is correct order
-                            $db->query("INSERT INTO post_media_mapping (post_id, media_id, display_order) VALUES ($postId, $mediaId, $index)");
+                            $db->query("INSERT INTO $db_post.post_media_mapping (post_id, media_id, display_order) VALUES ($postId, $mediaId, $index)");
                             
                             // Legacy support: set first media as post_media
-                            $db->query("UPDATE posts SET post_media = $mediaId WHERE post_id = $postId AND post_media IS NULL");
+                            $db->query("UPDATE $db_post.posts SET post_media = $mediaId WHERE post_id = $postId AND post_media IS NULL");
 
                             $uploadedList[] = [
                                 'media_id' => $mediaId,
@@ -706,14 +724,17 @@ class Post {
 
     public static function getPost($postId, $viewerUserId) {
         $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $postId = intval($postId);
         $viewerUserId = intval($viewerUserId);
 
         // Subqueries
-        $likesSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id";
-        $commentsSub = "SELECT COUNT(*) FROM comments WHERE post_id = p.post_id";
-        $sharesSub = "SELECT COUNT(*) FROM posts WHERE is_share = p.post_id";
-        $isLikedSub = "SELECT COUNT(*) FROM likes WHERE post_id = p.post_id AND user_id = $viewerUserId";
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = p.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = p.post_id";
+        $isLikedSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id AND user_id = $viewerUserId";
 
         $sql = "
             SELECT 
@@ -753,25 +774,25 @@ class Post {
                 m_shared_legacy.media_hash as shared_media_hash,
                 m_shared_legacy.media_format as shared_media_format,
 
-                (SELECT COUNT(*) FROM friendship WHERE 
+                (SELECT COUNT(*) FROM $db_user.friendship WHERE 
                     (user1_id = $viewerUserId AND user2_id = shared_p.post_by AND friendship_status = 1) OR
                     (user2_id = $viewerUserId AND user1_id = shared_p.post_by AND friendship_status = 1)
                 ) as is_friend_with_shared
                 
-            FROM posts p
-            JOIN users u ON p.post_by = u.user_id
-            LEFT JOIN groups g ON p.group_id = g.group_id
-            LEFT JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
-            LEFT JOIN media m ON m_map.media_id = m.media_id
-            LEFT JOIN media m_pfp ON u.pfp_media_id = m_pfp.media_id
-            LEFT JOIN media m_legacy ON p.post_media = m_legacy.media_id
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id
+            LEFT JOIN $db_post.groups g ON p.group_id = g.group_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON u.pfp_media_id = m_pfp.media_id
+            LEFT JOIN $db_media.media m_legacy ON p.post_media = m_legacy.media_id
             
-            LEFT JOIN posts shared_p ON p.is_share = shared_p.post_id
-            LEFT JOIN users shared_u ON shared_p.post_by = shared_u.user_id
-            LEFT JOIN post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
-            LEFT JOIN media m_shared ON m_map_shared.media_id = m_shared.media_id
-            LEFT JOIN media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
-            LEFT JOIN media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
+            LEFT JOIN $db_post.posts shared_p ON p.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_media.media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
 
             WHERE p.post_id = $postId
             GROUP BY p.post_id
@@ -793,7 +814,7 @@ class Post {
             $can_view = true;
         } elseif ($post['post_public'] == 1) {
             // Check friendship
-            $checkFriend = $db->query("SELECT friendship_status FROM friendship WHERE 
+            $checkFriend = $db->query("SELECT friendship_status FROM $db_user.friendship WHERE 
                     ((user1_id = {$post['post_by']} AND user2_id = $viewerUserId) OR 
                      (user1_id = $viewerUserId AND user2_id = {$post['post_by']})) AND friendship_status = 1");
             if ($checkFriend->num_rows > 0) $can_view = true;
@@ -806,11 +827,13 @@ class Post {
 
     public static function togglePin($postId, $userId) {
         $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $postId = intval($postId);
         $userId = intval($userId);
 
         // 1. Get Post Info
-        $res = $db->query("SELECT group_id, post_by, is_pinned FROM posts WHERE post_id = $postId");
+        $res = $db->query("SELECT group_id, post_by, is_pinned FROM $db_post.posts WHERE post_id = $postId");
         if ($res->num_rows == 0) return ['success' => 0, 'err' => 'post_not_found'];
         $post = $res->fetch_assoc();
         
@@ -825,7 +848,7 @@ class Post {
             // We need a way to check if user is admin. The Group class has a check but we are in Post.
             // Let's do a direct query for speed or duplicate logic.
             // Access level: 2 = Admin, 1 = Member. Assuming 2 is admin/creator.
-            $check = $db->query("SELECT role FROM group_members WHERE group_id = $groupId AND user_id = $userId AND status = 1");
+            $check = $db->query("SELECT role FROM $db_post.group_members WHERE group_id = $groupId AND user_id = $userId AND status = 1");
             if ($check->num_rows > 0) {
                 $role = $check->fetch_assoc()['role'];
                 if ($role >= 2) $canPin = true;
@@ -841,27 +864,29 @@ class Post {
         // 3. Logic: If pinning (current is 0), unpin ALL other posts in this context first.
         if ($currentPinned == 0) {
             if ($groupId > 0) {
-                $db->query("UPDATE posts SET is_pinned = 0 WHERE group_id = $groupId");
+                $db->query("UPDATE $db_post.posts SET is_pinned = 0 WHERE group_id = $groupId");
             } else {
-                $db->query("UPDATE posts SET is_pinned = 0 WHERE post_by = $userId AND group_id = 0");
+                $db->query("UPDATE $db_post.posts SET is_pinned = 0 WHERE post_by = $userId AND group_id = 0");
             }
             // Pin this one
-            $db->query("UPDATE posts SET is_pinned = 1 WHERE post_id = $postId");
+            $db->query("UPDATE $db_post.posts SET is_pinned = 1 WHERE post_id = $postId");
             return ['success' => 1, 'status' => 'pinned'];
         } else {
             // Unpinning
-            $db->query("UPDATE posts SET is_pinned = 0 WHERE post_id = $postId");
+            $db->query("UPDATE $db_post.posts SET is_pinned = 0 WHERE post_id = $postId");
             return ['success' => 1, 'status' => 'unpinned'];
         }
     }
 
     public static function delete($postId, $userId) {
         $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $postId = $db->escape($postId);
         $userId = $db->escape($userId);
 
         // Verify ownership OR Group Admin permission
-        $res = $db->query("SELECT post_by, group_id FROM posts WHERE post_id = $postId");
+        $res = $db->query("SELECT post_by, group_id FROM $db_post.posts WHERE post_id = $postId");
         if ($res->num_rows == 0) return ["success" => 0, "err" => "post_not_found"];
         $post = $res->fetch_assoc();
         
@@ -870,7 +895,7 @@ class Post {
             $can_delete = true;
         } elseif ($post['group_id'] > 0) {
             // Check if user is admin of this group
-            $checkAdmin = $db->query("SELECT role FROM group_members WHERE group_id = {$post['group_id']} AND user_id = $userId AND status = 1");
+            $checkAdmin = $db->query("SELECT role FROM $db_post.group_members WHERE group_id = {$post['group_id']} AND user_id = $userId AND status = 1");
             if ($checkAdmin->num_rows > 0) {
                 $role = $checkAdmin->fetch_assoc()['role'];
                 if ($role >= 2) $can_delete = true;
@@ -882,37 +907,41 @@ class Post {
         }
 
         // Delete post
-        $db->query("DELETE FROM posts WHERE post_id = $postId");
+        $db->query("DELETE FROM $db_post.posts WHERE post_id = $postId");
         // Also delete mappings (media is kept in media table for now, but mapping is removed)
-        $db->query("DELETE FROM post_media_mapping WHERE post_id = $postId");
-        // Delete likes/comments if they exist in schema (assuming tables exist)
-        // If they don't, these will just fail silently or do nothing if query is valid but table empty
-        $db->query("DELETE FROM likes WHERE post_id = $postId");
-        $db->query("DELETE FROM comments WHERE post_id = $postId");
+        $db->query("DELETE FROM $db_post.post_media_mapping WHERE post_id = $postId");
+        // Delete likes/comments if they exist in schema
+        $db->query("DELETE FROM $db_post.likes WHERE post_id = $postId");
+        $db->query("DELETE FROM $db_post.comments WHERE post_id = $postId");
 
         return ["success" => 1];
     }
 
     public static function update($postId, $userId, $caption, $public) {
         $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $postId = $db->escape($postId);
         $userId = $db->escape($userId);
         $caption = $db->escape($caption);
         $public = $db->escape($public);
 
         // Verify ownership
-        $check = $db->query("SELECT post_id FROM posts WHERE post_id = $postId AND post_by = $userId");
+        $check = $db->query("SELECT post_id FROM $db_post.posts WHERE post_id = $postId AND post_by = $userId");
         if ($check->num_rows == 0) {
             return ["success" => 0, "err" => "Unauthorized or post not found"];
         }
 
         // Update post
-        $db->query("UPDATE posts SET post_caption = '$caption', post_public = '$public' WHERE post_id = $postId");
+        $db->query("UPDATE $db_post.posts SET post_caption = '$caption', post_public = '$public' WHERE post_id = $postId");
 
         return ["success" => 1];
     }
     public static function getProfileMedia($targetUserId, $viewerUserId, $page = 0) {
         $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $limit = 30;
         $offset = intval($page) * $limit;
         $targetUserId = intval($targetUserId);
@@ -923,7 +952,7 @@ class Post {
         if ($targetUserId == $viewerUserId) {
             $relationship = 0;
         } else {
-            $sql = "SELECT friendship_status FROM friendship WHERE 
+            $sql = "SELECT friendship_status FROM $db_user.friendship WHERE 
                     (user1_id = $targetUserId AND user2_id = $viewerUserId) OR 
                     (user1_id = $viewerUserId AND user2_id = $targetUserId)";
             $res = $db->query($sql);
@@ -945,13 +974,13 @@ class Post {
         $sql = "
             SELECT 
                 m.media_id, m.media_hash, m.media_format, p.post_id, p.is_spoiler,
-                (SELECT COUNT(*) FROM post_media_mapping WHERE post_id = p.post_id) as media_count
-            FROM posts p
-            JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
-            JOIN media m ON m_map.media_id = m.media_id
+                (SELECT COUNT(*) FROM $db_post.post_media_mapping WHERE post_id = p.post_id) as media_count
+            FROM $db_post.posts p
+            JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            JOIN $db_media.media m ON m_map.media_id = m.media_id
             WHERE p.post_by = $targetUserId AND $privacyCondition AND p.group_id = 0
                 AND m_map.display_order = (
-                    SELECT MIN(display_order) FROM post_media_mapping WHERE post_id = p.post_id
+                    SELECT MIN(display_order) FROM $db_post.post_media_mapping WHERE post_id = p.post_id
                 )
             GROUP BY p.post_id
             ORDER BY p.post_time DESC
@@ -963,19 +992,21 @@ class Post {
 
     public static function getGroupMedia($groupId, $viewerUserId, $page = 0) {
         $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
         $limit = 30;
         $offset = intval($page) * $limit;
         $groupId = intval($groupId);
         $viewerUserId = intval($viewerUserId);
 
         // Security Check: If group is Secret or Closed, check membership
-        $sqlG = "SELECT group_privacy FROM groups WHERE group_id = $groupId";
+        $sqlG = "SELECT group_privacy FROM $db_post.groups WHERE group_id = $groupId";
         $resG = $db->query($sqlG);
         if ($resG->num_rows == 0) return [];
         $gInfo = $resG->fetch_assoc();
 
         if ($gInfo['group_privacy'] < 2) {
-            $sqlM = "SELECT id FROM group_members WHERE group_id = $groupId AND user_id = $viewerUserId AND status = 1";
+            $sqlM = "SELECT id FROM $db_post.group_members WHERE group_id = $groupId AND user_id = $viewerUserId AND status = 1";
             $resM = $db->query($sqlM);
             if ($resM->num_rows == 0) return [];
         }
@@ -984,13 +1015,13 @@ class Post {
         $sql = "
             SELECT 
                 m.media_id, m.media_hash, m.media_format, p.post_id, p.is_spoiler,
-                (SELECT COUNT(*) FROM post_media_mapping WHERE post_id = p.post_id) as media_count
-            FROM posts p
-            JOIN post_media_mapping m_map ON p.post_id = m_map.post_id
-            JOIN media m ON m_map.media_id = m.media_id
+                (SELECT COUNT(*) FROM $db_post.post_media_mapping WHERE post_id = p.post_id) as media_count
+            FROM $db_post.posts p
+            JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            JOIN $db_media.media m ON m_map.media_id = m.media_id
             WHERE p.group_id = $groupId
                 AND m_map.display_order = (
-                    SELECT MIN(display_order) FROM post_media_mapping WHERE post_id = p.post_id
+                    SELECT MIN(display_order) FROM $db_post.post_media_mapping WHERE post_id = p.post_id
                 )
             GROUP BY p.post_id
             ORDER BY p.post_time DESC
@@ -1000,4 +1031,3 @@ class Post {
         return $db->query($sql)->fetch_all(MYSQLI_ASSOC);
     }
 }
-

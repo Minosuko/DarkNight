@@ -95,7 +95,7 @@ body {
 	border-radius: 24px;
 	padding: 2.5rem;
 	width: 100%;
-	max-width: 450px;
+	max-width: 650px;
 	margin: 1rem;
 	transition: all 0.3s ease;
 }
@@ -111,6 +111,7 @@ body {
 	margin: 0;
 	background: var(--primary-gradient);
 	-webkit-background-clip: text;
+	background-clip: text;
 	-webkit-text-fill-color: transparent;
 	letter-spacing: -1px;
 }
@@ -405,6 +406,14 @@ body {
 	height: 50px;
 	overflow: hidden;
 	border-radius: 12px;
+	border: 1px solid var(--glass-border);
+	transition: all 0.3s ease;
+	box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.captcha-img-wrapper:hover {
+	border-color: var(--primary-color);
+	box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
 }
 
 .captcha-img-wrapper img {
@@ -414,18 +423,33 @@ body {
 }
 
 .refresh-captcha {
-	position: absolute;
-	right: 0;
-	top: 0;
-	height: 100%;
-	width: 30px;
-	background: rgba(0, 0, 0, 0.5);
+	position: relative;
+	height: 32px;
+	width: 32px;
+	flex: 0 0 32px;
+	background: rgba(0, 0, 0, 0.6);
 	color: white;
-	border: none;
+	border: 1px solid var(--glass-border);
+	border-radius: 50%;
 	cursor: pointer;
-	font-size: 1.2rem;
+	font-size: 0.9rem;
 	padding: 0;
-	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.3s ease;
+	backdrop-filter: blur(4px);
+	align-self: center;
+}
+
+.refresh-captcha:hover {
+	background: var(--primary-color);
+	border-color: var(--primary-color);
+	transform: rotate(180deg);
+}
+
+.refresh-captcha i {
+	transition: transform 0.5s ease;
 }
 
 /* Responsive */
@@ -455,4 +479,53 @@ body {
 
 .required:empty {
 	display: none;
+}
+
+/* Birthday Selects */
+.birthday-group {
+	margin-bottom: 1.5rem;
+}
+
+.birthday-selects {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.custom-select {
+	flex: 1;
+	padding: 0.8rem;
+	background: var(--input-bg);
+	border: 1px solid var(--glass-border);
+	border-radius: 12px;
+	color: white;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 1rem center;
+}
+
+.custom-select:focus {
+	border-color: var(--primary-color);
+	background-color: rgba(0, 0, 0, 0.4);
+	outline: none;
+	box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+}
+
+.custom-select option {
+	background: #1a1a1a;
+	color: white;
+}
+
+.btn-link {
+	color: var(--text-muted);
+	text-decoration: none;
+	font-size: 0.9rem;
+	transition: color 0.3s ease;
+}
+
+.btn-link:hover {
+	color: var(--primary-color);
 }

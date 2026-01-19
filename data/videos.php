@@ -35,7 +35,7 @@ if ((($if_none_match && $if_none_match == $etag) || (!$if_none_match)) && ($if_m
 					$md5 = $_GET['h'];
 					$query = $conn->query(
 						sprintf(
-							"SELECT * FROM media WHERE media_hash = '%s' AND media_id = %d",
+							"SELECT * FROM $db_media.media WHERE media_hash = '%s' AND media_id = %d",
 							$conn->real_escape_string($md5),
 							$conn->real_escape_string($_GET['id'])
 						)

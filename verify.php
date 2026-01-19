@@ -248,6 +248,46 @@ if(_is_session_valid(false)){
 								echo "<p class='subtitle'>The verification link is invalid or has expired.</p>";
 							}
 							break;
+                        case 'forgot':
+                            ?>
+                            <div class="icon-circle"><i class="fa-solid fa-key"></i></div>
+                            <h2>Reset Password</h2>
+                            <p class="subtitle">Enter your email address and we'll send you a link to reset your password.</p>
+                            <form id="forgot-form" onsubmit="return handleForgot(event)">
+                                <div class="input-group">
+                                    <input type="email" id="forgot-email" required placeholder=" " style="width:100%; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: white;">
+                                    <label for="forgot-email" style="position: absolute; left: 10px; top: -10px; background: #121212; padding: 0 5px; font-size: 0.8rem; color: var(--color-text-secondary);">Email Address</label>
+                                </div>
+                                <div id="forgot-message" style="margin-bottom: 15px; font-size: 0.9rem;"></div>
+                                <button type="submit" class="btn-primary" id="forgot-submit" style="width:100%; padding: 12px;">Send Reset Link</button>
+                            </form>
+                            <?php
+                            break;
+                        case 'reset':
+                            if(!isset($_GET['token']) || !isset($_GET['email'])) {
+                                header("Location: index.php");
+                                exit();
+                            }
+                            ?>
+                            <div class="icon-circle"><i class="fa-solid fa-lock"></i></div>
+                            <h2>Choose New Password</h2>
+                            <p class="subtitle">Please enter your new password below.</p>
+                            <form id="reset-form" onsubmit="return handleReset(event)">
+                                <input type="hidden" id="reset-token" value="<?php echo htmlspecialchars($_GET['token']); ?>">
+                                <input type="hidden" id="reset-email" value="<?php echo htmlspecialchars($_GET['email']); ?>">
+                                <div class="input-group" style="margin-bottom: 20px;">
+                                    <input type="password" id="reset-password" required placeholder=" " style="width:100%; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: white;">
+                                    <label for="reset-password" style="position: absolute; left: 10px; top: -10px; background: #121212; padding: 0 5px; font-size: 0.8rem; color: var(--color-text-secondary);">New Password</label>
+                                </div>
+                                <div class="input-group" style="margin-bottom: 20px;">
+                                    <input type="password" id="reset-confirm" required placeholder=" " style="width:100%; padding: 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; color: white;">
+                                    <label for="reset-confirm" style="position: absolute; left: 10px; top: -10px; background: #121212; padding: 0 5px; font-size: 0.8rem; color: var(--color-text-secondary);">Confirm Password</label>
+                                </div>
+                                <div id="reset-message" style="margin-bottom: 15px; font-size: 0.9rem;"></div>
+                                <button type="submit" class="btn-primary" id="reset-submit" style="width:100%; padding: 12px;">Update Password</button>
+                            </form>
+                            <?php
+                            break;
 						default:
 							echo "<h1>404</h1><p class='subtitle'>Page not found</p>";
 							break;
@@ -282,7 +322,7 @@ if(_is_session_valid(false)){
 			async function _verify_security_key() {
 				try {
 					// Get authentication options from server
-					const optionsRes = await fetch('/worker/webauthn_verify.php');
+					const optionsRes = await fetch('/worker/Auth.php?action=webauthn_verify');
 					const optionsData = await optionsRes.json();
 					
 					if (!optionsData.success) {
@@ -312,7 +352,7 @@ if(_is_session_valid(false)){
 						signature: bufferToBase64Url(credential.response.signature)
 					};
 					
-					const verifyRes = await fetch('/worker/webauthn_verify.php', {
+					const verifyRes = await fetch('/worker/Auth.php?action=webauthn_verify', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ response: response })
@@ -352,6 +392,101 @@ if(_is_session_valid(false)){
 				const base64 = btoa(binary);
 				return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 			}
+
+            async function handleForgot(e) {
+                e.preventDefault();
+                const email = document.getElementById('forgot-email').value;
+                const messageDiv = document.getElementById('forgot-message');
+                const submitBtn = document.getElementById('forgot-submit');
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('action', 'forgot_password');
+                    formData.append('email', email);
+                    
+                    const res = await fetch('/worker/Auth.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        messageDiv.style.color = '#22c55e';
+                        messageDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + data.message;
+                        document.getElementById('forgot-form').reset();
+                    } else {
+                        messageDiv.style.color = '#ef4444';
+                        messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Error: ' + data.error;
+                    }
+                } catch (err) {
+                    messageDiv.style.color = '#ef4444';
+                    messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Send Reset Link';
+                }
+                return false;
+            }
+
+            async function handleReset(e) {
+                e.preventDefault();
+                const token = document.getElementById('reset-token').value;
+                const email = document.getElementById('reset-email').value;
+                const password = document.getElementById('reset-password').value;
+                const confirm = document.getElementById('reset-confirm').value;
+                const messageDiv = document.getElementById('reset-message');
+                const submitBtn = document.getElementById('reset-submit');
+                
+                if (password !== confirm) {
+                    messageDiv.style.color = '#ef4444';
+                    messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Passwords do not match.';
+                    return false;
+                }
+                
+                if (password.length < 6) {
+                    messageDiv.style.color = '#ef4444';
+                    messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Password must be at least 6 characters.';
+                    return false;
+                }
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('action', 'reset_password');
+                    formData.append('token', token);
+                    formData.append('email', email);
+                    formData.append('password', btoa(password));
+                    
+                    const res = await fetch('/worker/Auth.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        messageDiv.style.color = '#22c55e';
+                        messageDiv.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + data.message;
+                        setTimeout(() => {
+                            window.location.href = 'index.php';
+                        }, 2000);
+                    } else {
+                        messageDiv.style.color = '#ef4444';
+                        messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Error: ' + data.error;
+                    }
+                } catch (err) {
+                    messageDiv.style.color = '#ef4444';
+                    messageDiv.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Network error. Please try again.';
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Update Password';
+                }
+                return false;
+            }
 		</script>
 	</body>
 </html>

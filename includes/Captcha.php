@@ -9,36 +9,69 @@ class Captcha
 		}
 		return $text;
 	}
-	public function phpcaptcha($textColor,$backgroundColor,$imgWidth,$imgHeight,$noiceLines=0,$noiceDots=0,$noiceColor='#162453', $text = null)
+	public function phpcaptcha($textColor, $backgroundColor, $imgWidth, $imgHeight, $noiceLines = 0, $noiceDots = 0, $noiceColor = '#162453', $text = null)
 	{
 		header('Content-Type: image/jpeg');
 		$text = $text != null ? $text : $this->newCode();
-		$font = __DIR__ .'/../resources/font/monofont.ttf';
-		$textColor=$this->hexToRGB($textColor);
-		$fontSize = $imgHeight * 0.75;
-		
+		$font = __DIR__ . '/../resources/font/monofont.ttf';
+		$textColorArr = $this->hexToRGB($textColor);
+		$backgroundColorArr = $this->hexToRGB($backgroundColor);
+		$noiceColorArr = $this->hexToRGB($noiceColor);
+
 		$im = imagecreatetruecolor($imgWidth, $imgHeight);
-		$textColor = imagecolorallocate($im, $textColor['r'],$textColor['g'],$textColor['b']);
-		$backgroundColor = $this->hexToRGB($backgroundColor);
-		$backgroundColor = imagecolorallocate($im, $backgroundColor['r'],$backgroundColor['g'],$backgroundColor['b']);
-		if($noiceLines>0){
-			$noiceColor=$this->hexToRGB($noiceColor);
-			$noiceColor = imagecolorallocate($im, $noiceColor['r'],$noiceColor['g'],$noiceColor['b']);
-			for( $i=0; $i<$noiceLines; $i++ ) {
-				imageline($im, mt_rand(0,$imgWidth), mt_rand(0,$imgHeight),
-				mt_rand(0,$imgWidth), mt_rand(0,$imgHeight), $noiceColor);
+		$bg = imagecolorallocate($im, $backgroundColorArr['r'], $backgroundColorArr['g'], $backgroundColorArr['b']);
+		$tc = imagecolorallocate($im, $textColorArr['r'], $textColorArr['g'], $textColorArr['b']);
+		$nc = imagecolorallocate($im, $noiceColorArr['r'], $noiceColorArr['g'], $noiceColorArr['b']);
+        
+        // Ghost color (very subtle)
+        $gc = imagecolorallocate($im, 
+            min(255, $backgroundColorArr['r'] + 20), 
+            min(255, $backgroundColorArr['g'] + 20), 
+            min(255, $backgroundColorArr['b'] + 20)
+        );
+
+		imagefill($im, 0, 0, $bg);
+
+        // 1. Ghost Characters (Distractors in background)
+        for ($i = 0; $i < 3; $i++) {
+            $ghostText = $this->random(1);
+            imagettftext($im, $imgHeight * 0.8, mt_rand(-30, 30), mt_rand(0, $imgWidth), mt_rand($imgHeight/2, $imgHeight), $gc, $font, $ghostText);
+        }
+
+		// 2. Subtle Noise Dots
+		if ($noiceDots > 0) {
+			for ($i = 0; $i < $noiceDots; $i++) {
+				imagefilledellipse($im, mt_rand(0, $imgWidth), mt_rand(0, $imgHeight), 2, 2, $nc);
 			}
 		}
-		if($noiceDots>0){
-			for( $i=0; $i<$noiceDots; $i++ ) {
-				imagefilledellipse($im, mt_rand(0,$imgWidth),
-				mt_rand(0,$imgHeight), 3, 3, $textColor);
+
+		// 3. Subtle Noise Lines (Straight and Curved)
+		if ($noiceLines > 0) {
+			for ($i = 0; $i < $noiceLines; $i++) {
+                if (mt_rand(0, 1)) {
+				    imageline($im, mt_rand(0, $imgWidth), mt_rand(0, $imgHeight), mt_rand(0, $imgWidth), mt_rand(0, $imgHeight), $nc);
+                } else {
+                    imagearc($im, mt_rand(0, $imgWidth), mt_rand(0, $imgHeight), mt_rand(20, 60), mt_rand(20, 60), mt_rand(0, 360), mt_rand(0, 360), $nc);
+                }
 			}
 		}
-		imagefill($im,0,0,$backgroundColor);
-		list($x, $y) = $this->ImageTTFCenter($im, $text, $font, $fontSize);  
-		imagettftext($im, $fontSize, 0, $x, $y, $textColor, $font, $text);
-		imagejpeg($im,NULL,90);
+
+		// 4. Main Characters with Scaling, Overlap, and Offset
+		$length = strlen($text);
+		$x = 15;
+		for ($i = 0; $i < $length; $i++) {
+            $currentFontSize = $imgHeight * (mt_rand(55, 75) / 100);
+			$angle = mt_rand(-20, 20);
+			$char = substr($text, $i, 1);
+			$y = ($imgHeight / 2) + ($currentFontSize / 3) + mt_rand(-8, 8);
+			
+            imagettftext($im, $currentFontSize, $angle, $x, $y, $tc, $font, $char);
+            
+			$box = imagettfbbox($currentFontSize, $angle, $font, $char);
+			$x += abs($box[2] - $box[0]) - mt_rand(1, 4); // Negative spacing for overlap
+		}
+
+		imagejpeg($im, NULL, 90);
 		imagedestroy($im);
 	}
 	protected function random($characters=6,$letters = '1234567890abcdfghjkmnpqrstvwxyz'){

@@ -103,6 +103,18 @@
                         </div>
                     </div>
 
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Terms of Service</label>
+                            <div class="setting-value">Read our platform rules and policies</div>
+                        </div>
+                        <div class="setting-action">
+                            <a href="pages/tos/" target="_blank" style="text-decoration:none;">
+                                <button class="setting-btn">View</button>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="setting-item" style="border:none; margin-top:20px;">
                         <a href="/logout.php" style="text-decoration:none;">
                             <button class="s_button red_alert" style="width:100%;">
@@ -191,7 +203,14 @@
                         <div class="setting-action">
                             <select id="setting-language-select" class="setting-select" onchange="changeLanguage(this.value)">
                                 <option value="en-us">English</option>
-                                <option value="vi-vn">Tiếng Việt</option>
+                                <option value="ko-kr">한국어 (Korean)</option>
+                                <option value="ja-jp">日本語 (Japanese)</option>
+                                <option value="zh-cn">简体中文 (Chinese)</option>
+                                <option value="vi-vn">Tiếng Việt (Vietnamese)</option>
+                                <option value="fil-ph">Filipino (Filipino)</option>
+                                <option value="id-id">Bahasa Indonesia (Indonesian)</option>
+                                <option value="th-th">ไทย (Thai)</option>
+                                <option value="fr-fr">Français (French)</option>
                             </select>
                         </div>
                     </div>
@@ -229,6 +248,9 @@
                     </a>
                     <a href="mailto:dev3.darknight@gmail.com" class="social-link-item">
                         <i class="fa-solid fa-envelope" style="color:#EA4335"></i> Support Email
+                    </a>
+                    <a href="pages/tos/" target="_blank" class="social-link-item">
+                        <i class="fa-solid fa-file-contract" style="color:var(--color-primary)"></i> Terms of Service
                     </a>
                     <div style="margin-top:20px; text-align:center;">
                         <a href='https://ko-fi.com/X8X8CYLKP' target="_blank" rel="noopener noreferrer">
