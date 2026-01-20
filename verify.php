@@ -305,6 +305,7 @@ if(_is_session_valid(false)){
 			</div>
 		</div>
 		<script src="resources/js/jquery.js"></script>
+		<script src="resources/js/i18n.js"></script>
 		<script>
 			// (WebAuthn script remains the same)
 			var isMobile = function() {

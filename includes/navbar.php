@@ -14,6 +14,7 @@ if ((($if_none_match && $if_none_match == $md5) || (!$if_none_match)) && ($if_mo
 if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
 ?>
 <script src="resources/js/jquery.js"></script>
+<script src="resources/js/i18n.js"></script>
 <script src="resources/js/highlight.js"></script>
 <div id="hljs_lang_list"></div>
 <nav class="usernav">

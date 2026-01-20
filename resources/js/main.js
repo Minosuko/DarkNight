@@ -18,92 +18,21 @@ supported_language = [
 	['fr-fr', 'Français']
 ];
 
-if (typeof (Storage) !== "undefined") {
-	a = lsg("language");
-	d = lsg("language_data");
-	h = lsg("load_hightlightjs");
-	if (a == null) {
-		lss("language", 'en-us');
-		a = 'en-us';
-	}
-	if (h == null) {
-		lss("load_hightlightjs", 'yes');
-		h = "yes";
-	}
-	if (d == null) {
-		$.ajaxSetup({ async: false });
-		$.get("resources/language/" + a + ".json", function (r) {
-			lss("language_data", JSON.stringify(r));
-			d = JSON.stringify(r);
-		}).done(function () {
-			location.reload();
-		});
-		$.ajaxSetup({ async: true });
-	}
-	j = JSON.parse(d);
-	Object.keys(j).forEach(function (v) {
-		window[v] = j[v];
-	});
-
-	// Theme initialization
-	var savedTheme = lsg("theme");
-	if (savedTheme) {
-		document.documentElement.setAttribute('data-theme', savedTheme);
-	}
-
-	// Primary Hue initialization
-	var savedHue = lsg("primaryHue");
-	if (savedHue) {
-		document.documentElement.style.setProperty('--primary-hue', savedHue);
-	}
-
-	load_lang();
+// Theme initialization
+var savedTheme = lsg("theme");
+if (savedTheme) {
+	document.documentElement.setAttribute('data-theme', savedTheme);
 }
 
-function load_lang() {
-	var i = document.getElementsByTagName('lang');
-	Object.keys(i).forEach(function (n) {
-		var e = i[n];
-		var s = e.getAttribute('lang');
-		if (e.getAttribute('lang_set') != 'true') {
-			var t = e.tagName.toLocaleLowerCase();
-			var l = window[s];
-			if (l != undefined) {
-				switch (t) {
-					case 'input':
-						var a = e.getAttribute('type');
-						if (a == 'submit' || a == 'button') {
-							e.value = l;
-						} else {
-							e.placeholder = l;
-						}
-						break;
-					default:
-						e.innerHTML = l;
-						break;
-				}
-				e.setAttribute('lang_set', 'true');
-			}
-		}
-	});
-
-	var h = document.getElementsByTagName('input');
-	Object.keys(h).forEach(function (n) {
-		var e = h[n];
-		var s = e.getAttribute('lang');
-		if (e.getAttribute('lang_set') != 'true' && s != null) {
-			var l = window[s];
-			if (l != undefined) {
-				var a = e.getAttribute('type');
-				if (a == 'submit' || a == 'button')
-					e.value = l;
-				else
-					e.placeholder = l;
-				e.setAttribute('lang_set', 'true');
-			}
-		}
-	});
+// Primary Hue initialization
+var savedHue = lsg("primaryHue");
+if (savedHue) {
+	document.documentElement.style.setProperty('--primary-hue', savedHue);
 }
+
+
+// Language functions are now handled by i18n.js
+
 
 // Appearance logic
 function setPrimaryHue(hue) {
@@ -151,11 +80,7 @@ function updateThemeIcon() {
 	}
 }
 
-function changeLanguage(lang) {
-	lss("language", lang);
-	localStorage.removeItem("language_data");
-	location.reload();
-}
+
 // Utility for Copy to Clipboard
 function copyToClipboard(text, btnId) {
 	if (!navigator.clipboard) {
@@ -210,15 +135,7 @@ function toggeHLJS() {
 	lss("load_hightlightjs", 'yes');
 	h = "yes";
 }
-function changeLanguage(lang = 'en-us') {
-	localStorage.setItem("language", lang);
-	$.get("resources/language/" + lang + ".json", function (r) {
-		lss("language_data", JSON.stringify(r));
-		d = JSON.stringify(r);
-	}).done(function () {
-		location.reload();
-	});
-}
+
 function getDefaultUserImage(g) {
 	switch (g) {
 		case "M":
@@ -249,43 +166,7 @@ function round_number(n) {
 	}
 	return ((f) ? Number((r).toFixed(1)) : r) + s;
 }
-function load_lang() {
-	i = gebtn('lang');
-	Object.keys(i).forEach(function (n) {
-		e = i[n];
-		s = e.getAttribute('lang');
-		if (e.getAttribute('lang_set') != 'true') {
-			t = e.tagName.toLocaleLowerCase();
-			l = window[s];
-			switch (t) {
-				case 'input':
-					a = e.getAttribute('type');
-					if (a == 'submit' || a == 'button') {
-						e.value = l;
-					} else {
-						e.placeholder = l;
-					}
-					break;
-			}
-			e.innerHTML = l;
-			e.setAttribute('lang_set', 'true');
-		}
-	});
-	h = gebtn('input');
-	Object.keys(h).forEach(function (n) {
-		e = h[n];
-		s = e.getAttribute('lang');
-		if (e.getAttribute('lang_set') != 'true' && s != null) {
-			l = window[s];
-			a = e.getAttribute('type');
-			if (a == 'submit' || a == 'button')
-				e.value = l;
-			else
-				e.placeholder = l;
-			e.setAttribute('lang_set', 'true');
-		}
-	});
-}
+
 function lsg(n) {
 	return localStorage.getItem(n);
 }
@@ -297,7 +178,7 @@ function gebi(id) { return document.getElementById(id); }
 function getVerifiedBadge(level, style = "", customTitle = null) {
 	if (level <= 0) return "";
 	let icon = "fa-badge-check";
-	let title = customTitle || window["lang_badge_" + level] || window["lang__016"];
+	let title = customTitle || i18n.t("lang_badge_" + level) || i18n.t("lang__016");
 	if (level == 20) icon = "fa-paw-claws";
 
 	return `<i class="fa-solid ${icon} verified_color_${level} verified-badge" style="${style}" title="${title}"></i>`;
@@ -371,7 +252,7 @@ function _pin_post(postId) {
 
 			if (r.status === 'pinned') {
 				// 1. Add indicator to this post
-				let pinLabel = window["lang__087"] || "Pinned Post";
+				let pinLabel = i18n.t("lang__087") || "Pinned Post";
 				let pinHtml = '<div class="pinned-label" style="font-size:0.85rem; color:var(--color-text-dim); margin-bottom: 8px; margin-left:2px;"><i class="fa-solid fa-thumbtack" style="transform:rotate(45deg); margin-right:5px;"></i> ' + pinLabel + '</div>';
 				$(postEl).prepend(pinHtml);
 
@@ -431,9 +312,9 @@ function _open_edit_post(postId) {
 			h += '<div style="margin-bottom:15px;">';
 			h += '<label class="input-label">Privacy</label>';
 			h += '<select id="edit_privacy" class="index_input_box" style="width:100%;">';
-			h += '<option value="2" ' + (data.post_public == 2 ? 'selected' : '') + '>' + window["lang__002"] + '</lang></option>';
-			h += '<option value="1" ' + (data.post_public == 1 ? 'selected' : '') + '>' + window["lang__004"] + '</lang></option>';
-			h += '<option value="0" ' + (data.post_public == 0 ? 'selected' : '') + '>' + window["lang__003"] + '</lang></option>';
+			h += '<option value="2" ' + (data.post_public == 2 ? 'selected' : '') + '>' + i18n.t("lang__002") + '</lang></option>';
+			h += '<option value="1" ' + (data.post_public == 1 ? 'selected' : '') + '>' + i18n.t("lang__004") + '</lang></option>';
+			h += '<option value="0" ' + (data.post_public == 0 ? 'selected' : '') + '>' + i18n.t("lang__003") + '</lang></option>';
 			h += '</select>';
 			h += '</div>';
 
@@ -506,10 +387,10 @@ function validateNumber() {
 	n = gebi("phonenum").value;
 	r = gebcn("required");
 	if (n == "") {
-		r[0].innerHTML = window["lang__007"];
+		r[0].innerHTML = i18n.t("lang__007");
 		return false;
 	} else if (isNaN(n)) {
-		r[0].innerHTML = window["lang__008"];
+		r[0].innerHTML = i18n.t("lang__008");
 		return false;
 	}
 	return true;
@@ -636,7 +517,6 @@ function processAjaxData(r, u) {
 			d[0].innerHTML = '';
 		}
 	}
-	load_lang();
 	if (tl) document.title = tl;
 	window.history.pushState({
 		"html": r,
@@ -757,7 +637,7 @@ function createPostHTML(s) {
 	if (s['is_pinned'] == 1 || s['is_spoiler'] == 1) {
 		a += '<div style="display:flex; gap:10px; align-items:center; margin-bottom: 8px; margin-left:2px;">';
 		if (s['is_pinned'] == 1) {
-			a += '<div class="pinned-label" style="font-size:0.85rem; color:var(--color-text-dim);"><i class="fa-solid fa-thumbtack" style="transform:rotate(45deg); margin-right:5px;"></i> ' + (window["lang__087"] || "Pinned Post") + '</div>';
+			a += '<div class="pinned-label" style="font-size:0.85rem; color:var(--color-text-dim);"><i class="fa-solid fa-thumbtack" style="transform:rotate(45deg); margin-right:5px;"></i> ' + (i18n.t("lang__087") || "Pinned Post") + '</div>';
 		}
 		a += '</div>';
 	}
@@ -790,9 +670,9 @@ function createPostHTML(s) {
 	a += '<span title="' + timeConverter(s['post_time'] * 1000) + '">' + timeSince(s['post_time'] * 1000) + '</span>';
 	a += ' • ';
 	switch (Number(s['post_public'])) {
-		case 2: a += '<i class="fa-solid fa-earth-americas" title="' + window["lang__002"] + '"></i>'; break;
-		case 1: a += '<i class="fa-solid fa-user-group" title="' + window["lang__004"] + '"></i>'; break;
-		default: a += '<i class="fa-solid fa-lock" title="' + window["lang__003"] + '"></i>'; break;
+		case 2: a += '<i class="fa-solid fa-earth-americas" title="' + i18n.t("lang__002") + '"></i>'; break;
+		case 1: a += '<i class="fa-solid fa-user-group" title="' + i18n.t("lang__004") + '"></i>'; break;
+		default: a += '<i class="fa-solid fa-lock" title="' + i18n.t("lang__003") + '"></i>'; break;
 	}
 	a += '</div>'; // End Meta
 	a += '</div>'; // End header-info
@@ -850,7 +730,7 @@ function createPostHTML(s) {
 			a += renderPostContent(post, true);
 			a += '</div>';
 		} else {
-			a += '<div class="share-post"><p style="font-size: 150%;text-align: center">' + window["lang__013"] + '</p></div>';
+			a += '<div class="share-post"><p style="font-size: 150%;text-align: center">' + i18n.t("lang__013") + '</p></div>';
 		}
 	} else {
 		a += renderPostContent(s, false);
@@ -910,7 +790,7 @@ function renderPostContent(post, isSharedRender) {
 
 	if (showMore) {
 		h += '<div class="caption_box" id="caption_box-' + post['post_id'] + suffix + '">';
-		h += '<div class="caption_box_shadow" id="caption_box_shadow-' + post['post_id'] + suffix + '"><p onclick="showMore(\'' + post['post_id'] + suffix + '\')">' + window["lang__014"] + '</p></div>';
+		h += '<div class="caption_box_shadow" id="caption_box_shadow-' + post['post_id'] + suffix + '"><p onclick="showMore(\'' + post['post_id'] + suffix + '\')">' + i18n.t("lang__014") + '</p></div>';
 	} else {
 		h += '<div class="caption_box" style="height: 100%">';
 	}
@@ -1373,15 +1253,15 @@ function loadComments(postId, page = -1, reset = false) {
 
 function _share(id) {
 	gebtn('body')[0].style.overflowY = "hidden";
-	$.get(backend_url + "fetch_post_info.php?id=" + id, function (s) {
+	$.get(backend_url + "Post.php?scope=single&id=" + id, function (s) {
 		gebi("modal").style.display = "block";
 
 		// Clear DataTransfer on new share
 		dt = new DataTransfer();
 
 		a = "";
-		a += '<div class="modal-box-container" style="max-width: 550px; margin: 0 auto; padding: 25px;">';
-		a += '<div class="share-modal-title">Share Post</div>';
+		a += '<div class="modal-box-container" style="max-width: 550px; margin: 0; padding: 25px;">';
+		a += '<div class="share-modal-title">' + i18n.t("lang__093") + '</div>';
 
 		a += '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">';
 		a += '<div class="modal-header-user">';
@@ -1389,24 +1269,14 @@ function _share(id) {
 		a += '<span class="modal-user-name">' + gebi('fullname').value + '</span>';
 		a += '</div>';
 		a += '<select name="private" id="private" class="modal-privacy-select">';
-		a += '<option value="2">' + window["lang__002"] + '</option>';
-		a += '<option value="1">' + window["lang__004"] + '</option>';
-		a += '<option value="0">' + window["lang__003"] + '</option>';
+		a += '<option value="2">' + i18n.t("lang__002") + '</option>';
+		a += '<option value="1">' + i18n.t("lang__004") + '</option>';
+		a += '<option value="0">' + i18n.t("lang__003") + '</option>';
 		a += '</select>';
 		a += '</div>';
 
 		a += '<input type="hidden" name="post_id" id="post_id" value="' + id + '">';
-		a += '<textarea rows="3" name="caption" class="caption" placeholder="Say something about this..." style="width:100%; border:none; background:transparent; font-size:1.1rem; resize:none; outline:none;"></textarea>';
-
-		// Direct Link Section
-		var postUrl = window.location.origin + '/post.php?id=' + id;
-		a += '<div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:10px; margin-bottom:20px; display:flex; align-items:center; gap:10px; border:1px dashed var(--color-border);">';
-		a += '<i class="fa-solid fa-link" style="color:var(--color-text-dim);"></i>';
-		a += '<span style="flex:1; font-size:0.85em; color:var(--color-text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + postUrl + '</span>';
-		a += '<button id="copy-btn-modal-' + id + '" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-modal-' + id + '\')" style="padding:6px 12px; font-size:0.8em; border-radius:6px; background:var(--color-surface-hover); color:var(--color-text-main); border:1px solid var(--color-border);">';
-		a += 'Copy</button>';
-		a += '</div>';
-
+		a += '<textarea rows="3" name="caption" class="caption" placeholder="' + i18n.t("lang__094") + '" style="width:100%; border:none; background:transparent; font-size:1.1rem; resize:none; outline:none;"></textarea>';
 		// Multi-upload preview for share
 		a += '<div id="media-preview-container" class="media-preview-grid"></div>';
 
@@ -1479,7 +1349,7 @@ function fetch_friend_list(loc, from_blob = false) {
 		a += '<center>';
 		if (data['success'] == 2) {
 			a += '<div class="post">';
-			a += window["lang__010"];
+			a += i18n.t("lang__010");
 			a += '</div>';
 		} else if (data['success'] == 1) {
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
@@ -1516,7 +1386,7 @@ function fetch_friend_request(loc) {
 		a += '<center>'; // Keep for now, or remove if moving to grid later
 		if (data['success'] == 2) {
 			a += '<div class="userquery">';
-			a += window["lang__011"];
+			a += i18n.t("lang__011");
 			a += '<br><br>';
 			a += '</div>';
 		} else if (data['success'] == 1) {
@@ -2066,6 +1936,10 @@ function switchGroupTab(tabName, id_a, tabElement) {
 	var feed = gebi('feed');
 	if (!feed) return;
 	feed.innerHTML = '';
+
+	// Reset page counter for the new tab
+	var pageInput = gebi('page');
+	if (pageInput) pageInput.value = 0;
 
 	if (tabName === 'timeline') {
 		var d = _currentGroupData;
@@ -2755,7 +2629,7 @@ function _load_profile_friends(id_a) {
 }
 function _load_post(post_id = null) {
 	id = (post_id != null) ? post_id : get('id');
-	$.get(backend_url + "fetch_post_info.php?id=" + id, function (data) {
+	$.get(backend_url + "Post.php?scope=single&id=" + id, function (data) {
 		if (data['success'] == 2) return;
 
 		_content_left = gebi("_content_left");
@@ -2781,7 +2655,7 @@ function _load_post(post_id = null) {
 
 		// Header
 		containerHtml += '<div class="post-view-header">';
-		var pfpUrl = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : ((data['user_gender'] == 'M') ? default_male_pfp : default_female_pfp);
+		var pfpUrl = (data['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data['pfp_media_id'] + "&h=" + data['pfp_media_hash'] : getDefaultUserImage(data['user_gender']);
 		containerHtml += '  <img class="comment-pfp" src="' + pfpUrl + '">';
 		containerHtml += '  <div style="flex:1;">';
 		containerHtml += '    <div style="font-weight:700; font-size:1.05rem;"><a class="profilelink" href="profile.php?id=' + data['user_id'] + '">' + data['user_firstname'] + ' ' + data['user_lastname'] + '</a></div>';
@@ -2794,11 +2668,11 @@ function _load_post(post_id = null) {
 		containerHtml += '    <div class="post-options-btn" onclick="togglePostOptions(' + data['post_id'] + ')"><i class="fa-solid fa-ellipsis"></i></div>';
 		containerHtml += '    <div class="post-options-menu" id="post-options-menu-' + data['post_id'] + '">';
 		containerHtml += '      <div class="post-options-item" onclick="copyToClipboard(\'' + postUrl + '\', \'copy-btn-detail-' + data['post_id'] + '\'); togglePostOptions(' + data['post_id'] + ')">';
-		containerHtml += '        <i class="fa-regular fa-link"></i><span>Copy Link</span><span id="copy-btn-detail-' + data['post_id'] + '" style="display:none"></span>';
+		containerHtml += '        <i class="fa-regular fa-link"></i><span>' + i18n.t("lang__088") + '</span><span id="copy-btn-detail-' + data['post_id'] + '" style="display:none"></span>';
 		containerHtml += '      </div>';
 		if (data['is_mine'] == 1) {
-			containerHtml += '      <div class="post-options-item" onclick="_open_edit_post(' + data['post_id'] + ')"><i class="fa-regular fa-pen-to-square"></i><span>Edit Post</span></div>';
-			containerHtml += '      <div class="post-options-item" style="color:#ff4d4d;" onclick="_delete_post(' + data['post_id'] + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
+			containerHtml += '      <div class="post-options-item" onclick="_open_edit_post(' + data['post_id'] + ')"><i class="fa-regular fa-pen-to-square"></i><span>' + i18n.t("lang__089") + '</span></div>';
+			containerHtml += '      <div class="post-options-item" style="color:#ff4d4d;" onclick="_delete_post(' + data['post_id'] + ')"><i class="fa-regular fa-trash-can"></i><span>' + i18n.t("lang__090") + '</span></div>';
 		}
 		containerHtml += '    </div>';
 		containerHtml += '  </div>';
@@ -2823,14 +2697,14 @@ function _load_post(post_id = null) {
 		containerHtml += '<div class="comment-box" id="comment-box">';
 		containerHtml += '<div id="comment-list"></div>';
 		containerHtml += '<div id="load-more-comments-container" style="display:none; text-align:center; padding:10px;">';
-		containerHtml += '<button class="load-more-btn" onclick="loadComments(' + data['post_id'] + ', -1, false)">Load more comments</button>';
+		containerHtml += '<button class="load-more-btn" onclick="loadComments(' + data['post_id'] + ', -1, false)">' + i18n.t("lang__091") + '</button>';
 		containerHtml += '</div>'; // End load more container
 		containerHtml += '</div>';
 		containerHtml += '</div>'; // End content
 
 		// Comment Form (Fixed at bottom)
 		containerHtml += '<div class="comment-form">';
-		containerHtml += '  <div class="comment-form-text" id="comment-text-' + data['post_id'] + '" contenteditable="true" placeholder="Write a comment..."></div>';
+		containerHtml += '  <div class="comment-form-text" id="comment-text-' + data['post_id'] + '" contenteditable="true" placeholder="' + i18n.t("lang__092") + '"></div>';
 		containerHtml += '  <div class="send-btn" onclick="_send_comment(' + data['post_id'] + ')"><i class="fa-solid fa-paper-plane"></i></div>';
 		containerHtml += '</div>';
 
@@ -3010,7 +2884,7 @@ function send_comment() {
 		contentType: false,
 		data: f,
 		success: function (r) {
-			$.get(backend_url + "fetch_profile_info.php", function (data) {
+			$.get(backend_url + "User.php?action=profile", function (data) {
 				b = gebi('comment-box');
 				list = gebi('comment-list');
 
@@ -3547,18 +3421,18 @@ function _change_profile_infomation() {
 				a = '';
 				switch (q['code']) {
 					case 0:
-						a = window['lang__046'];
+						a = i18n.t("lang__046");
 						break;
 					case 1:
-						a = window['lang__78'];
+						a = i18n.t("lang__78");
 						break;
 					case 2:
-						a = window['lang__053'];
+						a = i18n.t("lang__053");
 						break;
 				}
 				alert(a);
 			} else {
-				_success_modal(window['lang__079']);
+				_success_modal(i18n.t("lang__079"));
 			}
 		}
 	});
@@ -3571,47 +3445,47 @@ function _change_infomation(c = null) {
 
 	switch (c) {
 		case 0:
-			t = window['lang__056']; // Change Password
+			t = i18n.t("lang__056"); // Change Password
 			m += '<div class="upload-modal-body" style="display:block; padding:20px;">';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="currentpassword">' + window['lang__059'] + '</label>';
+			m += '<label class="input-label" for="currentpassword">' + i18n.t("lang__059") + '</label>';
 			m += '<input type="password" name="password" id="currentpassword" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="newpassword">' + window['lang__060'] + '</label>';
+			m += '<label class="input-label" for="newpassword">' + i18n.t("lang__060") + '</label>';
 			m += '<input type="password" name="newpassword" id="newpassword" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="vnewpassword">' + window['lang__061'] + '</label>';
+			m += '<label class="input-label" for="vnewpassword">' + i18n.t("lang__061") + '</label>';
 			m += '<input type="password" name="vnewpassword" id="vnewpassword" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
 			m += '<label style="display:flex; align-items:center; gap:10px; cursor:pointer;">';
-			m += '<input type="checkbox" name="log_all_device" id="log_all_device"> ' + window['lang__064'];
+			m += '<input type="checkbox" name="log_all_device" id="log_all_device"> ' + i18n.t("lang__064");
 			m += '</label>';
 			m += '</div>';
 
 			m += '</div>';
 			break;
 		case 1:
-			t = window['lang__057']; // Change Username
+			t = i18n.t("lang__057"); // Change Username
 			m += '<div class="upload-modal-body" style="display:block; padding:20px;">';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="currentpassword">' + window['lang__059'] + '</label>';
+			m += '<label class="input-label" for="currentpassword">' + i18n.t("lang__059") + '</label>';
 			m += '<input type="password" name="password" id="currentpassword" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="newusername">' + window['lang__062'] + '</label>';
+			m += '<label class="input-label" for="newusername">' + i18n.t("lang__062") + '</label>';
 			m += '<input type="text" name="newusername" id="newusername" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
@@ -3639,26 +3513,26 @@ function _change_infomation(c = null) {
 			m += '</div>';
 			break;
 		case 2:
-			t = window['lang__058']; // Change Email
+			t = i18n.t("lang__058"); // Change Email
 			m += '<div class="upload-modal-body" style="display:block; padding:20px;">';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="currentpassword">' + window['lang__059'] + '</label>';
+			m += '<label class="input-label" for="currentpassword">' + i18n.t("lang__059") + '</label>';
 			m += '<input type="password" name="password" id="currentpassword" class="index_input_box" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="newemail">' + window['lang__063'] + '</label>';
+			m += '<label class="input-label" for="newemail">' + i18n.t("lang__063") + '</label>';
 			m += '<div style="display:flex; gap:10px;">';
 			m += '<input type="email" name="newemail" id="newemail" class="index_input_box" style="flex:1;" required>';
-			m += '<button class="btn-primary" id="getCode" style="white-space:nowrap;"><div class="background" id="gcb"></div>' + window['lang__067'] + ' <i class="fa-light fa-envelope"></i></button>';
+			m += '<button class="btn-primary" id="getCode" style="white-space:nowrap;"><div class="background" id="gcb"></div>' + i18n.t("lang__067") + ' <i class="fa-light fa-envelope"></i></button>';
 			m += '</div>';
 			m += '<div class="required"></div>';
 			m += '</div>';
 
 			m += '<div style="margin-bottom:15px;">';
-			m += '<label class="input-label" for="verifyCode">' + window['lang__069'] + '</label>';
+			m += '<label class="input-label" for="verifyCode">' + i18n.t("lang__069") + '</label>';
 			m += '<input type="text" name="verifyCode" id="verifyCode" class="index_input_box" maxlength="8" required>';
 			m += '<div class="required"></div>';
 			m += '</div>';
@@ -3703,7 +3577,7 @@ function _change_infomation(c = null) {
 			p = $(this);
 			v = gebi('newemail');
 			if (v.value == '')
-				r[0].innerHTML = window['lang__046'];
+				r[0].innerHTML = i18n.t("lang__046");
 			if (!p.hasClass('disabled')) {
 				d = new FormData();
 				d.append('type', 'RequestEmailCode');
@@ -3718,15 +3592,15 @@ function _change_infomation(c = null) {
 						if (q['success'] != 1) {
 							switch (q['code']) {
 								case 0:
-									m = window['lang__054'];
+									m = i18n.t("lang__054");
 									i = 1;
 									break;
 								case 1:
-									m = window['lang__055'];
+									m = i18n.t("lang__055");
 									i = 0;
 									break;
 								case 2:
-									m = window['lang__050'];
+									m = i18n.t("lang__050");
 									i = 1;
 									break;
 							}
@@ -3754,7 +3628,7 @@ function _change_infomation(c = null) {
 			l = setTimeout(() => {
 				d = new FormData();
 				d.append(t, e.target.value);
-				$.ajax(backend_url + t + '_check.php', {
+				$.ajax(backend_url + 'Account.php?action=check_' + t, {
 					method: "POST",
 					data: d,
 					processData: false,
@@ -3763,11 +3637,11 @@ function _change_infomation(c = null) {
 					success: function (q) {
 						a = false;
 						if (q['code'] == 1) {
-							m = (c == 1) ? window['lang__051'] : window['lang__050'];
+							m = (c == 1) ? i18n.t("lang__051") : i18n.t("lang__050");
 						} else if (q['code'] == 2) {
-							m = (c == 1) ? window['lang__052'] : window['lang__054'];
+							m = (c == 1) ? i18n.t("lang__052") : i18n.t("lang__054");
 						} else {
-							m = (c == 1) ? window['lang__065'] : window['lang__066'];
+							m = (c == 1) ? i18n.t("lang__065") : i18n.t("lang__066");
 							a = true;
 						}
 						r[1].innerHTML = m;
@@ -3891,7 +3765,7 @@ function _change_picture(isCover = 0, groupId = 0) {
 
 	// Header
 	a += '<div class="upload-modal-header">';
-	a += '<h2>' + ((isCover == 1) ? window['lang__041'] : window['lang__042']) + '</h2>';
+	a += '<h2>' + ((isCover == 1) ? i18n.t('lang__041') : i18n.t('lang__042')) + '</h2>';
 	a += '<i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i>';
 	a += '</div>';
 
@@ -3921,8 +3795,8 @@ function _change_picture(isCover = 0, groupId = 0) {
 
 	// Footer
 	a += '<div class="upload-modal-footer">';
-	a += '<button id="btnCrop" class="btn-primary" style="display:none;">' + window['lang__043'] + '</button>';
-	a += '<button id="btnSavePicture" class="btn-success" style="display:none;">' + window['lang__044'] + '</button>';
+	a += '<button id="btnCrop" class="btn-primary" style="display:none;">' + i18n.t('lang__043') + '</button>';
+	a += '<button id="btnSavePicture" class="btn-success" style="display:none;">' + i18n.t('lang__044') + '</button>';
 	a += '</div>';
 
 	a += '</div>'; // End container
@@ -4486,7 +4360,7 @@ function make_post(groupId = 0) {
 	dt = new DataTransfer();
 
 	a = "";
-	a += '<div class="modal-box-container" style="max-width: 550px; margin: 0 auto; padding: 25px;">';
+	a += '<div class="modal-box-container" style="max-width: 550px; margin: 0; padding: 25px;">';
 	a += '<div class="share-modal-title">Create New Post</div>';
 
 	a += '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">';
@@ -4502,16 +4376,16 @@ function make_post(groupId = 0) {
 		a += '<input type="hidden" id="private" value="2">'; // Fixed public for groups (group privacy handles visibility)
 	} else {
 		a += '<select name="private" id="private" class="modal-privacy-select">';
-		a += '<option value="2">' + window["lang__002"] + '</option>';
-		a += '<option value="1">' + window["lang__004"] + '</option>';
-		a += '<option value="0">' + window["lang__003"] + '</option>';
+		a += '<option value="2">' + i18n.t("lang__002") + '</option>';
+		a += '<option value="1">' + i18n.t("lang__004") + '</option>';
+		a += '<option value="0">' + i18n.t("lang__003") + '</option>';
 		a += '</select>';
 	}
 	a += '</div>';
 	a += '</div>';
 	a += '</div>';
 
-	a += '<textarea rows="4" name="caption" class="caption" placeholder="' + window["lang__015"] + '" style="width:100%; border:none; background:transparent; font-size:1.2rem; resize:none; outline:none; margin-bottom:15px;"></textarea>';
+	a += '<textarea rows="4" name="caption" class="caption" placeholder="' + i18n.t("lang__015") + '" style="width:100%; border:none; background:transparent; font-size:1.2rem; resize:none; outline:none; margin-bottom:15px;"></textarea>';
 
 	// Multi-upload preview
 	a += '<div id="media-preview-container" class="media-preview-grid" style="margin-bottom:15px;"></div>';
@@ -4527,7 +4401,7 @@ function make_post(groupId = 0) {
 	a += '</label>';
 	a += '<div id="spoiler-toggle" class="spoiler-toggle" onclick="this.classList.toggle(\'active\')" title="Mark as Spoiler" style="cursor:pointer; font-size:1.6rem; color:var(--color-text-secondary);"><i class="fa-solid fa-eye-slash"></i></div>';
 	a += '</div>';
-	a += '<input type="button" class="btn-primary" value="' + window["lang__001"] + '" onclick="return validatePost(0)" style="padding: 10px 30px; font-size:1rem; border-radius:10px;">';
+	a += '<input type="button" class="btn-primary" value="' + i18n.t("lang__001") + '" onclick="return validatePost(0)" style="padding: 10px 30px; font-size:1rem; border-radius:10px;">';
 	a += '</div>';
 
 	if (groupId > 0) {
@@ -4650,7 +4524,7 @@ function _search(page = 0) {
 			r = JSON.parse(r);
 			a = '';
 			if (r['success'] == 2) {
-				search.innerHTML = '<div class="post"><div style="text-align:center; padding: 20px;">' + window["lang__084"] + '</div></div>';
+				search.innerHTML = '<div class="post"><div style="text-align:center; padding: 20px;">' + i18n.t("lang__084") + '</div></div>';
 			} else if (r['success'] == 1) {
 				if (in_array([0, 2, 3], Number(type))) {
 					friend_list = gebi("friend_list");
@@ -5077,7 +4951,7 @@ function fetch_post(loc, reset = false) {
 			// End of feed
 			pageInput.value = -1;
 			if (reset) {
-				feedContainer.innerHTML = '<div class="post"><h1>' + window["lang__012"] + '</h1></div>';
+				feedContainer.innerHTML = '<div class="post"><h1>' + i18n.t("lang__012") + '</h1></div>';
 			}
 			return;
 		}
@@ -5142,9 +5016,18 @@ $(window).scroll(function () {
 		else if (u.startsWith("/profile.php") || u.startsWith("profile.php")) {
 			if (_activeProfileTab === 'timeline') {
 				var idParam = get("id");
-				var endpoint = "fetch_profile_post.php";
-				if (idParam) endpoint += "?id=" + idParam;
+				var endpoint = "Post.php?scope=profile"; // Updated to use Post.php for consistency
+				if (idParam) endpoint += "&id=" + idParam;
 				fetch_post(endpoint);
+			}
+		}
+		// Group - only load posts if on Timeline tab
+		else if (u.includes("group.php")) {
+			if (_activeGroupTab === 'timeline') {
+				var groupId = get("id");
+				if (groupId) {
+					fetch_post("Post.php?scope=group&id=" + groupId);
+				}
 			}
 		}
 		// Others (Friends, Requests) - kept legacy as they had specific functions
@@ -5254,11 +5137,11 @@ function _load_settings() {
 				if (d.verified > 0) {
 					gebi("verified-text").innerHTML = "Verified";
 					gebi("verified-text").style.color = "var(--color-primary)";
-					gebi("verified").outerHTML = getVerifiedBadge(d.verified);
+					if (gebi("verified")) gebi("verified").outerHTML = getVerifiedBadge(d.verified);
 				} else {
 					gebi("verified-text").innerHTML = "Not Verified";
 					gebi("verified-text").style.color = "var(--color-text-secondary)";
-					gebi("verified").className = "";
+					if (gebi("verified")) gebi("verified").className = "";
 				}
 			}
 

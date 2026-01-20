@@ -263,9 +263,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                  elseif ($_POST['private'] == "1") $public = 1;
             }
             $fileData = isset($_FILES['fileUpload']) ? $_FILES['fileUpload'] : null;
+            $groupId = isset($_POST['group_id']) ? intval($_POST['group_id']) : 0;
             
             if ($postId > 0) {
-                $response = Post::share($user_id, $postId, $caption, $public, $fileData);
+                $response = Post::share($user_id, $postId, $caption, $public, $fileData, $groupId);
                 echo json_encode($response);
             } else {
                  echo json_encode(['success' => 0, 'message' => 'Missing ID']);
@@ -347,7 +348,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
         case 'group':
              $group_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-             $offset = $page * 10;
              
              if ($group_id <= 0) {
                  echo json_encode(['success' => 0, 'message' => 'Invalid group ID']);
@@ -369,31 +369,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                  }
              }
              
-             $post_ids = $group->getPosts($group_id, 10, $offset);
+             $feed = Post::getGroupPosts($group_id, $user_id, $page);
              
-             // Manually fetch to match formatting expectations if needed, or rely on getPost being close enough.
-             // But Wait: formatPosts is raw row based. getPost is single formatted.
-             // We can use formatPosts if we get raw rows.
-             // Group::getPosts returns IDs.
-             // So we must loop URLs.
-             
-             $posts_data = [];
-             foreach ($post_ids as $pid) {
-                 $p_info = Post::getPost($pid, $user_id);
-                 if ($p_info) {
-                     $p_info['can_pin'] = ($group_info['my_role'] >= 2) ? 1 : 0;
-                     $p_info['can_delete'] = ($p_info['is_mine'] == 1 || $group_info['my_role'] >= 2) ? 1 : 0;
-                     $posts_data[] = $p_info;
+             $formatted = formatPosts($feed, $user_id, $viewer_age);
+             if (isset($formatted[0])) {
+                 // Add group-specific permissions to each post
+                 $count = count($formatted) - 1; // -1 for success key
+                 for ($i = 0; $i < $count; $i++) {
+                     $formatted[$i]['can_pin'] = ($group_info['my_role'] >= 2) ? 1 : 0;
+                     $formatted[$i]['can_delete'] = ($formatted[$i]['is_mine'] == 1 || $group_info['my_role'] >= 2) ? 1 : 0;
                  }
              }
              
-             // Since getPost returns formatted (media list is processed), we cannot pass it to formatPosts 
-             // without modifying formatPosts to accept pre-formatted.
-             // Or just return as is, because getPost IS standardized enough.
-             
-             $result = $posts_data;
-             $result['success'] = 1;
-             echo json_encode($result);
+             echo json_encode($formatted);
              break;
              
         case 'single':

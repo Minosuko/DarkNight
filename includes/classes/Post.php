@@ -545,7 +545,7 @@ class Post {
         ];
     }
 
-    public static function share($userId, $originalPostId, $caption, $public, $fileData = null) {
+    public static function share($userId, $originalPostId, $caption, $public, $fileData = null, $groupId = 0) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
         $db_post = $db->db_post;
@@ -555,8 +555,9 @@ class Post {
         $public = intval($public);
         $timestamp = time();
         $captionClean = $db->escape($caption);
+        $groupId = intval($groupId);
         
-        $sql = "INSERT INTO $db_post.posts (post_caption, post_public, post_time, post_by, is_share) VALUES ('$captionClean', '$public', $timestamp, $userId, $originalPostId)";
+        $sql = "INSERT INTO $db_post.posts (post_caption, post_public, post_time, post_by, is_share, group_id) VALUES ('$captionClean', '$public', $timestamp, $userId, $originalPostId, $groupId)";
         
         $db->query($sql);
         $lastId = $db->getLastId();
@@ -984,6 +985,90 @@ class Post {
                 )
             GROUP BY p.post_id
             ORDER BY p.post_time DESC
+            LIMIT $limit OFFSET $offset
+        ";
+
+        return $db->query($sql)->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public static function getGroupPosts($groupId, $viewerUserId, $page = 0) {
+        $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
+        
+        $limit = 30;
+        $offset = intval($page) * $limit;
+        $groupId = intval($groupId);
+        $viewerUserId = intval($viewerUserId);
+
+        // Subqueries for counts
+        $likesSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id";
+        $commentsSub = "SELECT COUNT(*) FROM $db_post.comments WHERE post_id = p.post_id";
+        $sharesSub = "SELECT COUNT(*) FROM $db_post.posts WHERE is_share = p.post_id";
+        $isLikedSub = "SELECT COUNT(*) FROM $db_post.likes WHERE post_id = p.post_id AND user_id = $viewerUserId";
+
+        $sql = "
+            SELECT 
+                p.post_id, p.post_caption, p.post_time, p.post_public, p.post_by, p.post_media, p.is_share, p.is_pinned, p.group_id, p.is_spoiler,
+                u.user_firstname, u.user_lastname, u.user_id, u.user_gender, u.pfp_media_id, u.user_nickname, u.verified,
+                g.group_name, g.verified as group_verified,
+                
+                ($likesSub) as total_like,
+                ($commentsSub) as total_comment,
+                ($sharesSub) as total_share,
+                ($isLikedSub) as is_liked,
+                
+                GROUP_CONCAT(DISTINCT CONCAT(m_map.media_id, ':', IFNULL(m.media_hash, ''), ':', IFNULL(m.media_format, '')) ORDER BY m_map.display_order ASC SEPARATOR ',') as post_media_list,
+                
+                m_pfp.media_hash as pfp_media_hash,
+                
+                shared_p.post_caption as shared_caption,
+                shared_p.post_time as shared_time,
+                shared_p.post_public as shared_public,
+                shared_p.post_media as shared_media,
+                shared_p.post_by as shared_by_id,
+                shared_p.is_spoiler as shared_spoiler,
+                
+                GROUP_CONCAT(DISTINCT CONCAT(m_map_shared.media_id, ':', IFNULL(m_shared_pfp.media_hash, ''), ':', IFNULL(m_shared_pfp.media_format, '')) ORDER BY m_map_shared.display_order ASC SEPARATOR ',') as shared_media_list,
+                
+                shared_u.user_firstname as shared_firstname,
+                shared_u.user_lastname as shared_lastname,
+                shared_u.user_nickname as shared_nickname,
+                shared_u.user_gender as shared_gender,
+                shared_u.pfp_media_id as shared_pfp_id,
+                shared_u.verified as shared_verified,
+                
+                m_shared_pfp.media_hash as shared_pfp_hash,
+                
+                m_legacy.media_hash as post_media_hash,
+                m_legacy.media_format as post_media_format,
+                m_shared_legacy.media_hash as shared_media_hash,
+                m_shared_legacy.media_format as shared_media_format,
+
+                (SELECT COUNT(*) FROM $db_user.friendship WHERE 
+                    (user1_id = $viewerUserId AND user2_id = shared_p.post_by AND friendship_status = 1) OR
+                    (user2_id = $viewerUserId AND user1_id = shared_p.post_by AND friendship_status = 1)
+                ) as is_friend_with_shared
+                
+            FROM $db_post.posts p
+            JOIN $db_user.users u ON p.post_by = u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map ON p.post_id = m_map.post_id
+            LEFT JOIN $db_media.media m ON m_map.media_id = m.media_id
+            LEFT JOIN $db_media.media m_pfp ON u.pfp_media_id = m_pfp.media_id
+            LEFT JOIN $db_media.media m_legacy ON p.post_media = m_legacy.media_id
+            LEFT JOIN $db_post.groups g ON p.group_id = g.group_id
+            
+            LEFT JOIN $db_post.posts shared_p ON p.is_share = shared_p.post_id
+            LEFT JOIN $db_user.users shared_u ON shared_p.post_by = shared_u.user_id
+            LEFT JOIN $db_post.post_media_mapping m_map_shared ON shared_p.post_id = m_map_shared.post_id
+            LEFT JOIN $db_media.media m_shared ON m_map_shared.media_id = m_shared.media_id
+            LEFT JOIN $db_media.media m_shared_pfp ON shared_u.pfp_media_id = m_shared_pfp.media_id
+            LEFT JOIN $db_media.media m_shared_legacy ON shared_p.post_media = m_shared_legacy.media_id
+
+            WHERE p.group_id = $groupId
+            GROUP BY p.post_id
+            ORDER BY p.is_pinned DESC, p.post_time DESC
             LIMIT $limit OFFSET $offset
         ";
 

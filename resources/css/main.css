@@ -398,12 +398,12 @@ select.index_input_box,
     left: 0;
     right: 0;
     margin-top: 10px;
-    background: rgba(18, 18, 18, 0.9);
+    background: var(--color-surface);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--color-border);
     border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-md);
     z-index: 1000;
     display: none;
     max-height: 140px;
@@ -584,7 +584,8 @@ select.index_input_box,
 }
 
 .createpost_box .input_box:hover {
-    background: #303030;
+    background: var(--color-surface-hover);
+    filter: brightness(0.9);
 }
 
 /* Post Card */
@@ -2919,8 +2920,8 @@ textarea.index_input_box {
 .createpost_box {
     background: var(--color-surface);
     border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
     overflow: hidden;
     animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2928,8 +2929,8 @@ textarea.index_input_box {
 .modal-box-container {
     background: var(--color-surface);
     border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
     overflow: hidden;
     animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     display: block;

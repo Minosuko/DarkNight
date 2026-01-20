@@ -213,6 +213,7 @@ $_SESSION['refresh_captcha'] = 1;
             </div>
 		</main>
 		<script src="resources/js/jquery.js"></script>
+		<script src="resources/js/i18n.js"></script>
 		<script src="resources/js/custom-select.js?v=<?php echo time(); ?>"></script>
 		<script src="resources/js/index.js?v=<?php echo time(); ?>"></script>
         <script>
