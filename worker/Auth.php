@@ -314,9 +314,10 @@ if ($method === 'POST') {
     $db = Database::getInstance();
 
     if ($action === 'session_list') {
-        $current_browser_id = $_COOKIE['browser_id'];
+        $raw_browser_id = $_COOKIE['browser_id'] ?? '';
+        $current_browser_id = $db->escape($raw_browser_id);
         global $db_user;
-        $result = $db->query("SELECT * FROM $db_user.session WHERE user_id = $user_id ORDER BY last_online DESC");
+        $result = $db->query("SELECT *, (browser_id = '$current_browser_id') as is_current_dev FROM $db_user.session WHERE user_id = $user_id ORDER BY is_current_dev DESC, last_online DESC");
         $sessions = [];
         while($row = $result->fetch_assoc()) {
             $time_diff = time() - $row['last_online'];
@@ -331,7 +332,7 @@ if ($method === 'POST') {
                 'browser' => $row['session_browser'] ?: 'Unknown Browser',
                 'ip' => $row['session_ip'],
                 'last_active' => $active_str,
-                'is_current' => ($row['browser_id'] === $current_browser_id),
+                'is_current' => ($row['browser_id'] === $raw_browser_id),
                 'device_str' => $row['session_device']
             ];
         }

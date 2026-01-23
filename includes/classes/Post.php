@@ -553,9 +553,28 @@ class Post {
         $userId = intval($userId);
         $originalPostId = intval($originalPostId);
         $public = intval($public);
+        $groupId = intval($groupId);
         $timestamp = time();
         $captionClean = $db->escape($caption);
-        $groupId = intval($groupId);
+        
+        // Check if original post exists and get its visibility
+        $originalPostQuery = $db->query("SELECT post_by, post_public FROM $db_post.posts WHERE post_id = $originalPostId");
+        if (!$originalPostQuery || $originalPostQuery->num_rows == 0) {
+            return ['success' => 0, 'err' => 'original_post_not_found', 'message' => 'Original post not found'];
+        }
+        
+        $originalPost = $originalPostQuery->fetch_assoc();
+        $originalOwnerId = $originalPost['post_by'];
+        $originalPostPublic = intval($originalPost['post_public']);
+        
+        // Validate: Only public posts can be shared to groups
+        if ($groupId > 0) {
+            if ($originalPostPublic != 2) {
+                return ['success' => 0, 'err' => 'not_public', 'message' => 'Only public posts can be shared to groups'];
+            }
+            // Force privacy to public (2) when sharing to group
+            $public = 2;
+        }
         
         $sql = "INSERT INTO $db_post.posts (post_caption, post_public, post_time, post_by, is_share, group_id) VALUES ('$captionClean', '$public', $timestamp, $userId, $originalPostId, $groupId)";
         
@@ -571,13 +590,9 @@ class Post {
             // TRIGGER NOTIFICATION
             require_once __DIR__ . '/Notification.php';
             $notif = new Notification();
-            // Get owner of ORIGINAL post
-            $originalPostQuery = $db->query("SELECT post_by FROM $db_post.posts WHERE post_id = $originalPostId");
-            if ($originalPostQuery && $originalPostQuery->num_rows > 0) {
-                $originalOwnerId = $originalPostQuery->fetch_assoc()['post_by'];
-                if ($originalOwnerId != $userId) {
-                    $notif->create($originalOwnerId, $userId, 'share', $lastId);
-                }
+            // Notify owner of ORIGINAL post (already fetched above)
+            if ($originalOwnerId != $userId) {
+                $notif->create($originalOwnerId, $userId, 'share', $lastId);
             }
 
             return ['success' => 1, 'post_id' => $lastId];

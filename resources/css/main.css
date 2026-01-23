@@ -348,6 +348,8 @@ select.index_input_box,
     position: relative;
     user-select: none;
     width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .custom-select-trigger {
@@ -410,6 +412,12 @@ select.index_input_box,
     overflow-y: auto;
     transform-origin: top;
     animation: premiumDropdownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.custom-select-dropdown::-webkit-scrollbar {
+    display: none;
 }
 
 @keyframes premiumDropdownFade {
@@ -2993,6 +3001,19 @@ textarea.index_input_box {
 .modal-privacy-select:hover {
     border-color: var(--color-primary);
     background: rgba(255, 255, 255, 0.05);
+}
+
+/* Hide scrollbar in dropdowns */
+.modal-privacy-select {
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+.modal-privacy-select::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Opera */
 }
 
 /* Media Preview Grid */

@@ -103,18 +103,6 @@
                         </div>
                     </div>
 
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <label class="setting-label">Terms of Service</label>
-                            <div class="setting-value">Read our platform rules and policies</div>
-                        </div>
-                        <div class="setting-action">
-                            <a href="pages/tos/" target="_blank" style="text-decoration:none;">
-                                <button class="setting-btn">View</button>
-                            </a>
-                        </div>
-                    </div>
-
                     <div class="setting-item" style="border:none; margin-top:20px;">
                         <a href="/logout.php" style="text-decoration:none;">
                             <button class="s_button red_alert" style="width:100%;">

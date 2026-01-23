@@ -1268,14 +1268,32 @@ function _share(id) {
 		a += '<img class="modal-user-pfp" src="' + gebi('pfp_box').src + '">';
 		a += '<span class="modal-user-name">' + gebi('fullname').value + '</span>';
 		a += '</div>';
+		a += '<div id="privacy_selector_container" style="display: block;">';
 		a += '<select name="private" id="private" class="modal-privacy-select">';
 		a += '<option value="2">' + i18n.t("lang__002") + '</option>';
 		a += '<option value="1">' + i18n.t("lang__004") + '</option>';
 		a += '<option value="0">' + i18n.t("lang__003") + '</option>';
 		a += '</select>';
 		a += '</div>';
+		a += '</div>';
+
+		// Group selector
+		a += '<div style="margin-bottom: 15px;">';
+		a += '<label class="input-label" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--color-text-secondary);">Share to Group (Optional)</label>';
+		a += '<select name="share_group_id" id="share_group_id" class="modal-privacy-select" style="width: 100%">';
+		a += '<option value="0">Your Timeline</option>';
+		a += '</select>';
+		a += '</div>';
+
+		// Info message about public post requirement
+		var postPublic = s['post_public'];
+		a += '<div id="share_group_warning" style="display:none; background: rgba(255,193,7,0.1); border-left: 3px solid #ffc107; padding: 10px; margin-bottom: 15px; font-size: 0.85rem; color: var(--color-text-secondary);">';
+		a += '<i class="fa-solid fa-info-circle" style="margin-right: 5px; color: #ffc107;"></i>';
+		a += 'Only public posts can be shared to groups.';
+		a += '</div>';
 
 		a += '<input type="hidden" name="post_id" id="post_id" value="' + id + '">';
+		a += '<input type="hidden" name="original_post_public" id="original_post_public" value="' + postPublic + '">';
 		a += '<textarea rows="3" name="caption" class="caption" placeholder="' + i18n.t("lang__094") + '" style="width:100%; border:none; background:transparent; font-size:1.1rem; resize:none; outline:none;"></textarea>';
 		// Multi-upload preview for share
 		a += '<div id="media-preview-container" class="media-preview-grid"></div>';
@@ -1319,6 +1337,97 @@ function _share(id) {
 
 		gebi("modal_content").innerHTML = a;
 		initCustomSelects();
+
+		$.get(backend_url + "Group.php?action=list&joined=1", function (groups) {
+			var groupSelect = gebi("share_group_id");
+			if (!groupSelect) {
+				return;
+			}
+
+			if (groups && Array.isArray(groups) && groups.length > 0) {
+				while (groupSelect.options.length > 1) {
+					groupSelect.remove(1);
+				}
+
+				var addedCount = 0;
+				for (var i = 0; i < groups.length; i++) {
+					if (groups[i].my_status == 1) { // Only joined groups
+						var option = document.createElement("option");
+						option.value = groups[i].group_id;
+						option.text = groups[i].group_name;
+						groupSelect.appendChild(option);
+						addedCount++;
+					}
+				}
+
+				var customDropdown = groupSelect.parentElement.querySelector('.custom-select-dropdown');
+				if (customDropdown) {
+					while (customDropdown.children.length > 1) {
+						customDropdown.removeChild(customDropdown.lastChild);
+					}
+
+					// Add new options to custom dropdown
+					for (var j = 0; j < groups.length; j++) {
+						if (groups[j].my_status == 1) {
+							var customOption = document.createElement('div');
+							customOption.className = 'custom-select-option';
+							customOption.setAttribute('data-value', groups[j].group_id);
+							customOption.textContent = groups[j].group_name;
+							customDropdown.appendChild(customOption);
+
+							// Add click handler
+							customOption.addEventListener('click', function () {
+								var container = this.closest('.custom-select-container');
+								var triggerSpan = container.querySelector('.custom-select-trigger span');
+
+								// Native select is the previous sibling of the container
+								var select = container.previousElementSibling;
+								if (!select || select.id !== "share_group_id") {
+									select = gebi("share_group_id"); // Fallback to ID
+								}
+
+								if (select) {
+									select.value = this.getAttribute('data-value');
+									if (triggerSpan) triggerSpan.textContent = this.textContent;
+
+									container.querySelectorAll('.custom-select-option').forEach(function (opt) {
+										opt.classList.remove('selected');
+									});
+									this.classList.add('selected');
+									container.classList.remove('open');
+
+									// Trigger change event for validation
+									var event = new Event('change', { bubbles: true });
+									select.dispatchEvent(event);
+								}
+							});
+						}
+					}
+				}
+			}
+		});
+
+		// Add change listener to show/hide warning and privacy selector
+		gebi("share_group_id").addEventListener("change", function () {
+			var groupId = this.value;
+			var postPublic = gebi("original_post_public").value;
+			var warning = gebi("share_group_warning");
+			var privacyContainer = gebi("privacy_selector_container");
+
+			if (groupId > 0) {
+				if (postPublic != "2") {
+					warning.style.display = "block";
+				} else {
+					warning.style.display = "none";
+				}
+				// Hide privacy selector when sharing to group
+				if (privacyContainer) privacyContainer.style.display = "none";
+			} else {
+				warning.style.display = "none";
+				// Show privacy selector when sharing to timeline
+				if (privacyContainer) privacyContainer.style.display = "block";
+			}
+		});
 
 		$(document).ready(function () {
 			$('#imagefile').change(function () {
@@ -4385,7 +4494,7 @@ function make_post(groupId = 0) {
 	a += '</div>';
 	a += '</div>';
 
-	a += '<textarea rows="4" name="caption" class="caption" placeholder="' + i18n.t("lang__015") + '" style="width:100%; border:none; background:transparent; font-size:1.2rem; resize:none; outline:none; margin-bottom:15px;"></textarea>';
+	a += '<textarea rows="4" name="caption" class="caption" placeholder="' + i18n.t("lang__094") + '" style="width:100%; border:none; background:transparent; font-size:1.2rem; resize:none; outline:none; margin-bottom:15px;"></textarea>';
 
 	// Multi-upload preview
 	a += '<div id="media-preview-container" class="media-preview-grid" style="margin-bottom:15px;"></div>';
@@ -4647,18 +4756,46 @@ function _share_feed() {
 	f.append("action", 'share');
 
 	post_id = gebi('post_id').value;
+
+	// Get group_id if selected
+	var groupIdSelect = gebi('share_group_id');
+	var groupId = groupIdSelect ? groupIdSelect.value : 0;
+
+	// Validate: Check if sharing non-public post to group
+	if (groupId > 0) {
+		var postPublic = gebi('original_post_public').value;
+		if (postPublic != "2") {
+			_alert_modal("Only public posts can be shared to groups. Please select 'Your Timeline' or make the original post public first.");
+			return;
+		}
+	}
+
 	// Final Safety Check
 	if (typeof dt !== 'undefined' && dt.files.length > 60) {
 		_alert_modal("You can only upload a maximum of 60 files.");
 		return;
 	}
-	// ... Keeping share simple for now to avoid complexity explosion, focus on Create Post.
+	// Get privacy setting
+	var privacyVal = 2; // Default public
+	var privacySelect = gebi('private');
+	if (privacySelect) privacyVal = privacySelect.value;
+
+	// Force Public (2) if sharing to group
+	if (groupId > 0) {
+		privacyVal = 2;
+	}
 
 	f = new FormData();
 	f.append("post", 'post');
-	f.append("private", is_private);
+	f.append("private", privacyVal);
 	f.append("post_id", post_id);
 	f.append("caption", gebtn("textarea")[0].value);
+	f.append("action", "share");
+
+	// Add group_id if selected
+	if (groupId > 0) {
+		f.append("group_id", groupId);
+	}
 
 	// Append all files from DataTransfer (multi-upload support)
 	if (typeof dt !== 'undefined' && dt.files.length > 0) {
@@ -4694,14 +4831,33 @@ function _share_feed() {
 			return xhr;
 		},
 		success: function (r) {
-			id = gebi('post_id').value;
-			splt = r.split(";"); // fixed data -> r
-			zTemplate(gebi("post-share-count-" + id), {
-				"counter": parseInt(splt[1])
-			});
+			if (pContainer) pContainer.style.display = 'none';
+
+			// Parse response
+			try {
+				var response = JSON.parse(r);
+				if (response.success == 0) {
+					// Handle error
+					var errorMsg = "Share failed. Please try again.";
+					if (response.err === 'not_public') {
+						errorMsg = response.message || "Only public posts can be shared to groups.";
+					} else if (response.message) {
+						errorMsg = response.message;
+					}
+					_alert_modal(errorMsg);
+					return;
+				}
+			} catch (e) {
+				// Legacy response format
+				id = gebi('post_id').value;
+				splt = r.split(";");
+				zTemplate(gebi("post-share-count-" + id), {
+					"counter": parseInt(splt[1])
+				});
+			}
+
 			setTimeout(null, 100);
 			fetch_post("Post.php?scope=feed");
-			if (pContainer) pContainer.style.display = 'none';
 		},
 		error: function () {
 			if (pContainer) pContainer.style.display = 'none';

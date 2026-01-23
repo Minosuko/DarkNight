@@ -19,7 +19,7 @@
                 <a href="/profile.php" title="My Profile">
 				    <img class="pfp" src="data/blank.jpg" id="pfp_box">
                 </a>
-				<div class="input_box" onclick="make_post()">
+				<div class="input_box" onclick="make_post()" data-lang="lang__094">
 					What's on your mind?
 				</div>
 			</div>
