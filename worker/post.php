@@ -282,23 +282,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $postinfo = getInfoPostID($id);
                 if($postinfo['allow_comment'] == 0) die('{"success":-1}');
                 
-                $cf = $GLOBALS['commandfunc'];
-                $cf->setUserData($data);
-                if($cf->allowUseCommand()){
-                    $isCommand = $cf->parse_command($comment);
-                    if(is_array($isCommand)){
-                        switch(strtolower($isCommand[0])){
-                            case 'verify':
-                                $c = $cf->execute($isCommand[0],$isCommand[1],$postinfo['post_by']);
-                                break;
-                            case 'allow_comment':
-                                $c = $cf->execute($isCommand[0],$isCommand[1],$id);
-                                break;
-                        }
-                        die('{"success":1,"c":'.($c ? 1 : 0).'}');
-                    }
-                }
-                
                 global $db_post;
                 $sql = "INSERT INTO `$db_post`.`comments` (`post_id`, `user_id`, `comment`, `comment_time`) VALUES ('$id', '$user_id', '" . $conn->real_escape_string($comment) . "', '$timestamp')";
                 $query = $conn->query($sql);
