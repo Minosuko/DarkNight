@@ -267,9 +267,22 @@ if (!_is_session_valid()) {
         }
 
         .conversation-item.active {
-            background: rgba(0, 243, 255, 0.1);
-            border-left: 4px solid var(--dm-neon-blue);
-            box-shadow: inset 5px 0 15px rgba(0, 243, 255, 0.1);
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.15), rgba(0, 243, 255, 0.05));
+            border-left: 3px solid var(--dm-neon-blue);
+            box-shadow: inset 8px 0 20px rgba(0, 243, 255, 0.1);
+            position: relative;
+        }
+
+        .conversation-item.active::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 15%;
+            bottom: 15%;
+            width: 3px;
+            background: var(--dm-neon-blue);
+            filter: blur(4px);
+            z-index: 1;
         }
 
         .avatar-small {
@@ -298,6 +311,28 @@ if (!_is_session_valid()) {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .verified-badge {
+            font-size: 0.8rem;
+        }
+
+        .verified_color_1 { 
+            color: var(--dm-neon-blue); 
+            filter: drop-shadow(0 0 3px var(--dm-neon-blue));
+        }
+
+        .verified_color_2 { 
+            color: #FFD700; 
+            filter: drop-shadow(0 0 3px #FFD700);
+        }
+
+        .verified_color_20 { 
+            color: var(--dm-neon-purple); 
+            filter: drop-shadow(0 0 5px var(--dm-neon-purple));
         }
 
         .conv-last-msg {
@@ -386,14 +421,44 @@ if (!_is_session_valid()) {
             display: flex;
             margin-bottom: 2px;
             max-width: 85%;
+            transition: margin 0.2s ease;
+        }
+
+        .msg-wrapper.stacked {
+            margin-top: -6px;
         }
 
         .msg-wrapper.me {
             align-self: flex-end;
+            margin-left: auto;
+            flex-direction: column;
+            align-items: flex-end;
         }
 
         .msg-wrapper.them {
             align-self: flex-start;
+            margin-right: auto;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .message-sender {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--dm-neon-blue);
+            margin-bottom: 4px;
+            margin-left: 12px;
+            opacity: 0.8;
+        }
+
+        .me .message-sender {
+            margin-left: 0;
+            margin-right: 12px;
+            color: var(--dm-neon-purple);
+        }
+
+        .msg-wrapper.stacked .message-sender {
+            display: none;
         }
 
         .bubble {
@@ -420,6 +485,10 @@ if (!_is_session_valid()) {
             box-shadow: 0 4px 15px rgba(0, 132, 255, 0.3);
         }
 
+        .me.stacked .bubble {
+            border-top-right-radius: 4px;
+        }
+
         .them .bubble {
             background: var(--dm-msg-them);
             color: var(--dm-text-main);
@@ -428,14 +497,40 @@ if (!_is_session_valid()) {
             backdrop-filter: blur(10px);
         }
 
-        .msg-meta {
-            font-size: 0.7rem;
-            color: #555;
-            margin-top: 4px;
-            margin-bottom: 10px;
+        .them.stacked .bubble {
+            border-top-left-radius: 4px;
         }
 
-        .msg-meta.me { text-align: right; }
+        .bubble-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            max-width: 100%;
+        }
+
+        .me .bubble-row {
+            flex-direction: row;
+            justify-content: flex-end;
+        }
+
+        .them .bubble-row {
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        .msg-meta {
+            font-size: 0.65rem;
+            color: #555;
+            white-space: nowrap;
+            margin-bottom: 4px; /* Align slightly above the bottom of the bubble */
+            opacity: 0.6;
+            font-family: 'Consolas', monospace;
+            transition: opacity 0.2s;
+        }
+
+        .msg-meta.me { 
+            text-align: right; 
+        }
 
         /* Input Area */
         .dm-input-area {
@@ -548,6 +643,13 @@ if (!_is_session_valid()) {
             margin: 10px 0;
             font-style: italic;
         }
+
+        .attachment-preview {
+            max-width: 200px;
+            border-radius: 12px;
+            margin-top: 10px;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -569,7 +671,7 @@ if (!_is_session_valid()) {
                 </div>
                 <div class="conversation-list" id="conv-list">
                     <!-- Dynamic List -->
-                    <div class="conversation-item active" id="conv-global" onclick="selectConversation('global', 'Global Broadcast')">
+                    <div class="conversation-item active" id="conv-global" onclick="selectConversation('global', 'Global Broadcast')" data-timestamp="0">
                         <div class="avatar-small" style="display:flex; justify-content:center; align-items:center; background:#111; border:1px solid #333;">
                             <i class="fa-solid fa-earth-asia" style="color:var(--dm-neon-blue); font-size:1.2rem;"></i>
                         </div>
@@ -597,8 +699,9 @@ if (!_is_session_valid()) {
                 </div>
 
                 <div class="dm-input-area">
-                    <i class="fa-solid fa-circle-plus" style="color:#555; cursor:pointer; font-size:1.2rem;"></i>
-                    <i class="fa-solid fa-image" style="color:#555; cursor:pointer; font-size:1.2rem;"></i>
+                    <input type="file" id="dm-file-input" accept="image/*,video/*" class="hidden">
+                    <i class="fa-solid fa-circle-plus" style="color:#555; cursor:pointer; font-size:1.2rem;" onclick="document.getElementById('dm-file-input').click()"></i>
+                    <i class="fa-solid fa-image" style="color:#555; cursor:pointer; font-size:1.2rem;" onclick="document.getElementById('dm-file-input').click()"></i>
                     <textarea id="message-input" placeholder="Aa" rows="1" disabled></textarea>
                     <button id="send-btn" class="dm-send-btn" disabled>
                         <i class="fa-solid fa-paper-plane"></i>
@@ -649,6 +752,10 @@ if (!_is_session_valid()) {
             } else {
                 container.classList.remove('show-chat');
             }
+        }
+
+        if (typeof initDarkChat === 'function') {
+            initDarkChat();
         }
     </script>
     <script src="resources/js/chat.js"></script>

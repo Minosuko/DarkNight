@@ -573,7 +573,7 @@ function processAjaxData(r, u) {
 		initFriendsPage();
 	if (u === "/notification.php" || u === "notification.php")
 		loadNotifications();
-	if (u === "/DarkMessage.php" || u === "DarkMessage.php") {
+	if (u.substring(0, 16) === "/DarkMessage.php" || u.substring(0, 15) === "DarkMessage.php" || u.indexOf("DarkMessage.php") !== -1) {
 		if (typeof initDarkChat === 'function') {
 			initDarkChat();
 		} else {
@@ -1548,94 +1548,121 @@ function _open_post(id) {
 		modal_open('view_post', id);
 	}
 }
+var _allFriendsData = []; // Store for filtering
+
 function fetch_friend_list(loc, from_blob = false) {
 	$.get((from_blob ? '' : backend_url) + loc, function (data) {
-		friend_list = gebi("friend_list");
-		a = '';
-		a += '<center>';
+		const friend_list_el = gebi("friend_list");
+		if (!friend_list_el) return;
+
+		let a = '';
 		if (data['success'] == 2) {
-			a += '<div class="post">';
-			a += i18n.t("lang__010");
+			a += '<div class="userquery" style="text-align:center; padding:40px; grid-column: 1 / -1;">';
+			a += '<i class="fa-solid fa-user-slash" style="font-size:3rem; color:var(--color-surface-border); margin-bottom:15px; display:block;"></i>';
+			a += '<span style="color:var(--color-text-secondary);">' + i18n.t("lang__010") + '</span>';
 			a += '</div>';
+			_allFriendsData = [];
 		} else if (data['success'] == 1) {
+			_allFriendsData = [];
 			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
-				a += '<div class="frame">';
-				a += '<center>';
-				a += '<div class="pfp-box">';
-				a += '<img class="pfp" src="'
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
-				a += '" width="168px" height="168px" id="pfp"/>';
-				a += '<div class="status-circle ' + ((data[i]['is_online']) ? 'online' : 'offline') + '-status-circle"></div>';
-				a += '</div>';
-				a += '<br>';
-				a += '<a class="flist_link" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
-				if (data[i]['verified'] > 0)
-					a += getVerifiedBadge(data[i]['verified']);
-				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
-				a += '</a>';
-				a += '</center>';
-				a += '</div>';
+				const u = data[i];
+				_allFriendsData.push(u);
+				a += _render_friend_card(u);
 			}
 		}
 
-
-		a += '</center>';
-		friend_list.innerHTML = ""; // Clear existing content
-		friend_list.innerHTML += a;
+		friend_list_el.innerHTML = a;
 		changeUrlWork();
+	});
+}
+
+function _render_friend_card(u) {
+	let a = '';
+	const pfpSrc = (u['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + u['pfp_media_id'] + "&h=" + u['pfp_media_hash'] : getDefaultUserImage(u['user_gender']);
+	const statusClass = u['is_online'] ? 'online' : 'offline';
+
+	a += '<div class="friend-card" data-name="' + (u['user_firstname'] + ' ' + u['user_lastname']).toLowerCase() + '" data-nickname="' + u['user_nickname'].toLowerCase() + '">';
+	a += '  <div class="pfp-wrapper">';
+	a += '    <img class="pfp-large" src="' + pfpSrc + '">';
+	a += '    <div class="status-indicator ' + statusClass + '"></div>';
+	a += '  </div>';
+
+	a += '  <div class="friend-info">';
+	a += '    <a href="profile.php?id=' + u['user_id'] + '" class="friend-name">' + u['user_firstname'] + ' ' + u['user_lastname'];
+	if (u['verified'] > 0) a += getVerifiedBadge(u['verified']);
+	a += '    </a>';
+	a += '    <div class="friend-nickname">@' + u['user_nickname'] + '</div>';
+	a += '  </div>';
+
+	a += '  <div class="friend-actions">';
+	a += '    <a href="DarkMessage.php?id=' + u['user_id'] + '" class="btn-friend-action"><i class="fa-solid fa-comment"></i> Message</a>';
+	a += '    <a href="profile.php?id=' + u['user_id'] + '" class="btn-friend-action"><i class="fa-solid fa-user"></i> Profile</a>';
+	a += '  </div>';
+	a += '</div>';
+	return a;
+}
+
+function filterFriendsList() {
+	const query = gebi('friends-search').value.toLowerCase();
+	const cards = document.querySelectorAll('.friend-card');
+
+	cards.forEach(card => {
+		const name = card.getAttribute('data-name');
+		const nickname = card.getAttribute('data-nickname');
+
+		if (name.includes(query) || nickname.includes(query)) {
+			card.style.display = 'flex';
+		} else {
+			card.style.display = 'none';
+		}
 	});
 }
 function fetch_friend_request(loc) {
 	$.get(backend_url + loc, function (data) {
-		var list = gebi("friend_reqest_list");
+		const list = gebi("friend_reqest_list");
 		if (!list) return;
 
-		var a = '';
+		let a = '';
 
-		// Handle new REST API array response
 		if (Array.isArray(data)) {
 			if (data.length === 0) {
-				a += '<div class="userquery" style="text-align:center; padding:20px; color:var(--color-text-secondary);">';
-				a += i18n.t("lang__011"); // No requests
+				a += '<div class="userquery" style="text-align:center; padding:40px; grid-column: 1 / -1; width:100%;">';
+				a += '<i class="fa-solid fa-envelope-open" style="font-size:3rem; color:var(--color-surface-border); margin-bottom:15px; display:block;"></i>';
+				a += '<span style="color:var(--color-text-secondary);">' + i18n.t("lang__011") + '</span>';
 				a += '</div>';
 			} else {
 				data.forEach(function (u) {
-					a += '<div class="userquery" style="display:flex; align-items:center; justify-content:space-between; padding:15px; margin-bottom:10px; background:var(--color-surface); border-radius:12px;">';
-
-					// User Info Section
-					a += '<div style="display:flex; align-items:center; gap:12px;">';
-
-					// PFP
-					var pfpSrc = (u.pfp_media_id > 0) ? pfp_cdn + '&id=' + u.pfp_media_id + "&h=" + u.pfp_media_hash : getDefaultUserImage(u.user_gender);
-					a += '<img class="pfp" src="' + pfpSrc + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">';
-
-					// Name & Username
-					a += '<div style="display:flex; flex-direction:column;">';
-					a += '<a class="profilelink" href="profile.php?id=' + u.user_id + '" style="font-weight:600; font-size:1.05rem; color:var(--color-text-on-surface);">' + u.user_firstname + ' ' + u.user_lastname;
-					if (u.verified > 0) a += getVerifiedBadge(u.verified, "margin-left:4px;");
-					a += '</a>';
-					a += '<span class="nickname" style="font-size:0.9rem; color:var(--color-text-secondary);">@' + u.user_nickname + '</span>';
-					a += '</div>'; // End Name/Username
-
-					a += '</div>'; // End User Info
-
-					// Actions
-					a += '<div id="toggle-fr-' + u.user_id + '" style="display:flex; gap:8px;">';
-					a += '<button class="btn-primary" onclick="_friend_request_toggle(' + u.user_id + ',1)" style="padding:8px 16px; font-size:0.9rem;">Accept</button>';
-					a += '<button class="btn-secondary" onclick="_friend_request_toggle(' + u.user_id + ',0)" style="padding:8px 16px; font-size:0.9rem;">Ignore</button>';
-					a += '</div>';
-
-					a += '</div>';
+					a += _render_request_card(u);
 				});
 			}
 		} else if (data['success'] == 2) {
-			// Legacy handling just in case, though API returns array
-			a += '<div class="userquery" style="text-align:center;">' + i18n.t("lang__011") + '</div>';
+			a += '<div class="userquery" style="text-align:center; padding:40px; grid-column: 1 / -1; width:100%;">' + i18n.t("lang__011") + '</div>';
 		}
 
 		list.innerHTML = a;
 		changeUrlWork();
 	});
+}
+
+function _render_request_card(u) {
+	let a = '';
+	const pfpSrc = (u.pfp_media_id > 0) ? pfp_cdn + '&id=' + u.pfp_media_id + "&h=" + u.pfp_media_hash : getDefaultUserImage(u.user_gender);
+
+	a += '<div class="request-card" id="request-item-' + u.user_id + '">';
+	a += '  <img class="pfp-small" src="' + pfpSrc + '">';
+	a += '  <div class="request-info">';
+	a += '    <a class="request-name" href="profile.php?id=' + u.user_id + '">' + u.user_firstname + ' ' + u.user_lastname;
+	if (u.verified > 0) a += getVerifiedBadge(u.verified);
+	a += '    </a>';
+	a += '    <div class="request-nickname">@' + u.user_nickname + '</div>';
+	a += '  </div>';
+
+	a += '  <div class="request-actions" id="toggle-fr-' + u.user_id + '">';
+	a += '    <button class="btn-primary" onclick="_friend_request_toggle(' + u.user_id + ', 1)"><i class="fa-solid fa-check"></i> Accept</button>';
+	a += '    <button class="btn-secondary" onclick="_friend_request_toggle(' + u.user_id + ', 0)"><i class="fa-solid fa-xmark"></i> Ignore</button>';
+	a += '  </div>';
+	a += '</div>';
+	return a;
 }
 // Initialize Friends Page with Tabs
 function initFriendsPage() {
@@ -1663,6 +1690,13 @@ function initFriendsPage() {
 		// Update active content
 		$('.friends-content').removeClass('active');
 		$('#' + tab + '-content').addClass('active');
+
+		// Show/Hide search based on tab
+		if (tab === 'friends') {
+			$('#friends-search-wrapper').show();
+		} else {
+			$('#friends-search-wrapper').hide();
+		}
 
 		// Load content if not already loaded
 		if (tab === 'requests' && $('#friend_reqest_list').children().length === 0) {

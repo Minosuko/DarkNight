@@ -14,6 +14,7 @@ class ShardedDataStreamEngine {
     private $shardLimit; // in bytes
     private $currentFileHandle;
     private $currentShardIndex;
+    private $currentStream;
 
     public function __construct(string $baseDir, int $shardLimit = 50000000) { // Default 50MB
         $this->baseDir = rtrim($baseDir, DIRECTORY_SEPARATOR);
@@ -51,13 +52,14 @@ class ShardedDataStreamEngine {
 
     private function open(string $stream, int $index, string $mode = 'a+b'): bool {
         if (is_resource($this->currentFileHandle)) {
-            if ($this->currentShardIndex === $index) return true;
+            if ($this->currentShardIndex === $index && $this->currentStream === $stream) return true;
             fclose($this->currentFileHandle);
         }
 
         $path = $this->getShardPath($stream, $index);
         $this->currentFileHandle = fopen($path, $mode);
         $this->currentShardIndex = $index;
+        $this->currentStream = $stream;
         return is_resource($this->currentFileHandle);
     }
 
@@ -97,8 +99,10 @@ class ShardedDataStreamEngine {
 
         if (!empty($beforePointer)) {
             $parts = explode(':', $beforePointer);
-            $shardIndex = (int)$parts[0];
-            $localOffset = (int)$parts[1];
+            if (count($parts) >= 2) {
+                $shardIndex = (int)$parts[0];
+                $localOffset = (int)$parts[1];
+            }
         }
 
         while (count($messages) < $limit && $shardIndex >= 0) {
@@ -112,8 +116,10 @@ class ShardedDataStreamEngine {
             $currentLimit = $limit - count($messages);
             $shardMessages = $this->fetchFromShardBackwards($stream, $shardIndex, $currentLimit, $localOffset);
             
-            // Prepend new messages (maintaining chronological order)
-            $messages = array_merge($shardMessages, $messages);
+            // fetchFromShardBackwards returns [newest ... oldest]
+            // We want to prepend them so they stay at the beginning of our resulting set
+            // but we need them in chronological order [oldest ... newest] for the final array
+            $messages = array_merge(array_reverse($shardMessages), $messages);
 
             if (count($messages) < $limit) {
                 $shardIndex--;

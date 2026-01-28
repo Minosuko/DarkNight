@@ -1,12 +1,16 @@
 let ws = null;
-let messagesDiv, input, sendBtn, authOverlay, loginBtn, pinInput, authMsg;
+let messagesDiv, input, sendBtn, authOverlay, loginBtn, pinInput, authMsg, inputArea;
 let myKeyPair = null;
 let myUsername = null;
 let currentTopOffset = -1;
 let isLoadingHistory = false;
 let lastHistoryLoadTime = 0;
-let publicKeyCache = {}; // username -> CryptoKey (RSA Public)
-let pendingKeyRequests = {}; // username -> array of [resolve, reject] callbacks
+let myUserID = 0;
+const idToUserMap = {}; // Registry: ID -> { nickname, name, pfpId, pfpHash, verified }
+let userAliases = JSON.parse(localStorage.getItem('chat_aliases') || '{}');
+let publicKeyCache = {}; // userId -> CryptoKey (RSA Public)
+let pendingKeyRequests = {}; // userId -> array of [resolve, reject] callbacks
+let lastRenderedSenderID = null;
 
 // --- Crypto Constants ---
 const SALT_LEN = 16;
@@ -23,14 +27,16 @@ function getDec() { return dec; }
 function packBinary(data) {
     if (data.type === 'message' || data.type === 'private_message') {
         const payload = getEnc().encode(data.payload);
-        const type = data.recipient ? 0x02 : 0x01;
-        const recipient = data.recipient || '';
-        const rEnc = getEnc().encode(recipient);
-        const buf = new Uint8Array(1 + 1 + rEnc.length + payload.length);
+        const type = data.recipientID ? 0x02 : 0x01;
+        const buf = new Uint8Array(1 + (type === 0x02 ? 4 : 0) + payload.length);
         buf[0] = type;
-        buf[1] = rEnc.length;
-        buf.set(rEnc, 2);
-        buf.set(payload, 2 + rEnc.length);
+        const view = new DataView(buf.buffer);
+        let offset = 1;
+        if (type === 0x02) {
+            view.setUint32(offset, data.recipientID);
+            offset += 4;
+        }
+        buf.set(payload, offset);
         return buf.buffer;
     }
     if (data.type === 'login') {
@@ -41,15 +47,13 @@ function packBinary(data) {
         return buf.buffer;
     }
     if (data.type === 'load_history') {
-        const target = getEnc().encode(data.target || "global");
         const pointer = getEnc().encode(data.beforeOffset || "");
-        const buf = new Uint8Array(1 + 4 + 1 + target.length + pointer.length);
+        const buf = new Uint8Array(1 + 4 + 4 + pointer.length);
         buf[0] = 0x04;
         const view = new DataView(buf.buffer);
         view.setUint32(1, data.limit || 20);
-        buf[5] = target.length;
-        buf.set(target, 6);
-        buf.set(pointer, 6 + target.length);
+        view.setUint32(5, data.targetID || 0); // 0 = global
+        buf.set(pointer, 9);
         return buf.buffer;
     }
     if (data.type === 'register') {
@@ -67,40 +71,41 @@ function packBinary(data) {
         return buf.buffer;
     }
     if (data.type === 'get_public_key') {
-        const u = getEnc().encode(data.username);
-        const buf = new Uint8Array(1 + 1 + u.length);
+        const buf = new Uint8Array(1 + 4);
         buf[0] = 0x0B;
-        buf[1] = u.length;
-        buf.set(u, 2);
+        new DataView(buf.buffer).setUint32(1, data.userId);
         return buf.buffer;
     }
     if (data.type === 'encrypted_private_message') {
-        const payload = data.payload; // Already a Uint8Array if packed by encryptHybrid
-        const recipient = data.recipient || '';
-        const rEnc = getEnc().encode(recipient);
-        const buf = new Uint8Array(1 + 1 + rEnc.length + payload.length);
+        const payload = data.payload;
+        const buf = new Uint8Array(1 + 4 + payload.length);
         buf[0] = 0x0D;
-        buf[1] = rEnc.length;
-        buf.set(rEnc, 2);
-        buf.set(payload, 2 + rEnc.length);
+        new DataView(buf.buffer).setUint32(1, data.recipientID);
+        buf.set(payload, 5);
         return buf.buffer;
     }
     if (data.type === 'get_last_messages') {
         const targets = data.targets || [];
-        let totalLen = 1 + 4; // opcode + count
-        const encodedTargets = targets.map(t => getEnc().encode(t));
-        encodedTargets.forEach(et => totalLen += 1 + et.length);
-
-        const buf = new Uint8Array(totalLen);
+        const buf = new Uint8Array(1 + 4 + (targets.length * 4));
         buf[0] = 0x0E;
         const view = new DataView(buf.buffer);
         view.setUint32(1, targets.length);
         let offset = 5;
-        encodedTargets.forEach(et => {
-            buf[offset++] = et.length;
-            buf.set(et, offset);
-            offset += et.length;
+        targets.forEach(tid => {
+            view.setUint32(offset, tid);
+            offset += 4;
         });
+        return buf.buffer;
+    }
+    if (data.type === 'attachment') {
+        const hash = getEnc().encode(data.mediaHash);
+        const buf = new Uint8Array(1 + 4 + 4 + 1 + hash.length);
+        buf[0] = 0x0F;
+        const view = new DataView(buf.buffer);
+        view.setUint32(1, data.recipientID || 0);
+        view.setUint32(5, data.mediaID);
+        buf[9] = hash.length;
+        buf.set(hash, 10);
         return buf.buffer;
     }
     return null;
@@ -122,27 +127,25 @@ function unpackBinary(buf) {
     const uint8 = new Uint8Array(buf);
 
     switch (type) {
-        case 0x01: // Global Message
-        case 0x02: { // Private Message
+        case 0x01: // Global Message: opcode (1) + senderID (4) + time (4) + payload (N)
+        case 0x02: { // Private Message: opcode (1) + [recipientID (4)] + senderID (4) + time (4) + payload (N)
             let offset = 1;
-            let recipient = "";
+            let recipientID = 0;
             if (type === 0x02) {
-                const rLen = uint8[offset++];
-                recipient = getDec().decode(uint8.subarray(offset, offset + rLen));
-                offset += rLen;
+                recipientID = view.getUint32(offset);
+                offset += 4;
             }
-            const sLen = uint8[offset++];
-            const sender = getDec().decode(uint8.subarray(offset, offset + sLen));
-            offset += sLen;
+            const senderID = view.getUint32(offset);
+            offset += 4;
             const time = view.getUint32(offset);
             offset += 4;
             const payload = getDec().decode(uint8.subarray(offset));
-            return { type: 'message', sender, recipient, time, payload };
+            return { type: 'message', senderID, recipientID, time, payload };
         }
         case 0x03: { // Login Success (JSON optimized)
             const json = getDec().decode(uint8.subarray(1));
             const data = JSON.parse(json);
-            return { type: 'login_success', username: data.u, social_info: data.s, payload: data.v };
+            return { type: 'login_success', username: data.u, userID: data.id, social_info: data.s, payload: data.v };
         }
         case 0x04: { // History
             let offset = 1;
@@ -177,37 +180,35 @@ function unpackBinary(buf) {
             const time = view.getUint32(offset);
             offset += 4;
             const payload = getDec().decode(uint8.subarray(offset));
-            return { type: 'system', sender: 'SYSTEM', time, payload: payload };
+            return { type: 'system', senderID: 0, time, payload: payload };
         }
         case 0x09: { // Register Success
-            const username = getDec().decode(uint8.subarray(1));
-            return { type: 'register_success', username };
+            const userID = view.getUint32(1);
+            const username = getDec().decode(uint8.subarray(5));
+            return { type: 'register_success', username, userID };
         }
         case 0x0A: { // Vault Update Success
             return { type: 'update_vault_success' };
         }
         case 0x0C: { // Public Key Response
             let offset = 1;
-            const uLen = uint8[offset++];
-            const username = getDec().decode(uint8.subarray(offset, offset + uLen));
-            offset += uLen;
+            const userId = view.getUint32(offset);
+            offset += 4;
             const pkLen = view.getUint32(offset);
             offset += 4;
             const publicKeyB64 = getDec().decode(uint8.subarray(offset, offset + pkLen));
-            return { type: 'public_key_response', username, publicKey: publicKeyB64 };
+            return { type: 'public_key_response', userId, publicKey: publicKeyB64 };
         }
         case 0x0D: { // Encrypted Private Message
             let offset = 1;
-            const rLen = uint8[offset++];
-            const recipient = getDec().decode(uint8.subarray(offset, offset + rLen));
-            offset += rLen;
-            const sLen = uint8[offset++];
-            const sender = getDec().decode(uint8.subarray(offset, offset + sLen));
-            offset += sLen;
+            const recipientID = view.getUint32(offset);
+            offset += 4;
+            const senderID = view.getUint32(offset);
+            offset += 4;
             const time = view.getUint32(offset);
             offset += 4;
             const payload = uint8.subarray(offset); // Binary payload for hybrid decryption
-            return { type: 'encrypted_message', sender, recipient, time, payload };
+            return { type: 'encrypted_message', senderID, recipientID, time, payload };
         }
         case 0x0E: { // Last Messages Response
             let offset = 1;
@@ -215,19 +216,32 @@ function unpackBinary(buf) {
             offset += 4;
             const data = {};
             for (let i = 0; i < count; i++) {
-                const tLen = uint8[offset++];
-                const target = getDec().decode(uint8.subarray(offset, offset + tLen));
-                offset += tLen;
+                const targetID = view.getUint32(offset);
+                offset += 4;
                 const mLen = view.getUint32(offset);
                 offset += 4;
                 const msgBinary = uint8.subarray(offset, offset + mLen);
                 offset += mLen;
                 const unpacked = unpackBinary(msgBinary.buffer.slice(msgBinary.byteOffset, msgBinary.byteOffset + msgBinary.byteLength));
                 if (unpacked) {
-                    data[target] = unpacked;
+                    data[targetID] = unpacked;
                 }
             }
             return { type: 'last_messages_response', data };
+        }
+        case 0x0F: { // Attachment
+            let offset = 1;
+            const recipientID = view.getUint32(offset);
+            offset += 4;
+            const senderID = view.getUint32(offset);
+            offset += 4;
+            const time = view.getUint32(offset);
+            offset += 4;
+            const mediaID = view.getUint32(offset);
+            offset += 4;
+            const hashLen = uint8[offset++];
+            const mediaHash = getDec().decode(uint8.subarray(offset, offset + hashLen));
+            return { type: 'attachment', senderID, recipientID, time, mediaID, mediaHash };
         }
     }
     return null;
@@ -417,25 +431,25 @@ async function decryptHybrid(encData, myPrivKey, isMe = false) {
     }
 }
 
-async function fetchPeerPublicKey(username) {
-    if (publicKeyCache[username]) return publicKeyCache[username];
+async function fetchPeerPublicKey(userId) {
+    if (publicKeyCache[userId]) return publicKeyCache[userId];
 
-    if (pendingKeyRequests[username]) {
+    if (pendingKeyRequests[userId]) {
         return new Promise((resolve, reject) => {
-            pendingKeyRequests[username].push([resolve, reject]);
+            pendingKeyRequests[userId].push([resolve, reject]);
         });
     }
 
-    pendingKeyRequests[username] = [];
-    sendBinary({ type: 'get_public_key', username });
+    pendingKeyRequests[userId] = [];
+    sendBinary({ type: 'get_public_key', userId });
 
     return new Promise((resolve, reject) => {
-        pendingKeyRequests[username].push([resolve, reject]);
+        pendingKeyRequests[userId].push([resolve, reject]);
         // Timeout after 5s
         setTimeout(() => {
-            if (pendingKeyRequests[username]) {
-                const reqs = pendingKeyRequests[username];
-                delete pendingKeyRequests[username];
+            if (pendingKeyRequests[userId]) {
+                const reqs = pendingKeyRequests[userId];
+                delete pendingKeyRequests[userId];
                 reqs.forEach(([res, rej]) => rej(new Error("Key request timeout")));
             }
         }, 5000);
@@ -452,13 +466,11 @@ function base64ToBuff(b64) {
 }
 
 // --- State ---
-let activeConversation = null; // null, 'global' or username
+let activeConversation = 0; // 0 for global, or userID
 let conversations = {
-    'global': {
+    0: {
         name: 'Global Broadcast',
         messages: [],
-        topOffset: -1,
-        isLoading: false,
         topOffset: -1,
         isLoading: false,
         isInitial: true,
@@ -467,9 +479,10 @@ let conversations = {
 };
 
 // --- Auth flows ---
-async function handleLoginSuccess(payload, pin, social_info, username) {
+async function handleLoginSuccess(payload, pin, social_info, username, userID) {
     try {
         myUsername = username;
+        myUserID = userID;
         mySocialInfo = social_info;
         authMsg.textContent = "";
 
@@ -530,18 +543,21 @@ async function handleLoginSuccess(payload, pin, social_info, username) {
 
 let mySocialInfo = null;
 
-function selectConversation(id, name, pfpId = 0, pfpHash = '') {
-    id = id.toLowerCase();
+function selectConversation(id, name, pfpId = 0, pfpHash = '', skipPush = false) {
+    if (id === 'global') id = 0;
     activeConversation = id;
 
+    // Resolve current name (check alias first)
+    const displayName = userAliases[id] || name;
+
     // Update Header
-    document.getElementById('active-chat-name').textContent = name;
+    document.getElementById('active-chat-name').textContent = displayName;
 
     const pfpImg = document.querySelector('.active-pfp');
-    const pfpIcon = document.querySelector('.active-icon'); // The new icon element
+    const pfpIcon = document.querySelector('.active-icon');
     const statusText = document.querySelector('.active-status');
 
-    if (id === 'global') {
+    if (id === 0) {
         if (pfpImg) pfpImg.style.display = 'none';
         if (pfpIcon) pfpIcon.style.display = 'block';
         statusText.textContent = "● Public Broadcast";
@@ -555,7 +571,6 @@ function selectConversation(id, name, pfpId = 0, pfpHash = '') {
             }
         }
         if (pfpIcon) pfpIcon.style.display = 'none';
-
         statusText.textContent = "● Encrypted Session";
     }
 
@@ -566,8 +581,10 @@ function selectConversation(id, name, pfpId = 0, pfpHash = '') {
 
     // Toggle Active Class in Sidebar
     document.querySelectorAll('.conversation-item').forEach(el => el.classList.remove('active'));
-    if (id === 'global') {
-        document.getElementById('conv-global').classList.add('active');
+    const activeEl = document.getElementById(`conv-${id}`);
+    if (activeEl) activeEl.classList.add('active');
+
+    if (id === 0) {
         authOverlay.classList.add('hidden');
     } else {
         // Show Auth Overlay if no identity
@@ -579,12 +596,16 @@ function selectConversation(id, name, pfpId = 0, pfpHash = '') {
     }
 
     // Restriction Check
-    if (id === 'global') {
+    const isGlobal = (id === 0);
+    const isAdmin = (mySocialInfo && parseInt(mySocialInfo.verified || 0) >= 20);
+
+    if (isGlobal) {
+        if (inputArea) inputArea.classList.add('hidden');
         input.disabled = true;
         sendBtn.disabled = true;
         input.placeholder = "Global Broadcast (Read-Only)";
     } else {
-        // For user conversations, enable input (E2E is optional for now)
+        if (inputArea) inputArea.classList.remove('hidden');
         input.disabled = false;
         sendBtn.disabled = false;
         input.placeholder = "Aa";
@@ -609,19 +630,30 @@ function selectConversation(id, name, pfpId = 0, pfpHash = '') {
 
     // Trigger initial history load if empty
     if (conv.messages.length === 0 && !conv.isLoading) {
-        sendBinary({ type: 'load_history', limit: 30, target: id });
+        sendBinary({ type: 'load_history', limit: 30, targetID: id });
+    }
+
+    // Update URL dynamically (SPA support)
+    if (!skipPush) {
+        if (id !== 0) {
+            window.history.pushState({ id: id, name: name }, "", "DarkMessage.php?id=" + id);
+        } else {
+            window.history.pushState({ id: 0, name: 'Global Broadcast' }, "", "DarkMessage.php");
+        }
     }
 }
 
 function renderAllMessages() {
     if (!messagesDiv) return;
     messagesDiv.innerHTML = '';
+    lastRenderedSenderID = null;
     const conv = conversations[activeConversation] || { messages: [] };
     conv.messages.forEach(m => {
-        const mSenderLower = (m.sender || "").toLowerCase();
-        const myLower = (myUsername || "").toLowerCase();
-        const isMe = (mSenderLower === myLower);
-        renderMessage(m.payload, isMe ? 'my-message' : 'peer-message', isMe ? 'Me' : m.sender, false, true, m.time);
+        if (m.type === 'attachment') {
+            renderAttachment(m.mediaID, m.mediaHash, m.senderID, false, true, m.time);
+        } else {
+            renderMessage(m.payload, m.senderID, false, true, m.time);
+        }
     });
     // Final scroll to bottom after bulk render
     scrollToBottom(false);
@@ -684,14 +716,14 @@ function setupWsHandlers() {
                 if (errMsg === 'User not found') {
                     await handleRegister(pinInput.value);
                 } else {
-                    // Check if this error belongs to a pending key request
-                    if (errMsg.includes("Public key for") && errMsg.includes("not found")) {
-                        // Extract username from "Public key for [username] not found."
-                        const parts = errMsg.split(" ");
-                        const targetUser = parts[3]; // "Public", "key", "for", "[username]", "not", "found."
-                        if (targetUser && pendingKeyRequests[targetUser]) {
-                            const reqs = pendingKeyRequests[targetUser];
-                            delete pendingKeyRequests[targetUser];
+                    // Extract ID from bracketed error if present 
+                    // (e.g., "Public key for user #123 not found.")
+                    const match = errMsg.match(/#(\d+)/);
+                    if (match) {
+                        const targetId = parseInt(match[1]);
+                        if (pendingKeyRequests[targetId]) {
+                            const reqs = pendingKeyRequests[targetId];
+                            delete pendingKeyRequests[targetId];
                             reqs.forEach(([res, rej]) => rej(new Error(errMsg)));
                         }
                     }
@@ -700,51 +732,67 @@ function setupWsHandlers() {
                 break;
             case 'register_success':
                 myUsername = data.username;
+                myUserID = data.userID;
                 authOverlay.classList.add('hidden');
-                input.disabled = false;
-                sendBtn.disabled = false;
-                addSystemMessage(`Identity Created: [${data.username}]`);
+                addSystemMessage(`Identity Created: [${data.username}] (#${data.userID})`);
                 break;
             case 'login_success':
-                await handleLoginSuccess(data.payload, pinInput.value || getSavedPin(), data.social_info, data.username);
+                await handleLoginSuccess(data.payload, pinInput.value || getSavedPin(), data.social_info, data.username, data.userID);
                 break;
             case 'message':
             case 'encrypted_message':
-                const msgRecipient = data.recipient || 'global';
-                const isGlobal = (msgRecipient === 'global');
-                const myLowerName = (myUsername || "").toLowerCase();
-                const senderLower = (data.sender || "").toLowerCase();
-                const convId = isGlobal ? 'global' : (senderLower === myLowerName ? (data.recipient || "").toLowerCase() : senderLower);
+            case 'attachment':
+                const isGlobal = (data.recipientID === 0 || data.recipientID === undefined);
+                // Robust ID comparison using loose equality or String()
+                const convId = isGlobal ? 0 : (String(data.senderID) === String(myUserID) ? data.recipientID : data.senderID);
 
                 if (!conversations[convId]) {
-                    conversations[convId] = { messages: [], name: isGlobal ? 'Global Broadcast' : (data.sender === myUsername ? data.recipient : data.sender), topOffset: -1, isLoading: false, allLoaded: false };
+                    const u = idToUserMap[convId];
+                    const entryName = userAliases[convId] || (u ? u.name : `User #${convId}`);
+                    conversations[convId] = {
+                        messages: [],
+                        name: isGlobal ? 'Global Broadcast' : entryName,
+                        topOffset: -1,
+                        isLoading: false,
+                        allLoaded: false
+                    };
                 }
 
                 const conv = conversations[convId];
-
                 let payload = data.payload;
                 if (data.type === 'encrypted_message' && myKeyPair) {
                     try {
-                        const isMe = (senderLower === myLowerName);
+                        const isMe = (String(data.senderID) === String(myUserID));
                         payload = await decryptHybrid(data.payload, myKeyPair.privateKey, isMe);
+                        data.payload = payload; // Store decrypted version
                     } catch (err) {
                         console.error("Decryption failed", err);
-                        payload = `[Decryption Failed: ${err.message}]`;
+                        payload = `[Decryption Failed]`;
+                        data.payload = payload;
                     }
                 }
 
-                // Check if this specific message (same time/sender/payload) is already in our state
-                if (!conv.messages.some(m => m.time === data.time && m.sender === data.sender && m.payload === payload)) {
-                    conv.messages.push({ payload: payload, sender: data.sender, time: data.time });
+                // De-duplicate check
+                const isDuplicate = conv.messages.some(m =>
+                    m.time === data.time &&
+                    String(m.senderID) === String(data.senderID) &&
+                    (data.type === 'attachment' ? (m.mediaID === data.mediaID) : (m.payload === payload))
+                );
+
+                if (!isDuplicate) {
+                    conv.messages.push(data);
                 }
 
-                if (activeConversation === convId) {
-                    const isMe = (senderLower === myLowerName);
-                    renderMessage(payload, isMe ? 'my-message' : 'peer-message', isMe ? 'Me' : data.sender);
+                if (String(activeConversation) === String(convId)) {
+                    if (data.type === 'attachment') {
+                        renderAttachment(data.mediaID, data.mediaHash, data.senderID, false, false, data.time);
+                    } else {
+                        renderMessage(payload, data.senderID, false, false, data.time);
+                    }
                 }
 
-                // Update Sidebar snippet
-                updateSidebarSnippet(convId, payload, data.sender);
+                updateSidebarSnippet(convId, data.type === 'attachment' ? '[Attachment]' : payload, data.senderID, data.time);
+                sortConversations();
                 break;
             case 'public_key_response':
                 try {
@@ -755,10 +803,10 @@ function setupWsHandlers() {
                         true,
                         ["encrypt"]
                     );
-                    publicKeyCache[data.username] = key;
-                    if (pendingKeyRequests[data.username]) {
-                        const reqs = pendingKeyRequests[data.username];
-                        delete pendingKeyRequests[data.username];
+                    publicKeyCache[data.userId] = key;
+                    if (pendingKeyRequests[data.userId]) {
+                        const reqs = pendingKeyRequests[data.userId];
+                        delete pendingKeyRequests[data.userId];
                         reqs.forEach(([resolve]) => resolve(key));
                     }
                 } catch (err) {
@@ -773,16 +821,20 @@ function setupWsHandlers() {
                 break;
             case 'system':
                 const sysText = data.payload || data.message;
-                // Add to global conversation messages
-                if (!conversations['global']) {
-                    conversations['global'] = { messages: [], name: 'Global Broadcast', topOffset: -1, isLoading: false, allLoaded: false };
+                if (!conversations[0]) {
+                    conversations[0] = { messages: [], name: 'Global Broadcast', topOffset: -1, isLoading: false, allLoaded: false };
                 }
-                conversations['global'].messages.push({ payload: sysText, sender: data.sender || 'SYSTEM', time: data.time || Date.now() / 1000 });
+                const sysMsg = { payload: sysText, senderID: 0, recipientID: 0, time: data.time || Date.now() / 1000, type: 'system' };
 
-                if (activeConversation === 'global') {
-                    addMessage(sysText, 'peer-message', data.sender || 'SYSTEM');
+                if (!conversations[0].messages.some(m => m.time === sysMsg.time && m.payload === sysMsg.payload)) {
+                    conversations[0].messages.push(sysMsg);
                 }
-                updateSidebarSnippet('global', sysText, data.sender || 'SYSTEM');
+
+                if (activeConversation === 0) {
+                    renderMessage(sysText, 0, false, false, sysMsg.time);
+                }
+                updateSidebarSnippet(0, sysText, 0, sysMsg.time);
+                sortConversations();
                 break;
         }
     };
@@ -794,8 +846,8 @@ function setupWsHandlers() {
 }
 
 async function handleHistoryResponse(data) {
-    const targetConvId = (activeConversation === 'global' ? 'global' : activeConversation).toLowerCase();
-    const conv = conversations[targetConvId];
+    const targetConvId = activeConversation;
+    const conv = conversations[String(targetConvId)];
     if (!conv) {
         isLoadingHistory = false;
         return;
@@ -824,16 +876,22 @@ async function handleHistoryResponse(data) {
     for (let m of newMsgs) {
         if (m.type === 'encrypted_message' && myKeyPair) {
             try {
-                const isHistoryMe = (m.sender.toLowerCase() === (myUsername || "").toLowerCase());
+                const isHistoryMe = (m.senderID === myUserID);
                 m.payload = await decryptHybrid(m.payload, myKeyPair.privateKey, isHistoryMe);
             } catch (err) {
                 console.error("History decryption failed", err);
-                m.payload = `[History Decryption Failed: ${err.message}]`;
+                m.payload = `[History Decryption Failed]`;
             }
         }
 
-        if (!conv.messages.some(existing => existing.time === m.time && existing.sender === m.sender && existing.payload === m.payload)) {
-            decryptedNewMsgs.push({ payload: m.payload, sender: m.sender, time: m.time });
+        const isDuplicate = conv.messages.some(existing =>
+            existing.time === m.time &&
+            String(existing.senderID) === String(m.senderID) &&
+            (m.type === 'attachment' ? (existing.mediaID === m.mediaID) : (existing.payload === m.payload))
+        );
+
+        if (!isDuplicate) {
+            decryptedNewMsgs.push(m);
         }
     }
 
@@ -909,7 +967,7 @@ function setupUiHandlers() {
         const text = input.value;
         if (!text) return;
 
-        const isGlobal = (activeConversation === 'global');
+        const isGlobal = (activeConversation === 0);
 
         if (isGlobal) {
             sendBinary({ type: 'message', payload: text });
@@ -921,7 +979,7 @@ function setupUiHandlers() {
 
                 sendBinary({
                     type: 'encrypted_private_message',
-                    recipient: activeConversation,
+                    recipientID: activeConversation,
                     payload: encryptedPayload
                 });
             } catch (err) {
@@ -933,6 +991,15 @@ function setupUiHandlers() {
 
         input.value = '';
         input.style.height = 'auto';
+    };
+
+    document.getElementById('active-chat-name').onclick = () => {
+        if (activeConversation === 0) return; // Can't rename Global
+        const currentName = document.getElementById('active-chat-name').textContent;
+        const newAlias = prompt("Enter a nickname for this user:", currentName);
+        if (newAlias !== null) {
+            setChatAlias(activeConversation, newAlias);
+        }
     };
 
     input.oninput = () => {
@@ -947,6 +1014,58 @@ function setupUiHandlers() {
         }
     };
 
+    // --- File Attachment Handler ---
+    const fileInput = document.getElementById('dm-file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Basic validation
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+
+            if (!isImage && !isVideo) {
+                alert("Only images and videos are allowed.");
+                fileInput.value = '';
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                alert("File is too large (max 50MB).");
+                fileInput.value = '';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const resp = await fetch('worker/ChatAttachment.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await resp.json();
+
+                if (result.success) {
+                    sendBinary({
+                        type: 'attachment',
+                        recipientID: activeConversation,
+                        mediaID: result.media_id,
+                        mediaHash: result.media_hash
+                    });
+                } else {
+                    alert("Upload failed: " + result.message);
+                }
+            } catch (err) {
+                console.error("Attachment upload error:", err);
+                alert("External error during upload.");
+            }
+
+            fileInput.value = ''; // Reset
+        });
+    }
+
     messagesDiv.onscroll = () => {
         const conv = conversations[activeConversation];
         if (!conv) return;
@@ -960,7 +1079,7 @@ function setupUiHandlers() {
                 if (now - lastHistoryLoadTime > 1000) {
                     isLoadingHistory = true;
                     const pointer = conv.topOffset || "";
-                    sendBinary({ type: 'load_history', limit: 30, beforeOffset: pointer, target: activeConversation });
+                    sendBinary({ type: 'load_history', limit: 30, beforeOffset: pointer, targetID: activeConversation });
                 }
             }
         }
@@ -1038,9 +1157,13 @@ function getSavedPin() {
     return _savedPinCache;
 }
 
-function initDarkChat() {
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+function getUrlParam(name) {
+    const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    if (results == null) return null;
+    return decodeURI(results[1]) || 0;
+}
 
+function initDarkChat() {
     messagesDiv = document.getElementById('messages');
     input = document.getElementById('message-input');
     sendBtn = document.getElementById('send-btn');
@@ -1048,8 +1171,26 @@ function initDarkChat() {
     loginBtn = document.getElementById('login-btn');
     pinInput = document.getElementById('pin-input');
     authMsg = document.getElementById('auth-msg');
+    inputArea = document.querySelector('.dm-input-area');
 
     if (!messagesDiv) return;
+
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        // --- SPA RESTORATION ---
+        // If already connected, we need to re-render the sidebar because the DOM was replaced
+        refreshChatUI();
+
+        // Check for URL ID parameter change
+        const targetId = getUrlParam('id');
+        if (targetId) {
+            const fid = parseInt(targetId);
+            if (idToUserMap[fid]) {
+                const u = idToUserMap[fid];
+                selectConversation(fid, u.name, u.pfpId, u.pfpHash, true);
+            }
+        }
+        return;
+    }
 
     ws = new WebSocket('ws://' + window.location.hostname + ':8080');
     ws.binaryType = 'arraybuffer';
@@ -1063,6 +1204,18 @@ function initDarkChat() {
         if (!autoSuccess) {
             // If no saved PIN, we at least know WHICH user to prepare for
             myUsername = SOCIAL_IDENTITY;
+        }
+
+        // Check for direct chat ID
+        const targetId = getUrlParam('id');
+        if (targetId) {
+            const fid = parseInt(targetId);
+            // If we already have the user in map (unlikely on first load before fetchFriends, 
+            // but possible if returning to page)
+            if (idToUserMap[fid]) {
+                const u = idToUserMap[fid];
+                selectConversation(fid, u.name, u.pfpId, u.pfpHash, true); // skipPush: true
+            }
         }
     };
 }
@@ -1097,50 +1250,157 @@ function scrollToBottom(smooth = false) {
     }
 }
 
-function addMessage(text, className, sender = 'Unknown') {
-    renderMessage(text, className, sender, false);
-}
 
-function renderMessage(text, className, sender = 'Unknown', prepend = false, skipScroll = false, timestamp = null) {
+function renderMessage(text, senderID = 0, prepend = false, skipScroll = false, timestamp = null) {
     if (!messagesDiv) return;
 
-    const isMe = (className === 'my-message');
+    // Standardize comparison to handle both number and string IDs
+    const isMe = (senderID != 0 && String(senderID) === String(myUserID));
+    const isStacked = (!prepend && String(senderID) === String(lastRenderedSenderID));
+
+    if (!prepend) lastRenderedSenderID = senderID;
+
     const wrapper = document.createElement('div');
-    wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'}`;
+    wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'} ${isStacked ? 'stacked' : ''}`;
+
+    if (!isMe && !isStacked) {
+        const sender = document.createElement('div');
+        sender.className = 'message-sender';
+        if (senderID == 0) {
+            sender.textContent = 'SYSTEM';
+        } else {
+            const u = idToUserMap[senderID];
+            sender.textContent = (u && u.name) ? u.name : `User #${senderID}`;
+        }
+        wrapper.appendChild(sender);
+    }
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
     bubble.textContent = text;
 
-    wrapper.appendChild(bubble);
-
     const meta = document.createElement('div');
     meta.className = `msg-meta ${isMe ? 'me' : 'them'}`;
-
     const timeToDisplay = timestamp ? new Date(timestamp * 1000) : new Date();
     const timeStr = timeToDisplay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     meta.textContent = `${timeStr}`;
 
+    const row = document.createElement('div');
+    row.className = 'bubble-row';
+
+    if (isMe) {
+        row.appendChild(meta);
+        row.appendChild(bubble);
+    } else {
+        row.appendChild(bubble);
+        row.appendChild(meta);
+    }
+
+    wrapper.appendChild(row);
+
     if (prepend) {
-        messagesDiv.insertBefore(meta, messagesDiv.firstChild);
         messagesDiv.insertBefore(wrapper, messagesDiv.firstChild);
     } else {
         // Smart Auto-Scroll Check
-        // We check this BEFORE appending the new message
-        const threshold = 250; // pixels tolerance
+        const threshold = 250;
         const isNearBottom = (messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight) <= threshold;
 
         messagesDiv.appendChild(wrapper);
-        messagesDiv.appendChild(meta);
 
         if (!skipScroll) {
-            // Auto-scroll if it's my message OR if the user was already at/near the bottom
-            // OR if we are in widget mode (often prefer latest message visibility in small screens)
             const isWidget = document.getElementById('messenger-container').classList.contains('widget-mode');
-
             if (isMe || isNearBottom || isWidget) {
                 scrollToBottom(true);
             }
+        }
+    }
+}
+
+function renderAttachment(mediaID, mediaHash, senderID = 0, prepend = false, skipScroll = false, timestamp = null) {
+    if (!messagesDiv) return;
+
+    const isMe = (senderID != 0 && String(senderID) === String(myUserID));
+    const isStacked = (!prepend && String(senderID) === String(lastRenderedSenderID));
+
+    if (!prepend) lastRenderedSenderID = senderID;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'} ${isStacked ? 'stacked' : ''}`;
+
+    if (!isMe && !isStacked) {
+        const sender = document.createElement('div');
+        sender.className = 'message-sender';
+        if (senderID == 0) {
+            sender.textContent = 'SYSTEM';
+        } else {
+            const u = idToUserMap[senderID];
+            sender.textContent = (u && u.name) ? u.name : `User #${senderID}`;
+        }
+        wrapper.appendChild(sender);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.style.padding = '5px'; // Less padding for media
+
+    // Media element detection (we don't know mime here but we can try image first)
+    // Actually our backend returns is_video in upload response but we need it for received messages
+    // We can use a helper or just try displaying as image and fallback to video if it fails or use a generic loader
+    // For simplicity, I'll use the data/images.php and data/videos.php loaders
+
+    // We'll check the media info if possible, but for now we'll assume it's an image and provide a video fallback link
+    // Better: let's use a generic media container that can handle both
+    const mediaContainer = document.createElement('div');
+
+    // Create image element
+    const img = document.createElement('img');
+    img.src = `data/images.php?t=image&id=${mediaID}&h=${mediaHash}`;
+    img.className = 'attachment-preview';
+    img.style.cursor = 'pointer';
+    img.onclick = () => window.open(img.src, '_blank');
+
+    // Attempt to handle videos by checking format or just providing a link if it looks like one
+    // Since we don't have format in the protocol yet, we'll try to load as image and if it fails, try video
+    img.onerror = () => {
+        img.style.display = 'none';
+        const video = document.createElement('video');
+        video.src = `data/videos.php?t=video&id=${mediaID}&h=${mediaHash}`;
+        video.controls = true;
+        video.className = 'attachment-preview';
+        mediaContainer.appendChild(video);
+    };
+
+    mediaContainer.appendChild(img);
+    bubble.appendChild(mediaContainer);
+
+    const meta = document.createElement('div');
+    meta.className = `msg-meta ${isMe ? 'me' : 'them'}`;
+    const timeToDisplay = timestamp ? new Date(timestamp * 1000) : new Date();
+    const timeStr = timeToDisplay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    meta.textContent = `${timeStr}`;
+
+    const row = document.createElement('div');
+    row.className = 'bubble-row';
+
+    if (isMe) {
+        row.appendChild(meta);
+        row.appendChild(bubble);
+    } else {
+        row.appendChild(bubble);
+        row.appendChild(meta);
+    }
+
+    wrapper.appendChild(row);
+
+    if (prepend) {
+        messagesDiv.insertBefore(wrapper, messagesDiv.firstChild);
+    } else {
+        const threshold = 250;
+        const isNearBottom = (messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight) <= threshold;
+        messagesDiv.appendChild(wrapper);
+        if (!skipScroll) {
+            const isWidget = document.getElementById('messenger-container').classList.contains('widget-mode');
+            if (isMe || isNearBottom || isWidget) scrollToBottom(true);
         }
     }
 }
@@ -1204,22 +1464,78 @@ async function fetchFriends() {
         const data = await response.json();
         if (data.success) {
             myFriends = data.friends;
-            renderFriends(myFriends);
-            // Also populate sidebar
-            const targets = ['global'];
+            const targets = [0]; // 0 = global
             myFriends.forEach(f => {
+                const fid = parseInt(f.user_id);
+                idToUserMap[fid] = {
+                    nickname: f.user_nickname,
+                    name: f.user_firstname + ' ' + f.user_lastname,
+                    pfpId: f.pfp_media_id,
+                    pfpHash: f.pfp_media_hash,
+                    verified: f.verified
+                };
                 addConversationToSidebar(f);
-                targets.push(f.user_nickname);
+                targets.push(fid);
             });
 
-            // Batch fetch last messages
+            // Batch fetch last messages (using UserIDs)
             if (ws && ws.readyState === WebSocket.OPEN) {
                 sendBinary({ type: 'get_last_messages', targets: targets });
+            }
+            renderFriends(myFriends);
+
+            // Handle direct chat from URL parameter now that we have names/PFPs
+            const targetId = getUrlParam('id');
+            if (targetId) {
+                const fid = parseInt(targetId);
+                if (idToUserMap[fid]) {
+                    const u = idToUserMap[fid];
+                    selectConversation(fid, u.name, u.pfpId, u.pfpHash, true); // skipPush: true
+                }
             }
         }
     } catch (e) {
         console.error("Failed to fetch friends:", e);
     }
+}
+
+/**
+ * Re-renders the UI from cached data. 
+ * Essential for SPA navigation where the DOM is replaced but JS objects persist.
+ */
+function refreshChatUI() {
+    console.log("Refreshing Chat UI (SPA Restore)");
+
+    // 1. Re-render Sidebar
+    const list = document.getElementById('conv-list');
+    if (list) {
+        // Clear all but the Global item if it exists, or just clear all
+        list.innerHTML = `
+            <div class="conversation-item active" id="conv-0" onclick="selectConversation(0, 'Global Broadcast')">
+                <div class="avatar-small system-avatar">G</div>
+                <div class="conv-info">
+                    <div class="conv-name">Global Broadcast</div>
+                    <div class="conv-last-msg" id="last-msg-0">Initial Global Stream...</div>
+                </div>
+            </div>
+        `;
+
+        myFriends.forEach(friend => {
+            addConversationToSidebar(friend);
+        });
+    }
+
+    // 2. Re-Setup Handlers (SPA replaces the elements we bound to)
+    setupUiHandlers();
+
+    // 3. Re-request Snippets for the sidebar items we just created
+    if (myFriends.length > 0) {
+        const targets = [0, ...myFriends.map(f => parseInt(f.user_id))];
+        sendBinary({ type: 'get_last_messages', targets: targets });
+    }
+
+    // 4. Force scroll to bottom of current active chat
+    scrollToBottom(false);
 }
 
 function renderFriends(list) {
@@ -1235,14 +1551,12 @@ function renderFriends(list) {
     list.forEach(friend => {
         const item = document.createElement('div');
         item.className = 'picker-item';
+        const fid = parseInt(friend.user_id);
         item.onclick = () => {
-            selectConversation(friend.user_nickname, friend.user_firstname + ' ' + friend.user_lastname, friend.pfp_media_id, friend.pfp_media_hash);
+            selectConversation(fid, friend.user_firstname + ' ' + friend.user_lastname, friend.pfp_media_id, friend.pfp_media_hash);
             document.getElementById('modal-user-picker').classList.add('hidden');
             // Ensure sidebar item exists
-            if (!document.getElementById(`conv-${friend.user_nickname}`)) {
-                // Trigger re-render or manually add (selecting conversation handles logic usually)
-                // Actually selectConversation doesn't add to sidebar UI, only state. 
-                // We should add it to sidebar UI if not present.
+            if (!document.getElementById(`conv-${fid}`)) {
                 addConversationToSidebar(friend);
             }
         };
@@ -1262,13 +1576,19 @@ function renderFriends(list) {
 
 function addConversationToSidebar(friend) {
     const list = document.getElementById('conv-list');
-    const existing = document.getElementById(`conv-${friend.user_nickname}`);
+    const fid = parseInt(friend.user_id);
+    const existing = document.getElementById(`conv-${fid}`);
     if (existing) return;
 
     const div = document.createElement('div');
     div.className = 'conversation-item';
-    div.id = `conv-${friend.user_nickname}`;
-    div.onclick = () => selectConversation(friend.user_nickname, friend.user_firstname + ' ' + friend.user_lastname, friend.pfp_media_id, friend.pfp_media_hash);
+    div.id = `conv-${fid}`;
+    div.dataset.timestamp = "0";
+
+    const fullName = friend.user_firstname + ' ' + friend.user_lastname;
+    const displayName = userAliases[fid] || fullName;
+
+    div.onclick = () => selectConversation(fid, fullName, friend.pfp_media_id, friend.pfp_media_hash);
 
     const img = document.createElement('img');
     img.className = 'avatar-small';
@@ -1279,11 +1599,11 @@ function addConversationToSidebar(friend) {
 
     const name = document.createElement('div');
     name.className = 'conv-name';
-    name.textContent = friend.user_firstname + ' ' + friend.user_lastname;
+    name.innerHTML = `<span class="name-text" data-original-name="${fullName}">${displayName}</span> ${getVerifiedBadge(friend.verified)}`;
 
     const lastMsg = document.createElement('div');
     lastMsg.className = 'conv-last-msg';
-    lastMsg.id = `last-msg-${friend.user_nickname.toLowerCase()}`;
+    lastMsg.id = `last-msg-${fid}`;
     lastMsg.textContent = '...';
 
     info.appendChild(name);
@@ -1292,7 +1612,7 @@ function addConversationToSidebar(friend) {
     div.appendChild(info);
 
     // Insert after Global
-    const globalConv = document.getElementById('conv-global');
+    const globalConv = document.getElementById('conv-0');
     if (globalConv && globalConv.nextSibling) {
         list.insertBefore(div, globalConv.nextSibling);
     } else {
@@ -1300,24 +1620,54 @@ function addConversationToSidebar(friend) {
     }
 }
 
-function updateSidebarSnippet(convId, payload, sender) {
-    const el = document.getElementById(`last-msg-${convId.toLowerCase()}`);
+function setChatAlias(userId, alias) {
+    if (!alias || alias.trim() === '') {
+        delete userAliases[userId];
+    } else {
+        userAliases[userId] = alias.trim();
+    }
+    localStorage.setItem('chat_aliases', JSON.stringify(userAliases));
+
+    // Update Header if currently active
+    if (String(activeConversation) === String(userId)) {
+        document.getElementById('active-chat-name').textContent = alias || "User #" + userId;
+    }
+
+    // Update Sidebar Item
+    const sideItem = document.getElementById(`conv-${userId}`);
+    if (sideItem) {
+        const nameEl = sideItem.querySelector('.name-text');
+        if (nameEl) nameEl.textContent = alias || nameEl.dataset.originalName || "User #" + userId;
+    }
+
+    // Update In-Memory conversations if present
+    if (conversations[userId]) {
+        conversations[userId].name = alias || conversations[userId].name;
+    }
+}
+
+function updateSidebarSnippet(convId, payload, senderID, timestamp = null) {
+    const el = document.getElementById(`last-msg-${convId}`);
     if (el) {
         let text = payload;
         if (typeof payload === 'string' && payload.length > 30) {
             text = payload.substring(0, 27) + '...';
         }
-        const isMe = (sender === myUsername);
+        const isMe = (senderID === myUserID);
         el.textContent = (isMe ? 'You: ' : '') + text;
+
+        // Update timestamp for sorting
+        if (timestamp) {
+            const item = document.getElementById(`conv-${convId}`);
+            if (item) item.dataset.timestamp = timestamp;
+        }
     }
 }
 
 async function handleLastMessagesResponse(data) {
-    for (const [target, msg] of Object.entries(data)) {
+    for (const [targetID, msg] of Object.entries(data)) {
         let payload = msg.payload;
-        const senderLower = (msg.sender || "").toLowerCase();
-        const myLowerName = (myUsername || "").toLowerCase();
-        const isMe = (senderLower === myLowerName);
+        const isMe = (msg.senderID === myUserID);
 
         if (msg.type === 'encrypted_message' && myKeyPair) {
             try {
@@ -1326,8 +1676,24 @@ async function handleLastMessagesResponse(data) {
                 payload = "[Encrypted]";
             }
         }
-        updateSidebarSnippet(target, payload, msg.sender);
+        updateSidebarSnippet(targetID, payload, msg.senderID, msg.time);
     }
+    sortConversations();
+}
+
+function sortConversations() {
+    const list = document.getElementById('conv-list');
+    if (!list) return;
+
+    const items = Array.from(list.querySelectorAll('.conversation-item'));
+    items.sort((a, b) => {
+        const tsA = parseInt(a.dataset.timestamp || 0);
+        const tsB = parseInt(b.dataset.timestamp || 0);
+        return tsB - tsA; // Latest first
+    });
+
+    // Re-append in order
+    items.forEach(item => list.appendChild(item));
 }
 
 function setupUserPicker() {
@@ -1386,3 +1752,21 @@ initDarkChat = function () {
     setupChatSearch();
 };
 initDarkChat();
+
+function getVerifiedBadge(level, style = "", customTitle = null) {
+    if (level <= 0) return "";
+    let icon = "fa-badge-check";
+    // Check if i18n is available, if not use fallback titles
+    let title = customTitle;
+    if (!title) {
+        if (typeof i18n !== 'undefined' && typeof i18n.t === 'function') {
+            title = i18n.t("lang_badge_" + level) || i18n.t("lang__016");
+        } else {
+            const fallbacks = { 1: "Verified User", 2: "VIP Member", 20: "Administrator" };
+            title = fallbacks[level] || "Verified";
+        }
+    }
+    if (level == 20) icon = "fa-paw-claws";
+
+    return `<i class="fa-solid ${icon} verified_color_${level} verified-badge" style="${style}" title="${title}"></i>`;
+}

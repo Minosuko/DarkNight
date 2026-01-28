@@ -38,6 +38,9 @@ class ChatHandler implements MessageComponentInterface {
     public function onOpen(ConnectionInterface $conn) {
         $this->clients->attach($conn);
         
+        // Default to Binary Protocol (1) for this application
+        $this->connProtocol[$conn->resourceId] = 1;
+
         // Find smallest available number starting from 1
         $num = 1;
         while (in_array($num, $this->activeNums)) {
@@ -93,7 +96,7 @@ class ChatHandler implements MessageComponentInterface {
                 echo "Register: Found user $username for ID $userId\n";
 
                 if ($this->userDb->register($userId, $payload)) {
-                    $this->sendTo($from, ['type' => 'register_success', 'username' => $username]);
+                    $this->sendTo($from, ['type' => 'register_success', 'username' => $username, 'userId' => $userId]);
                     $this->connToUser[$from->resourceId] = $username;
                     $this->connToId[$from->resourceId] = $userId;
                     echo "E2E Identity Linked for Social User: $username (ID: $userId)\n";
@@ -140,6 +143,7 @@ class ChatHandler implements MessageComponentInterface {
                 $this->sendTo($from, [
                     'type' => 'login_success', 
                     'username' => $username,
+                    'userId' => $userId,
                     'social_info' => $socialUser,
                     'payload' => $userVault
                 ]);
@@ -149,24 +153,25 @@ class ChatHandler implements MessageComponentInterface {
 
             case 'message':
                 // Check if user is logged in
-                if (!isset($this->connToUser[$from->resourceId])) {
+                if (!isset($this->connToId[$from->resourceId])) {
                     $this->sendTo($from, ['type' => 'error', 'message' => 'You must login first']);
                     return;
                 }
                 
-                $sender = $this->connToUser[$from->resourceId];
-                $socialUser = $this->mysql->getUserInfo($sender);
+                $senderID = (int)$this->connToId[$from->resourceId];
+                $socialUser = $this->mysql->getInfoById($senderID);
                 
                 // Restriction: Only Admins (verified >= 20) can broadcast to Global
                 if (intval($socialUser['verified'] ?? 0) < 20) {
-                    $this->sendTo($from, ['type' => 'error', 'message' => 'Global Broadcast is read-only. Only Admins can send messages here.']);
+                    $this->sendTo($from, ['type' => 'error', 'message' => 'Authorization failed. Only admins can send global messages.']);
                     return;
                 }
                 
                 // Add sender identity to the message for the client
                 $outMsgData = [
                     'type' => 'message',
-                    'sender' => $sender,
+                    'senderID' => $senderID,
+                    'recipientID' => 0,
                     'payload' => $data['payload'],
                     'time' => time()
                 ];
@@ -205,7 +210,8 @@ class ChatHandler implements MessageComponentInterface {
                 // Build message for storage and broadcast
                 $outMsgData = [
                     'type' => 'system',
-                    'sender' => 'SYSTEM',
+                    'senderID' => 0,
+                    'recipientID' => 0,
                     'payload' => $payload,
                     'time' => time()
                 ];
@@ -225,23 +231,23 @@ class ChatHandler implements MessageComponentInterface {
             case 'private_message':
             case 'encrypted_private_message':
                 // Check if user is logged in
-                if (!isset($this->connToUser[$from->resourceId])) {
+                if (!isset($this->connToId[$from->resourceId])) {
                     $this->sendTo($from, ['type' => 'error', 'message' => 'You must login first']);
                     return;
                 }
                 
-                $sender = $this->connToUser[$from->resourceId];
-                $recipient = $data['recipient'] ?? '';
+                $senderID = (int)$this->connToId[$from->resourceId];
+                $recipientID = (int)($data['recipientID'] ?? 0);
                 
-                if (empty($recipient)) {
+                if (!$recipientID) {
                     $this->sendTo($from, ['type' => 'error', 'message' => 'Recipient not specified']);
                     return;
                 }
 
                 $outMsgData = [
                     'type' => $data['type'] === 'encrypted_private_message' ? 'encrypted_message' : 'message',
-                    'sender' => $sender,
-                    'recipient' => $recipient,
+                    'senderID' => $senderID,
+                    'recipientID' => $recipientID,
                     'payload' => $data['payload'],
                     'time' => time()
                 ];
@@ -249,56 +255,89 @@ class ChatHandler implements MessageComponentInterface {
                 // Save to storage (Partitioned by ChatID)
                 $binaryPacket = $this->packBinary($outMsgData);
                 if ($binaryPacket !== null) {
-                    $chatID = $this->getChatID($sender, $recipient);
+                    $chatID = $this->getChatID($senderID, $recipientID);
                     $this->db->append($chatID, $binaryPacket);
                 }
 
                 // Find recipient AND sender connections
                 foreach ($this->clients as $client) {
-                    $u = $this->connToUser[$client->resourceId] ?? null;
-                    if ($u === $recipient || $u === $sender) {
+                    $uid = $this->connToId[$client->resourceId] ?? 0;
+                    if ($uid == $recipientID || $uid == $senderID) {
+                        $this->sendTo($client, $outMsgData);
+                    }
+                }
+                break;
+
+            case 'attachment':
+                if (!isset($this->connToId[$from->resourceId])) {
+                    $this->sendTo($from, ['type' => 'error', 'message' => 'You must login first']);
+                    return;
+                }
+                
+                $senderID = (int)$this->connToId[$from->resourceId];
+                $recipientID = (int)($data['recipientID'] ?? 0);
+                
+                $outMsgData = [
+                    'type' => 'attachment',
+                    'senderID' => $senderID,
+                    'recipientID' => $recipientID,
+                    'mediaID' => (int)$data['mediaID'],
+                    'mediaHash' => $data['mediaHash'],
+                    'time' => time()
+                ];
+
+                // Global check
+                if ($recipientID === 0) {
+                     $socialUser = $this->mysql->getInfoById($senderID);
+                     if (intval($socialUser['verified'] ?? 0) < 20) {
+                        $this->sendTo($from, ['type' => 'error', 'message' => 'Authorization failed.']);
+                        return;
+                    }
+                }
+
+                $binaryPacket = $this->packBinary($outMsgData);
+                if ($binaryPacket !== null) {
+                    $chatID = ($recipientID === 0) ? $this->globalStream : $this->getChatID($senderID, $recipientID);
+                    $this->db->append($chatID, $binaryPacket);
+                }
+
+                foreach ($this->clients as $client) {
+                    $uid = $this->connToId[$client->resourceId] ?? 0;
+                    if ($recipientID === 0 || $uid == $recipientID || $uid == $senderID) {
                         $this->sendTo($client, $outMsgData);
                     }
                 }
                 break;
 
             case 'get_public_key':
-                $username = strtolower($data['username'] ?? '');
-                if (empty($username)) return;
+                $targetId = (int)($data['userId'] ?? 0);
+                if (!$targetId) return;
 
-                // Resolve username to ID
-                $targetUser = $this->mysql->getUserInfo($username);
-                if (!$targetUser) {
-                    $this->sendTo($from, ['type' => 'error', 'message' => "User $username not found."]);
-                    return;
-                }
-
-                $targetId = $targetUser['user_id'];
                 $vault = $this->userDb->getUser($targetId);
 
                 if ($vault && isset($vault['publicKey'])) {
                     $this->sendTo($from, [
                         'type' => 'public_key_response',
-                        'username' => $username,
+                        'userId' => $targetId,
                         'publicKey' => $vault['publicKey']
                     ]);
                 } else {
-                    $this->sendTo($from, ['type' => 'error', 'message' => "Public key for $username not found."]);
+                    $this->sendTo($from, ['type' => 'error', 'message' => "Public key for user #$targetId not found."]);
                 }
                 break;
 
             case 'load_history':
                 $limit = $data['limit'] ?? 20;
-                $target = $data['target'] ?? 'global';
+                $targetID = (int)($data['targetID'] ?? 0); // 0 or -1 could mean global
                 $beforeOffset = $data['beforeOffset'] ?? "";
                 
-                $sender = $this->connToUser[$from->resourceId] ?? null;
-                if (!$sender && $target !== 'global') {
+                $senderID = $this->connToId[$from->resourceId] ?? 0;
+                if (!$senderID && $targetID > 0) {
                     $this->sendTo($from, ['type' => 'error', 'message' => 'Login required for private history']);
                     return;
                 }
 
-                $chatID = ($target === 'global') ? $this->globalStream : $this->getChatID($sender, $target);
+                $chatID = ($targetID <= 0) ? $this->globalStream : $this->getChatID($senderID, $targetID);
                 $messages = $this->db->fetchLast($chatID, $limit, $beforeOffset);
                 
                 $this->sendTo($from, [
@@ -312,16 +351,17 @@ class ChatHandler implements MessageComponentInterface {
                 $targets = $data['targets'] ?? [];
                 if (empty($targets)) return;
 
-                $sender = $this->connToUser[$from->resourceId] ?? null;
+                $senderID = $this->connToId[$from->resourceId] ?? 0;
                 $response = [];
 
-                foreach ($targets as $target) {
-                    $chatID = ($target === 'global') ? $this->globalStream : ($sender ? $this->getChatID($sender, $target) : null);
+                foreach ($targets as $targetID) {
+                    $targetID = (int)$targetID;
+                    $chatID = ($targetID <= 0) ? $this->globalStream : ($senderID ? $this->getChatID($senderID, $targetID) : null);
                     if (!$chatID) continue;
 
                     $last = $this->db->fetchLast($chatID, 1);
                     if (!empty($last)) {
-                        $response[$target] = $last[0];
+                        $response[$targetID] = $last[0];
                     }
                 }
 
@@ -377,10 +417,10 @@ class ChatHandler implements MessageComponentInterface {
         }
     }
 
-    private function getChatID(string $u1, string $u2): string {
-        $users = [strtolower($u1), strtolower($u2)];
-        sort($users);
-        return 'p_' . implode('_', $users);
+    private function getChatID(int $u1, int $u2): string {
+        $min = min($u1, $u2);
+        $max = max($u1, $u2);
+        return "p_{$min}_{$max}";
     }
 
     public function onClose(ConnectionInterface $conn) {
@@ -396,54 +436,70 @@ class ChatHandler implements MessageComponentInterface {
     }
 
     private function unpackBinary($msg) {
+        if (strlen($msg) < 1) return null;
         $type = ord(substr($msg, 0, 1));
+        
         switch ($type) {
-            case 0x01: // Message (Global)
-                return ['type' => 'message', 'payload' => substr($msg, 1)];
-            case 0x02: // Private Message
-                $recipientLen = ord(substr($msg, 1, 1));
-                $recipient = substr($msg, 2, $recipientLen);
-                $payload = substr($msg, 2 + $recipientLen);
-                return ['type' => 'private_message', 'recipient' => $recipient, 'payload' => $payload];
+            case 0x01: // Global Message: opcode (1) + senderID (4) + time (4) + payload (N)
+                if (strlen($msg) < 9) return null;
+                $senderID = unpack('N', substr($msg, 1, 4))[1];
+                $time = unpack('N', substr($msg, 5, 4))[1];
+                $payload = substr($msg, 9);
+                return ['type' => 'message', 'senderID' => $senderID, 'recipientID' => 0, 'time' => $time, 'payload' => $payload];
+
+            case 0x02: // Private Message: opcode (1) + recipientID (4) + senderID (4) + time (4) + payload (N)
+                if (strlen($msg) < 13) return null;
+                $recipient = unpack('N', substr($msg, 1, 4))[1];
+                $sender = unpack('N', substr($msg, 5, 4))[1];
+                $time = unpack('N', substr($msg, 9, 4))[1];
+                $payload = substr($msg, 13);
+                return ['type' => 'message', 'senderID' => $sender, 'recipientID' => $recipient, 'time' => $time, 'payload' => $payload];
+
             case 0x03: // Login
                 return ['type' => 'login', 'token' => substr($msg, 1)];
+
             case 0x04: // History Request
+                if (strlen($msg) < 9) return null;
                 $limit = unpack('N', substr($msg, 1, 4))[1];
-                $tLen = ord(substr($msg, 5, 1));
-                $target = substr($msg, 6, $tLen);
-                $pointer = substr($msg, 6 + $tLen);
-                return ['type' => 'load_history', 'limit' => $limit, 'target' => $target, 'beforeOffset' => $pointer];
-            case 0x05: // Register
-                $rawJson = substr($msg, 1);
-                $json = json_decode($rawJson, true);
-                if (!$json || !isset($json['t']) || !isset($json['p'])) {
-                    echo "Register: Malformed binary payload. Keys missing. Raw: " . substr($rawJson, 0, 50) . "...\n";
-                    return ['type' => 'register', 'token' => null, 'payload' => null];
-                }
-                return ['type' => 'register', 'token' => $json['t'], 'payload' => $json['p']];
-            case 0x06: // Update Vault
-                $json = json_decode(substr($msg, 1), true);
-                return ['type' => 'update_vault', 'payload' => $json];
+                $targetID = unpack('N', substr($msg, 5, 4))[1];
+                $pointer = substr($msg, 9);
+                return ['type' => 'load_history', 'limit' => $limit, 'targetID' => $targetID, 'beforeOffset' => $pointer];
+
+            case 0x0D: // Encrypted Private Message: opcode (1) + recipientID (4) + senderID (4) + time (4) + payload (N)
+                if (strlen($msg) < 13) return null;
+                $recipient = unpack('N', substr($msg, 1, 4))[1];
+                $sender = unpack('N', substr($msg, 5, 4))[1];
+                $time = unpack('N', substr($msg, 9, 4))[1];
+                $payload = substr($msg, 13);
+                return ['type' => 'encrypted_private_message', 'recipientID' => $recipient, 'senderID' => $sender, 'time' => $time, 'payload' => $payload];
+
+            case 0x0F: // Attachment: opcode (1) + recipientID (4) + senderID (4) + time (4) + mediaID (4) + hashLen (1) + hash (N)
+                if (strlen($msg) < 18) return null;
+                $recipient = unpack('N', substr($msg, 1, 4))[1];
+                $sender = unpack('N', substr($msg, 5, 4))[1];
+                $time = unpack('N', substr($msg, 9, 4))[1];
+                $mediaId = unpack('N', substr($msg, 13, 4))[1];
+                $hashLen = ord(substr($msg, 17, 1));
+                $hash = substr($msg, 18, $hashLen);
+                return ['type' => 'attachment', 'recipientID' => $recipient, 'senderID' => $sender, 'time' => $time, 'mediaID' => $mediaId, 'mediaHash' => $hash];
+
             case 0x08: // Broadcast Request (Admin)
                 return ['type' => 'broadcast', 'payload' => substr($msg, 1)];
+
             case 0x0B: // Get Public Key
-                $uLen = ord(substr($msg, 1, 1));
-                $target = substr($msg, 2, $uLen);
-                return ['type' => 'get_public_key', 'username' => $target];
-            case 0x0D: // Encrypted Private Message
-                $recipientLen = ord(substr($msg, 1, 1));
-                $recipient = substr($msg, 2, $recipientLen);
-                $payload = substr($msg, 2 + $recipientLen);
-                return ['type' => 'encrypted_private_message', 'recipient' => $recipient, 'payload' => $payload];
+                if (strlen($msg) < 5) return null;
+                $targetID = unpack('N', substr($msg, 1, 4))[1];
+                return ['type' => 'get_public_key', 'userId' => $targetID];
+
             case 0x0E: // Get Last Messages (Batch)
+                if (strlen($msg) < 5) return null;
                 $count = unpack('N', substr($msg, 1, 4))[1];
                 $offset = 5;
                 $targets = [];
                 for ($i = 0; $i < $count; $i++) {
-                    $len = ord(substr($msg, $offset, 1));
-                    $offset++;
-                    $targets[] = substr($msg, $offset, $len);
-                    $offset += $len;
+                    if (strlen($msg) < $offset + 4) break;
+                    $targets[] = unpack('N', substr($msg, $offset, 4))[1];
+                    $offset += 4;
                 }
                 return ['type' => 'get_last_messages', 'targets' => $targets];
         }
@@ -451,21 +507,25 @@ class ChatHandler implements MessageComponentInterface {
     }
 
     private function packBinary($data) {
+        $senderID = (int)($data['senderID'] ?? 0);
+        $time = (int)($data['time'] ?? time());
+        
         switch ($data['type']) {
             case 'message':
-                $sender = $data['sender'] ?? '';
-                $type = isset($data['recipient']) ? 0x02 : 0x01;
+                $recipientID = (int)($data['recipientID'] ?? 0);
+                $type = ($recipientID === 0) ? 0x01 : 0x02;
                 $packet = chr($type);
                 if ($type === 0x02) {
-                    $packet .= chr(strlen($data['recipient'])) . $data['recipient'];
+                    $packet .= pack('N', $recipientID);
                 }
-                $packet .= chr(strlen($sender)) . $sender;
-                $packet .= pack('N', $data['time'] ?? time());
+                $packet .= pack('N', $senderID);
+                $packet .= pack('N', $time);
                 $packet .= $data['payload'];
                 return $packet;
             case 'login_success':
                 $json = json_encode([
                     'u' => $data['username'],
+                    'id' => $data['userId'],
                     's' => $data['social_info'],
                     'v' => $data['payload']
                 ]);
@@ -473,7 +533,7 @@ class ChatHandler implements MessageComponentInterface {
             case 'history':
                 $packet = chr(0x04) . pack('N', count($data['messages']));
                 foreach ($data['messages'] as $msg) {
-                    $p = $msg['payload']; // This is already binary if stored as such
+                    $p = $msg['payload'];
                     $packet .= pack('N', strlen($p)) . $p;
                     $packet .= chr(strlen($msg['pointer'])) . $msg['pointer'];
                 }
@@ -487,29 +547,37 @@ class ChatHandler implements MessageComponentInterface {
                 $packet .= $data['payload'];
                 return $packet;
             case 'register_success':
-                return chr(0x09) . ($data['username'] ?? '');
+                return chr(0x09) . pack('N', $data['userId']) . ($data['username'] ?? '');
             case 'update_vault_success':
                 return chr(0x0A);
             case 'public_key_response':
-                $username = $data['username'] ?? '';
+                $targetID = $data['userId'] ?? 0;
                 $pk = $data['publicKey'] ?? '';
-                return chr(0x0C) . chr(strlen($username)) . $username . pack('N', strlen($pk)) . $pk;
+                return chr(0x0C) . pack('N', $targetID) . pack('N', strlen($pk)) . $pk;
             case 'encrypted_message':
-                $sender = $data['sender'] ?? '';
                 $packet = chr(0x0D);
-                $packet .= chr(strlen($data['recipient'])) . $data['recipient'];
-                $packet .= chr(strlen($sender)) . $sender;
+                $packet .= pack('N', $data['recipientID']);
+                $packet .= pack('N', $senderID);
                 $packet .= pack('N', $data['time'] ?? time());
                 $packet .= $data['payload'];
                 return $packet;
             case 'last_messages_response':
                 $packet = chr(0x0E);
                 $packet .= pack('N', count($data['data']));
-                foreach ($data['data'] as $target => $msg) {
-                    $packet .= chr(strlen($target)) . $target;
-                    $p = $msg['payload']; // the original binary packet
+                foreach ($data['data'] as $targetID => $msg) {
+                    $packet .= pack('N', (int)$targetID);
+                    $p = $msg['payload']; 
                     $packet .= pack('N', strlen($p)) . $p;
                 }
+                return $packet;
+            case 'attachment':
+                $packet = chr(0x0F);
+                $packet .= pack('N', $data['recipientID'] ?? 0);
+                $packet .= pack('N', $senderID);
+                $packet .= pack('N', $data['time'] ?? time());
+                $packet .= pack('N', (int)$data['mediaID']);
+                $hash = $data['mediaHash'] ?? '';
+                $packet .= chr(strlen($hash)) . $hash;
                 return $packet;
         }
         return null;
