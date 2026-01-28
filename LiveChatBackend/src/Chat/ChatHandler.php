@@ -435,6 +435,17 @@ class ChatHandler implements MessageComponentInterface {
                 $recipient = substr($msg, 2, $recipientLen);
                 $payload = substr($msg, 2 + $recipientLen);
                 return ['type' => 'encrypted_private_message', 'recipient' => $recipient, 'payload' => $payload];
+            case 0x0E: // Get Last Messages (Batch)
+                $count = unpack('N', substr($msg, 1, 4))[1];
+                $offset = 5;
+                $targets = [];
+                for ($i = 0; $i < $count; $i++) {
+                    $len = ord(substr($msg, $offset, 1));
+                    $offset++;
+                    $targets[] = substr($msg, $offset, $len);
+                    $offset += $len;
+                }
+                return ['type' => 'get_last_messages', 'targets' => $targets];
         }
         return null;
     }
@@ -490,6 +501,15 @@ class ChatHandler implements MessageComponentInterface {
                 $packet .= chr(strlen($sender)) . $sender;
                 $packet .= pack('N', $data['time'] ?? time());
                 $packet .= $data['payload'];
+                return $packet;
+            case 'last_messages_response':
+                $packet = chr(0x0E);
+                $packet .= pack('N', count($data['data']));
+                foreach ($data['data'] as $target => $msg) {
+                    $packet .= chr(strlen($target)) . $target;
+                    $p = $msg['payload']; // the original binary packet
+                    $packet .= pack('N', strlen($p)) . $p;
+                }
                 return $packet;
         }
         return null;

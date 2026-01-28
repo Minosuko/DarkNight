@@ -85,6 +85,24 @@ function packBinary(data) {
         buf.set(payload, 2 + rEnc.length);
         return buf.buffer;
     }
+    if (data.type === 'get_last_messages') {
+        const targets = data.targets || [];
+        let totalLen = 1 + 4; // opcode + count
+        const encodedTargets = targets.map(t => getEnc().encode(t));
+        encodedTargets.forEach(et => totalLen += 1 + et.length);
+
+        const buf = new Uint8Array(totalLen);
+        buf[0] = 0x0E;
+        const view = new DataView(buf.buffer);
+        view.setUint32(1, targets.length);
+        let offset = 5;
+        encodedTargets.forEach(et => {
+            buf[offset++] = et.length;
+            buf.set(et, offset);
+            offset += et.length;
+        });
+        return buf.buffer;
+    }
     return null;
 }
 
@@ -190,6 +208,26 @@ function unpackBinary(buf) {
             offset += 4;
             const payload = uint8.subarray(offset); // Binary payload for hybrid decryption
             return { type: 'encrypted_message', sender, recipient, time, payload };
+        }
+        case 0x0E: { // Last Messages Response
+            let offset = 1;
+            const count = view.getUint32(offset);
+            offset += 4;
+            const data = {};
+            for (let i = 0; i < count; i++) {
+                const tLen = uint8[offset++];
+                const target = getDec().decode(uint8.subarray(offset, offset + tLen));
+                offset += tLen;
+                const mLen = view.getUint32(offset);
+                offset += 4;
+                const msgBinary = uint8.subarray(offset, offset + mLen);
+                offset += mLen;
+                const unpacked = unpackBinary(msgBinary.buffer.slice(msgBinary.byteOffset, msgBinary.byteOffset + msgBinary.byteLength));
+                if (unpacked) {
+                    data[target] = unpacked;
+                }
+            }
+            return { type: 'last_messages_response', data };
         }
     }
     return null;
@@ -1176,7 +1214,7 @@ async function fetchFriends() {
 
             // Batch fetch last messages
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'get_last_messages', targets: targets }));
+                sendBinary({ type: 'get_last_messages', targets: targets });
             }
         }
     } catch (e) {
@@ -1245,7 +1283,7 @@ function addConversationToSidebar(friend) {
 
     const lastMsg = document.createElement('div');
     lastMsg.className = 'conv-last-msg';
-    lastMsg.id = `last-msg-${friend.user_nickname === 'global' ? 'global' : friend.user_nickname}`;
+    lastMsg.id = `last-msg-${friend.user_nickname.toLowerCase()}`;
     lastMsg.textContent = '...';
 
     info.appendChild(name);
@@ -1263,7 +1301,7 @@ function addConversationToSidebar(friend) {
 }
 
 function updateSidebarSnippet(convId, payload, sender) {
-    const el = document.getElementById(`last-msg-${convId}`);
+    const el = document.getElementById(`last-msg-${convId.toLowerCase()}`);
     if (el) {
         let text = payload;
         if (typeof payload === 'string' && payload.length > 30) {

@@ -25,10 +25,7 @@ if (!_is_session_valid()) {
     ?>
 
     <style>
-        /* Hide widget in full page mode */
-        <?php if(!$isWidget): ?>
         #mini-chat-widget { display: none !important; }
-        <?php endif; ?>
 
         :root {
             --dm-neon-blue: #00f3ff;
@@ -578,7 +575,7 @@ if (!_is_session_valid()) {
                         </div>
                         <div class="conv-info">
                             <div class="conv-name">Global Broadcast</div>
-                            <div class="conv-last-msg">Real-time Admin Broadcast</div>
+                            <div class="conv-last-msg" id="last-msg-global">Real-time Admin Broadcast</div>
                         </div>
                     </div>
                 </div>
