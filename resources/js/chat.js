@@ -704,6 +704,9 @@ function setupWsHandlers() {
                     const isMe = (senderLower === myLowerName);
                     renderMessage(payload, isMe ? 'my-message' : 'peer-message', isMe ? 'Me' : data.sender);
                 }
+
+                // Update Sidebar snippet
+                updateSidebarSnippet(convId, payload, data.sender);
                 break;
             case 'public_key_response':
                 try {
@@ -727,6 +730,9 @@ function setupWsHandlers() {
             case 'history':
                 handleHistoryResponse(data);
                 break;
+            case 'last_messages_response':
+                handleLastMessagesResponse(data.data);
+                break;
             case 'system':
                 const sysText = data.payload || data.message;
                 // Add to global conversation messages
@@ -738,6 +744,7 @@ function setupWsHandlers() {
                 if (activeConversation === 'global') {
                     addMessage(sysText, 'peer-message', data.sender || 'SYSTEM');
                 }
+                updateSidebarSnippet('global', sysText, data.sender || 'SYSTEM');
                 break;
         }
     };
@@ -1161,7 +1168,16 @@ async function fetchFriends() {
             myFriends = data.friends;
             renderFriends(myFriends);
             // Also populate sidebar
-            myFriends.forEach(f => addConversationToSidebar(f));
+            const targets = ['global'];
+            myFriends.forEach(f => {
+                addConversationToSidebar(f);
+                targets.push(f.user_nickname);
+            });
+
+            // Batch fetch last messages
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'get_last_messages', targets: targets }));
+            }
         }
     } catch (e) {
         console.error("Failed to fetch friends:", e);
@@ -1229,7 +1245,8 @@ function addConversationToSidebar(friend) {
 
     const lastMsg = document.createElement('div');
     lastMsg.className = 'conv-last-msg';
-    lastMsg.textContent = 'Start a conversation';
+    lastMsg.id = `last-msg-${friend.user_nickname === 'global' ? 'global' : friend.user_nickname}`;
+    lastMsg.textContent = '...';
 
     info.appendChild(name);
     info.appendChild(lastMsg);
@@ -1242,6 +1259,36 @@ function addConversationToSidebar(friend) {
         list.insertBefore(div, globalConv.nextSibling);
     } else {
         list.appendChild(div);
+    }
+}
+
+function updateSidebarSnippet(convId, payload, sender) {
+    const el = document.getElementById(`last-msg-${convId}`);
+    if (el) {
+        let text = payload;
+        if (typeof payload === 'string' && payload.length > 30) {
+            text = payload.substring(0, 27) + '...';
+        }
+        const isMe = (sender === myUsername);
+        el.textContent = (isMe ? 'You: ' : '') + text;
+    }
+}
+
+async function handleLastMessagesResponse(data) {
+    for (const [target, msg] of Object.entries(data)) {
+        let payload = msg.payload;
+        const senderLower = (msg.sender || "").toLowerCase();
+        const myLowerName = (myUsername || "").toLowerCase();
+        const isMe = (senderLower === myLowerName);
+
+        if (msg.type === 'encrypted_message' && myKeyPair) {
+            try {
+                payload = await decryptHybrid(msg.payload, myKeyPair.privateKey, isMe);
+            } catch (err) {
+                payload = "[Encrypted]";
+            }
+        }
+        updateSidebarSnippet(target, payload, msg.sender);
     }
 }
 

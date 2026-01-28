@@ -307,6 +307,29 @@ class ChatHandler implements MessageComponentInterface {
                     'isInitial' => ($beforeOffset === "" || $beforeOffset === -1)
                 ]);
                 break;
+
+            case 'get_last_messages':
+                $targets = $data['targets'] ?? [];
+                if (empty($targets)) return;
+
+                $sender = $this->connToUser[$from->resourceId] ?? null;
+                $response = [];
+
+                foreach ($targets as $target) {
+                    $chatID = ($target === 'global') ? $this->globalStream : ($sender ? $this->getChatID($sender, $target) : null);
+                    if (!$chatID) continue;
+
+                    $last = $this->db->fetchLast($chatID, 1);
+                    if (!empty($last)) {
+                        $response[$target] = $last[0];
+                    }
+                }
+
+                $this->sendTo($from, [
+                    'type' => 'last_messages_response',
+                    'data' => $response
+                ]);
+                break;
                 
             case 'update_vault':
                 // Check if user is logged in
