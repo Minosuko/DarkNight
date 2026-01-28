@@ -211,7 +211,7 @@ if ($method === 'POST') {
     switch ($action) {
         case 'friend_request':
             // Consolidates friend_toggle.php
-            $target_id = isset($_POST['id']) ? $conn->real_escape_string($_POST['id']) : 0;
+            $target_id = isset($_REQUEST['id']) ? $conn->real_escape_string($_REQUEST['id']) : 0;
             if ($target_id > 0 && $target_id != $user_id) {
                 if (isset($_POST['request'])) {
                     global $db_user;

@@ -103,9 +103,19 @@
                         </div>
                     </div>
 
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <label class="setting-label">Chat Identity PIN</label>
+                            <div class="setting-value">Used for End-to-End Encryption</div>
+                        </div>
+                        <div class="setting-action">
+                            <button class="setting-btn" onclick="_change_chat_pin_modal()">Change</button>
+                        </div>
+                    </div>
+
                     <div class="setting-item" style="border:none; margin-top:20px;">
                         <a href="/logout.php" style="text-decoration:none;">
-                            <button class="s_button red_alert" style="width:100%;">
+                            <button class="s_button red_alert" onclick="clearSavedIdentity()" style="width:100%;">
                                 Log Out <i class="fa-solid fa-right-from-bracket"></i>
                             </button>
                         </a>
@@ -259,6 +269,43 @@
                 console.error('Core scripts not loaded.');
             }
         });
+
+        async function _change_chat_pin_modal() {
+            // Check if identity is loaded (need it for re-encryption)
+            if (typeof myKeyPair === 'undefined' || !myKeyPair) {
+                alert("Please login to DarkMessage first to load your identity.");
+                return;
+            }
+
+            const oldPin = prompt("Enter Current PIN:");
+            if (!oldPin) return;
+            
+            const newPin = prompt("Enter New PIN (min 4 chars):");
+            if (!newPin || newPin.length < 4) {
+                alert("Invalid PIN.");
+                return;
+            }
+
+            const confirmPin = prompt("Confirm New PIN:");
+            if (newPin !== confirmPin) {
+                alert("PINs do not match.");
+                return;
+            }
+
+            try {
+                const success = await _changeChatPin(oldPin, newPin);
+                if (success) {
+                    alert("PIN Changed Successfully!");
+                } else {
+                    alert("Failed to change PIN. Is your current PIN correct?");
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
     </script>
+    <!-- Add chat.js for PIN logic if not already included in layout -->
+    <script src="resources/js/chat.js"></script>
+    <?php include 'includes/chat_widget.php'; ?>
 </body>
 </html>

@@ -5,6 +5,7 @@ class Database {
     public $db_user;
     public $db_post;
     public $db_media;
+    public $db_management;
 
     private function __construct() {
         // Assuming this file is in includes/classes/
@@ -15,6 +16,7 @@ class Database {
             $this->db_user = $db_user;
             $this->db_post = $db_post;
             $this->db_media = $db_media;
+            $this->db_management = $db_management;
             
             // Connect to user database by default
             $this->conn = new mysqli($host, $username, $dbpassword, $db_user);

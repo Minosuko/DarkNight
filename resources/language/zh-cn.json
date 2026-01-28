@@ -99,5 +99,15 @@
     "lang_badge_4": "已认证 Darknight 翻译者",
     "lang_badge_3": "政府",
     "lang_badge_2": "已认证企业",
-    "lang_badge_1": "已认证用户"
+    "lang_badge_1": "认证用户",
+    "notif_liked_post": "赞了你的动态",
+    "notif_commented": "评论了你的动态",
+    "notif_shared": "分享了你的动态",
+    "notif_friend_request": "向你发送了好友请求",
+    "notif_friend_accept": "接受了你的好友请求",
+    "notif_mention": "在动态中提到了你",
+    "notif_report_resolved": "你的举报已处理，我们已采取相应措施",
+    "notif_report_processed": "我们的团队已经审核了你的举报",
+    "notif_group_invite": "邀请你加入小组",
+    "notif_group_accepted": "你加入小组的请求已被批准"
 }

@@ -1,58 +1,130 @@
-function initCustomSelects(force = false) {
-    // Support various select classes
-    $('.premium-select, .setting-select, .premium-select-sm, .index_input_box, .modal-privacy-select, .custom-select, .tos-select').each(function () {
-        if (!$(this).is('select')) return; // Only target actual selects
-        const $this = $(this);
-        if ($this.next('.custom-select-container').length > 0) {
-            if (force) $this.next('.custom-select-container').remove();
-            else return; // Already initialized
+/**
+ * Custom Select Pure JS Component
+ * Replaces default select elements with stylized dropdowns
+ */
+
+class CustomSelect {
+    constructor(element) {
+        if (!element || element.nextElementSibling?.classList.contains('custom-select-container')) {
+            return; // Already initialized or invalid
         }
 
-        const options = $this.find('option');
-        const selectedOption = $this.find('option:selected');
+        this.select = element;
+        this.container = null;
+        this.trigger = null;
+        this.dropdown = null;
+        this.options = [];
 
-        const container = $('<div class="custom-select-container"></div>');
-        const trigger = $('<div class="custom-select-trigger"><span>' + selectedOption.text() + '</span><i class="fa-solid fa-chevron-down"></i></div>');
-        const dropdown = $('<div class="custom-select-dropdown"></div>');
+        this.init();
+    }
 
-        options.each(function () {
-            const $opt = $(this);
-            const optUI = $('<div class="custom-select-option" data-value="' + $opt.val() + '">' + $opt.text() + '</div>');
-            if ($opt.is(':selected')) optUI.addClass('selected');
+    init() {
+        // Create DOM Structure
+        this.container = document.createElement('div');
+        this.container.className = 'custom-select-container';
 
-            optUI.on('click', function (e) {
+        this.trigger = document.createElement('div');
+        this.trigger.className = 'custom-select-trigger';
+
+        const selectedOption = this.select.options[this.select.selectedIndex];
+        this.trigger.innerHTML = `
+            <span>${selectedOption ? selectedOption.textContent : 'Select...'}</span>
+            <i class="fa-solid fa-chevron-down"></i>
+        `;
+
+        this.dropdown = document.createElement('div');
+        this.dropdown.className = 'custom-select-dropdown';
+
+        // Build Options
+        Array.from(this.select.options).forEach(opt => {
+            const optUI = document.createElement('div');
+            optUI.className = 'custom-select-option';
+            optUI.textContent = opt.textContent;
+            optUI.dataset.value = opt.value;
+
+            if (opt.selected) {
+                optUI.classList.add('selected');
+            }
+
+            optUI.addEventListener('click', (e) => {
                 e.stopPropagation();
-                container.find('.custom-select-option').removeClass('selected');
-                $(this).addClass('selected');
-                trigger.find('span').text($(this).text());
-                $this.val($(this).data('value')).trigger('change');
-                container.removeClass('open');
+                this.selectOption(optUI);
             });
 
-            dropdown.append(optUI);
+            this.dropdown.appendChild(optUI);
+            this.options.push(optUI);
         });
 
-        trigger.on('click', function (e) {
+        // Event Listeners
+        this.trigger.addEventListener('click', (e) => {
             e.stopPropagation();
-            // Close other selects
-            $('.custom-select-container').not(container).removeClass('open');
-            // Close post options
-            if ($('.post-options-menu').length > 0) {
-                $('.post-options-menu').removeClass('active');
-            }
-            container.toggleClass('open');
+            this.toggle();
         });
 
-        container.append(trigger).append(dropdown);
-        $this.after(container);
-        $this.hide();
+        // Assemble
+        this.container.appendChild(this.trigger);
+        this.container.appendChild(this.dropdown);
 
-        // Special case for search page: hide the old manual chevron if it exists in the wrapper
-        $this.siblings('.select-icon').hide();
-    });
+        // Insert after original select
+        this.select.parentNode.insertBefore(this.container, this.select.nextSibling);
+
+        // Hide original
+        this.select.style.display = 'none';
+
+        // Hide old sibling icons if any (compatibility)
+        const oldIcon = this.select.parentNode.querySelector('.select-icon');
+        if (oldIcon) oldIcon.style.display = 'none';
+    }
+
+    selectOption(optionElement) {
+        // Update UI
+        this.options.forEach(o => o.classList.remove('selected'));
+        optionElement.classList.add('selected');
+
+        this.trigger.querySelector('span').textContent = optionElement.textContent;
+
+        // Update Original Select
+        this.select.value = optionElement.dataset.value;
+        this.select.dispatchEvent(new Event('change'));
+
+        // Close
+        this.close();
+    }
+
+    toggle() {
+        // Close all other selects first
+        document.querySelectorAll('.custom-select-container').forEach(el => {
+            if (el !== this.container) el.classList.remove('open');
+        });
+
+        this.container.classList.toggle('open');
+    }
+
+    close() {
+        this.container.classList.remove('open');
+    }
 }
 
-// Close dropdowns on outside click
-$(document).on('click', function () {
-    $('.custom-select-container').removeClass('open');
+// Global Initializer
+window.initCustomSelects = function () {
+    const selectors = [
+        '.premium-select',
+        '.setting-select',
+        '.premium-select-sm',
+        '.index_input_box',
+        '.modal-privacy-select',
+        '.custom-select',
+        '.tos-select'
+    ];
+
+    document.querySelectorAll(selectors.join(',')).forEach(el => {
+        new CustomSelect(el);
+    });
+};
+
+// Close on outside click
+document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-select-container').forEach(el => {
+        el.classList.remove('open');
+    });
 });

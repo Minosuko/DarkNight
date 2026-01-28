@@ -77,5 +77,6 @@
 			<div id="search" class="search-results-grid"></div>
 			<div id="loading_posts"></div>
 		</div>
+		<?php include 'includes/chat_widget.php'; ?>
 	</body>
 </html>

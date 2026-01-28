@@ -99,5 +99,15 @@
     "lang_badge_4": "Na-verify na Darknight Translator",
     "lang_badge_3": "Pamahalaan",
     "lang_badge_2": "Na-verify na Kumpanya",
-    "lang_badge_1": "Na-verify na User"
+    "lang_badge_1": "Na-verify na User",
+    "notif_liked_post": "nag-like sa iyong post",
+    "notif_commented": "nag-comment sa iyong post",
+    "notif_shared": "ni-share ang iyong post",
+    "notif_friend_request": "nagpadala sa iyo ng friend request",
+    "notif_friend_accept": "tinanggap ang iyong friend request",
+    "notif_mention": "tinag ka sa isang post",
+    "notif_report_resolved": "Ang iyong ulat ay nasuri na at may aksyon nang ginawa",
+    "notif_report_processed": "Ang iyong ulat ay nasuri na ng aming koponan",
+    "notif_group_invite": "iniimbitahan kang sumali sa grupo",
+    "notif_group_accepted": "Ang iyong kahilingan na sumali sa grupo ay tinanggap na"
 }

@@ -136,6 +136,12 @@ function toggeHLJS() {
 	h = "yes";
 }
 
+function clearSavedIdentity() {
+	localStorage.removeItem('dm_saved_user');
+	localStorage.removeItem('dm_saved_pin_enc');
+	localStorage.removeItem('dm_saved_pin_iv');
+}
+
 function getDefaultUserImage(g) {
 	switch (g) {
 		case "M":
@@ -554,14 +560,26 @@ function processAjaxData(r, u) {
 	// Reset feed loading state on navigation to prevent locks
 	_feedLoading = false;
 
-	if (u === "/home.php" || u === "home.php" || u === "/" || u === "/index.php" || u === "index.php")
+	if (u === "/home.php" || u === "home.php" || u === "/" || u === "/index.php" || u === "index.php") {
 		fetch_post("Post.php?scope=feed", true);
-	if (u === "/logout.php" || u === "logout.php")
+		fetch_pfp_box();
+		loadTrending();
+	}
+	if (u === "/logout.php" || u === "logout.php") {
+		clearSavedIdentity();
 		location.reload();
+	}
 	if (u === "/friends.php" || u === "friends.php")
 		initFriendsPage();
 	if (u === "/notification.php" || u === "notification.php")
 		loadNotifications();
+	if (u === "/DarkMessage.php" || u === "DarkMessage.php") {
+		if (typeof initDarkChat === 'function') {
+			initDarkChat();
+		} else {
+			$.getScript("resources/js/chat.js");
+		}
+	}
 	if (u.indexOf("/groups.php") === 0 || u.indexOf("groups.php") === 0)
 		_load_groups_discovery();
 	if (u.indexOf("/group.php") === 0 || u.indexOf("group.php") === 0)
@@ -576,6 +594,43 @@ function processAjaxData(r, u) {
 	textAreaRework();
 	updateActiveNavbar(u);
 	initCustomSelects(); // Theming new content
+
+	if (u.substring(0, 16) === "/pages/dashboard" || u.substring(0, 15) === "pages/dashboard") {
+		// We might need to manually trigger script loading if not handled by index.php
+		// But in our case, index.php has script tags, and processAjaxData handles title/scripts.
+	}
+}
+
+function _report(type, id) {
+	modal_open('report', id);
+	var content = gebi("modal_content");
+	var h = '';
+	h += '<div class="upload-modal-container" style="max-width:450px;">';
+	h += '<div class="upload-modal-header"><h2>Report ' + type.charAt(0).toUpperCase() + type.slice(1) + '</h2><i class="fa-solid fa-xmark close-modal-btn" onclick="modal_close()"></i></div>';
+	h += '<div class="upload-modal-body" style="padding:20px;">';
+	h += '<p style="margin-bottom:15px; color:var(--color-text-dim);">Why are you reporting this?</p>';
+	h += '<textarea id="report_reason" class="index_input_box" style="height:100px; width:100%;" placeholder="Provide a reason..."></textarea>';
+	h += '</div>';
+	h += '<div class="upload-modal-footer">';
+	h += '<button class="btn-primary" onclick="_submit_report(\'' + type + '\', ' + id + ')">Submit Report</button>';
+	h += '</div></div>';
+	content.innerHTML = h;
+}
+
+function _submit_report(type, id) {
+	const reason = gebi('report_reason').value;
+	if (reason.trim().length < 5) {
+		_alert_modal("Please provide a more detailed reason.");
+		return;
+	}
+	$.post("/worker/Report.php", { action: 'create', target_type: type, target_id: id, reason: reason }, function (r) {
+		if (r.success === 1) {
+			modal_close();
+			_alert_modal("Thank you for your report. Our moderators will review it soon.");
+		} else {
+			_alert_modal(r.message || "Failed to submit report.");
+		}
+	});
 }
 
 function updateActiveNavbar(u) {
@@ -619,7 +674,18 @@ function fetch_pfp_box() {
 				if (d["pfp_media_hash"] != h) lss("pfp_media_hash", d["pfp_media_hash"]);
 				if (d["user_gender"] != g) lss("user_gender", d["user_gender"]);
 			});
-			b.src = (i > 0) ? pfp_cdn + '&id=' + (i != null ? i : lsg('pfp_media_id')) + "&h=" + (h != null ? h : lsg('pfp_media_hash')) : getDefaultUserImage((g != null ? g : lsg('user_gender')));
+			var src = (i > 0) ? pfp_cdn + '&id=' + (i != null ? i : lsg('pfp_media_id')) + "&h=" + (h != null ? h : lsg('pfp_media_hash')) : getDefaultUserImage((g != null ? g : lsg('user_gender')));
+			b.src = src;
+			// Update sidebar pfp if it exists
+			var side = gebi('pfp_side');
+			if (side) side.src = src;
+
+			// Update sidebar username if available
+			var unameSide = gebi('username_side');
+			var fullname = gebi('fullname');
+			if (unameSide && fullname && fullname.value !== 'Unkown') {
+				unameSide.innerText = fullname.value;
+			}
 		}
 	}
 }
@@ -707,6 +773,11 @@ function createPostHTML(s) {
 			a += '    <div class="post-options-item" style="color: #ff4d4d;" onclick="_delete_post(' + originalId + ')"><i class="fa-regular fa-trash-can"></i><span>Delete Post</span></div>';
 		}
 	}
+
+	// Add Report Option
+	a += '    <div class="menu-divider"></div>';
+	a += '    <div class="post-options-item" onclick="_report(\'post\', ' + originalId + '); togglePostOptions(' + originalId + ')"><i class="fa-solid fa-flag"></i><span>Report Post</span></div>';
+
 	a += '  </div></div>';
 
 	a += '</div>'; // End header
@@ -735,8 +806,6 @@ function createPostHTML(s) {
 	} else {
 		a += renderPostContent(s, false);
 	}
-
-	a += '<br>';
 
 	// --- Actions Bar ---
 	var interactionId = isShare ? originalId : originalId;
@@ -767,6 +836,14 @@ function createPostHTML(s) {
 }
 
 // Helper to render caption and media
+function processText(t) {
+	if (!t) return "";
+	t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	t = t.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+	t = t.replace(/#(\w+)/gu, '<a href="/search.php?q=%23$1" class="hashtag" onclick="changeUrl(\'/search.php?q=%23$1\'); return false;">#$1</a>');
+	return t;
+}
+
 function renderPostContent(post, isSharedRender) {
 	var h = "";
 	var suffix = isSharedRender ? 'shd' : ''; // Suffix for IDs to prevent duplicate IDs if same post rendered twice? (Unlikely in feed but good practice)
@@ -796,7 +873,7 @@ function renderPostContent(post, isSharedRender) {
 	}
 
 	var captionStyle = (!hasMedia && post['post_caption'].length < 20 && !isSharedRender) ? 'style="font-size: 300%"' : '';
-	h += '<pre class="caption" ' + captionStyle + '>' + post['post_caption'] + '</pre></div>';
+	h += '<pre class="caption" ' + captionStyle + '>' + processText(post['post_caption']) + '</pre></div>';
 
 	// Media
 	var mediaHtml = "";
@@ -846,6 +923,26 @@ if (gebi("modal")) {
 function modal_close() {
 	gebi("modal").style.display = "none";
 	gebtn('body')[0].style.overflowY = "scroll";
+}
+
+function loadTrending() {
+	var box = gebi('trending_box');
+	if (!box) return;
+
+	$.get(backend_url + "Post.php?scope=trending", function (data) {
+		if (data.success && data.data && data.data.length > 0) {
+			var h = '<h4 style="margin-top: 0; margin-bottom: 15px;">Trending</h4>';
+			data.data.forEach(function (tag) {
+				h += '<div style="color: var(--color-text-dim); font-size: 0.9rem; padding: 10px 0; border-bottom: 1px solid var(--color-surface-border);">';
+				h += '<a href="/search.php?q=%23' + tag.tag_name + '" onclick="changeUrl(\'/search.php?q=%23' + tag.tag_name + '\'); return false;" style="color: var(--color-text-on-surface); font-weight: bold;">#' + tag.tag_name + '</a>';
+				h += '<div style="font-size: 0.8rem; color: var(--color-text-dim);">' + tag.count + ' posts</div>';
+				h += '</div>';
+			});
+			box.innerHTML = h;
+		} else {
+			box.innerHTML = '<h4 style="margin-top: 0; margin-bottom: 15px;">Trending</h4><div style="padding:10px 0; color: var(--color-text-dim);">No trending topics yet.</div>';
+		}
+	});
 }
 
 function modal_open(type, pid = null) {
@@ -1490,39 +1587,53 @@ function fetch_friend_list(loc, from_blob = false) {
 }
 function fetch_friend_request(loc) {
 	$.get(backend_url + loc, function (data) {
-		friend_reqest_list = gebi("friend_reqest_list");
-		a = '';
-		a += '<center>'; // Keep for now, or remove if moving to grid later
-		if (data['success'] == 2) {
-			a += '<div class="userquery">';
-			a += i18n.t("lang__011");
-			a += '<br><br>';
-			a += '</div>';
-		} else if (data['success'] == 1) {
-			for (let i = 0; i < (Object.keys(data).length - 1); i++) {
-				a += '<div class="userquery">';
-				a += '<img class="pfp" src="'
-				a += (data[i]['pfp_media_id'] > 0) ? pfp_cdn + '&id=' + data[i]['pfp_media_id'] + "&h=" + data[i]['pfp_media_hash'] : getDefaultUserImage(data[i]['user_gender']);
-				a += '" width="40px" height="40px">';
-				a += '<br>';
-				a += '<a class="profilelink" href="profile.php?id=' + data[i]['user_id'] + '">' + data[i]['user_firstname'] + ' ' + data[i]['user_lastname'];
-				if (data[i]['verified'] > 0)
-					a += getVerifiedBadge(data[i]['verified']);
-				a += '<span class="nickname">@' + data[i]['user_nickname'] + '</span>';
-				a += '</a>';
-				a += '<div id="toggle-fr-' + data[i]['user_id'] + '">';
-				a += '<input type="submit" value="Accept" onclick="_friend_request_toggle(' + data[i]['user_id'] + ',1)" name="accept">';
-				a += '<br><br>';
-				a += '<input type="submit" value="Ignore" onclick="_friend_request_toggle(' + data[i]['user_id'] + ',0)" name="ignore">';
-				a += '<br><br>';
+		var list = gebi("friend_reqest_list");
+		if (!list) return;
+
+		var a = '';
+
+		// Handle new REST API array response
+		if (Array.isArray(data)) {
+			if (data.length === 0) {
+				a += '<div class="userquery" style="text-align:center; padding:20px; color:var(--color-text-secondary);">';
+				a += i18n.t("lang__011"); // No requests
 				a += '</div>';
-				a += '</div>';
-				a += '<br>';
+			} else {
+				data.forEach(function (u) {
+					a += '<div class="userquery" style="display:flex; align-items:center; justify-content:space-between; padding:15px; margin-bottom:10px; background:var(--color-surface); border-radius:12px;">';
+
+					// User Info Section
+					a += '<div style="display:flex; align-items:center; gap:12px;">';
+
+					// PFP
+					var pfpSrc = (u.pfp_media_id > 0) ? pfp_cdn + '&id=' + u.pfp_media_id + "&h=" + u.pfp_media_hash : getDefaultUserImage(u.user_gender);
+					a += '<img class="pfp" src="' + pfpSrc + '" style="width:50px; height:50px; border-radius:50%; object-fit:cover;">';
+
+					// Name & Username
+					a += '<div style="display:flex; flex-direction:column;">';
+					a += '<a class="profilelink" href="profile.php?id=' + u.user_id + '" style="font-weight:600; font-size:1.05rem; color:var(--color-text-on-surface);">' + u.user_firstname + ' ' + u.user_lastname;
+					if (u.verified > 0) a += getVerifiedBadge(u.verified, "margin-left:4px;");
+					a += '</a>';
+					a += '<span class="nickname" style="font-size:0.9rem; color:var(--color-text-secondary);">@' + u.user_nickname + '</span>';
+					a += '</div>'; // End Name/Username
+
+					a += '</div>'; // End User Info
+
+					// Actions
+					a += '<div id="toggle-fr-' + u.user_id + '" style="display:flex; gap:8px;">';
+					a += '<button class="btn-primary" onclick="_friend_request_toggle(' + u.user_id + ',1)" style="padding:8px 16px; font-size:0.9rem;">Accept</button>';
+					a += '<button class="btn-secondary" onclick="_friend_request_toggle(' + u.user_id + ',0)" style="padding:8px 16px; font-size:0.9rem;">Ignore</button>';
+					a += '</div>';
+
+					a += '</div>';
+				});
 			}
+		} else if (data['success'] == 2) {
+			// Legacy handling just in case, though API returns array
+			a += '<div class="userquery" style="text-align:center;">' + i18n.t("lang__011") + '</div>';
 		}
 
-		a += '</center>';
-		friend_reqest_list.innerHTML = a; // Cleared and set
+		list.innerHTML = a;
 		changeUrlWork();
 	});
 }
@@ -1555,7 +1666,7 @@ function initFriendsPage() {
 
 		// Load content if not already loaded
 		if (tab === 'requests' && $('#friend_reqest_list').children().length === 0) {
-			fetch_friend_request('fetch_friend_request.php');
+			fetch_friend_request('User.php?action=requests');
 		}
 	});
 }
@@ -1639,20 +1750,23 @@ function _render_profile_header(data) {
 	} else {
 		// Friend Button
 		if (data['friendship_status'] != null) {
-			var btnTxt = (data['friendship_status'] == 1) ? 'Friends' : window["lang__005"]; // 005 = Requested?
+			var btnTxt = (data['friendship_status'] == 1) ? 'Friends' : (window["lang__005"] || 'Request Pending');
 			// Using smaller inline styling for specific button types if needed, or classes
 			h += '<input type="submit" onclick="_friend_toggle()" value="' + btnTxt + '" name="remove" id="special" class="createpost_box .input_box" style="background:var(--color-primary); color:white; border:none; border-radius:5px; padding:10px 20px; cursor:pointer;">';
 		} else {
-			h += '<input type="submit" onclick="_friend_toggle()" value="' + window["lang__006"] + '" name="request" id="special" class="createpost_box .input_box" style="background:var(--color-surface-hover); color:white; border:1px solid var(--color-border); border-radius:5px; padding:10px 20px; cursor:pointer;">';
+			h += '<input type="submit" onclick="_friend_toggle()" value="' + (window["lang__006"] || 'Add Friend') + '" name="request" id="special" class="createpost_box .input_box" style="background:var(--color-surface-hover); color:white; border:1px solid var(--color-border); border-radius:5px; padding:10px 20px; cursor:pointer;">';
 		}
 
 		// Follow Button
 		if (data['is_followed'] < 2) {
-			var followTxt = ((data['is_followed'] == 0) ? window["lang__082"] : window["lang__083"]);
+			var followTxt = ((data['is_followed'] == 0) ? (window["lang__082"] || 'Follow') : (window["lang__083"] || 'Unfollow'));
 			var followName = ((data['is_followed'] == 0) ? 'f' : 'u');
 			var followStyle = (data['is_followed'] == 0) ? 'background:var(--color-primary);' : 'background:transparent; border:1px solid var(--color-border);';
 			h += '<input type="button" onclick="_follow_toggle()" value="' + followTxt + '" name="' + followName + '" id="follow" style="' + followStyle + ' color:white; border-radius:5px; padding:10px 20px; cursor:pointer; border:none;">';
 		}
+
+		// Report User Button
+		h += '<button class="btn-secondary-outline" style="border-radius:5px; padding:10px 20px; border: 1px solid var(--color-border);" onclick="_report(\'user\', ' + data['user_id'] + ')"><i class="fa-solid fa-flag"></i> Report</button>';
 	}
 	h += '</div>'; // End Actions
 	h += '</div>'; // End Header Top
@@ -1674,20 +1788,20 @@ function _render_profile_header(data) {
 
 	// Meta info
 	h += '<div class="profile-bio-meta">';
-	if (data['user_gender'] == "M") h += '<span><i class="fa-solid fa-mars"></i> ' + window['lang__030'] + '</span>';
-	else if (data['user_gender'] == "F") h += '<span><i class="fa-solid fa-venus"></i> ' + window['lang__031'] + '</span>';
+	if (data['user_gender'] == "M") h += '<span><i class="fa-solid fa-mars"></i> ' + i18n.t('lang__030') + '</span>';
+	else if (data['user_gender'] == "F") h += '<span><i class="fa-solid fa-venus"></i> ' + i18n.t('lang__031') + '</span>';
 
 	h += '<span><i class="fa-solid fa-cake-candles"></i> ' + birthdateConverter(data['user_birthdate'] * 1000) + '</span>';
 
 	if (data['user_status'] != '' && data['user_status'] != 'N') {
 		var statusText = '';
 		switch (data['user_status']) {
-			case "S": statusText = window['lang__071']; break;
-			case "E": statusText = window['lang__072']; break;
-			case "M": statusText = window['lang__073']; break;
-			case "L": statusText = window['lang__074']; break;
-			case "D": statusText = window['lang__075']; break;
-			case "U": statusText = window['lang__076']; break;
+			case "S": statusText = i18n.t('lang__071'); break;
+			case "E": statusText = i18n.t('lang__072'); break;
+			case "M": statusText = i18n.t('lang__073'); break;
+			case "L": statusText = i18n.t('lang__074'); break;
+			case "D": statusText = i18n.t('lang__075'); break;
+			case "U": statusText = i18n.t('lang__076'); break;
 		}
 		if (data['relationship_user_id'] > 0 && data['relationship_partner_name']) {
 			statusText += ' with <a href="profile.php?id=' + data['relationship_user_id'] + '" onclick="route(event, this)" style="color:var(--color-text-primary); font-weight:600; text-decoration:none;">' + data['relationship_partner_name'] + '</a>';
@@ -1986,6 +2100,9 @@ function _render_group_header(d) {
 		var joinText = (d.group_privacy == 2) ? 'Join Community' : 'Request to Join';
 		h += '    <button class="btn-primary" onclick="_group_membership(' + d.group_id + ', \'join\')"><i class="fa-solid fa-plus"></i> ' + joinText + '</button>';
 	}
+
+	// Report Group Button
+	h += '    <button class="btn-secondary-outline" onclick="_report(\'group\', ' + d.group_id + ')"><i class="fa-solid fa-flag"></i> Report</button>';
 	h += '  </div>';
 	h += '</div>';
 
@@ -3120,40 +3237,140 @@ function _notification_count() {
 	});
 }
 
-function loadNotifications() {
+function loadNotifications(filter = 'all') {
 	var list = gebi('notification-list');
 	if (!list) return;
 
-	$.get(backend_url + "Notification.php", function (r) {
+	$.get(backend_url + "Notification.php?filter=" + filter, function (r) {
 		if (r.success === 1) {
 			var h = '';
+
+			// Update unread count display
+			if (r.unread_count !== undefined) {
+				var countEl = gebi('notification_count');
+				if (countEl) {
+					countEl.innerHTML = r.unread_count;
+					countEl.style.display = (r.unread_count > 0) ? 'block' : 'none';
+				}
+			}
+
 			if (!r.notifications || r.notifications.length === 0) {
 				h = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);">';
 				h += '<i class="fa-regular fa-bell-slash fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i>';
-				h += '<p>No notifications yet.</p></div>';
+				h += '<p>' + (filter === 'unread' ? 'No unread notifications.' : 'No notifications yet.') + '</p></div>';
 			} else {
 				r.notifications.forEach(function (n) {
-					var pfp = (n.pfp_media_id > 0) ? pfp_cdn + '&id=' + n.pfp_media_id + "&h=" + n.pfp_media_hash : getDefaultUserImage(n.user_gender);
-					var msg = '';
-					switch (n.type) {
-						case 'like': msg = 'liked your post'; break;
-						case 'comment': msg = 'commented on your post'; break;
-						case 'share': msg = 'shared your post'; break;
-						default: msg = 'interacted with your content';
+					var isSystem = !n.user_id || n.actor_id == 0;
+					var pfp = (n.pfp_media_id > 0) ? pfp_cdn + '&id=' + n.pfp_media_id + "&h=" + n.pfp_media_hash : getDefaultUserImage(n.user_gender || 'U');
+
+					if (isSystem) {
+						pfp = 'resources/images/system_icon.png'; // Fallback to system icon
+						// Check if the file exists or use default
 					}
 
-					h += '<li class="notification-item' + (n.is_read == 0 ? ' unread' : '') + '" onclick="modal_open(\'view_post\',' + n.reference_id + ')">';
-					h += '<img src="' + pfp + '" class="notification-pfp">';
-					h += '<div class="notification-info">';
-					h += '<p class="notification-text"><strong>' + n.user_firstname + ' ' + n.user_lastname + '</strong> ' + msg + '</p>';
-					h += '<span class="notification-time">' + timeSince(new Date(n.created_time).getTime()) + '</span>';
+					var msg = '';
+					var icon = 'fa-bell';
+					var iconColor = 'var(--color-primary)';
+					var clickAction = '';
+
+					// Determine message and icon based on notification type
+					switch (n.type) {
+						case 'like':
+							msg = i18n.t('notif_liked_post') || 'liked your post';
+							icon = 'fa-heart';
+							iconColor = '#ef4444';
+							clickAction = "modal_open('view_post'," + n.reference_id + ")";
+							break;
+						case 'comment':
+							msg = i18n.t('notif_commented') || 'commented on your post';
+							icon = 'fa-comment';
+							iconColor = 'var(--color-primary)';
+							clickAction = "modal_open('view_post'," + n.reference_id + ")";
+							break;
+						case 'share':
+							msg = i18n.t('notif_shared') || 'shared your post';
+							icon = 'fa-share';
+							iconColor = 'var(--color-secondary, #06b6d4)';
+							clickAction = "modal_open('view_post'," + n.reference_id + ")";
+							break;
+						case 'friend_request':
+							msg = i18n.t('notif_friend_request') || 'sent you a friend request';
+							icon = 'fa-user-plus';
+							iconColor = '#10b981';
+							clickAction = "changeUrl('profile.php?id=" + n.actor_id + "')";
+							break;
+						case 'friend_accept':
+							msg = i18n.t('notif_friend_accept') || 'accepted your friend request';
+							icon = 'fa-user-check';
+							iconColor = '#10b981';
+							clickAction = "changeUrl('profile.php?id=" + n.actor_id + "')";
+							break;
+						case 'mention':
+							msg = i18n.t('notif_mention') || 'mentioned you in a post';
+							icon = 'fa-at';
+							iconColor = '#f59e0b';
+							clickAction = "modal_open('view_post'," + n.reference_id + ")";
+							break;
+						case 'report_resolved':
+							msg = i18n.t('notif_report_resolved') || 'Your report has been reviewed and resolved';
+							icon = 'fa-flag-checkered';
+							iconColor = '#10b981';
+							clickAction = "";
+							break;
+						case 'report_processed':
+							msg = i18n.t('notif_report_processed') || 'Your report has been reviewed';
+							icon = 'fa-flag';
+							iconColor = 'var(--color-text-dim)';
+							clickAction = "";
+							break;
+						case 'group_invite':
+							msg = i18n.t('notif_group_invite') || 'invited you to join a group';
+							icon = 'fa-users';
+							iconColor = '#8b5cf6';
+							clickAction = "changeUrl('group.php?id=" + n.reference_id + "')";
+							break;
+						case 'group_accepted':
+							msg = i18n.t('notif_group_accepted') || 'Your request to join the group was accepted';
+							icon = 'fa-user-check';
+							iconColor = '#10b981';
+							clickAction = "changeUrl('group.php?id=" + n.reference_id + "')";
+							break;
+						default:
+							msg = 'interacted with your content';
+							icon = 'fa-bell';
+							iconColor = 'var(--color-primary)';
+					}
+
+					var isUnread = n.is_read == 0;
+					var actorName = isSystem ? 'System' : (n.user_firstname + ' ' + (n.user_lastname || ''));
+					var timeAgo = timeSince(n.created_time * 1000);
+
+					h += '<li class="notification-item' + (isUnread ? ' unread' : '') + '" data-id="' + n.notification_id + '">';
+					h += '<div class="notification-icon-wrap" style="position:relative;">';
+
+					if (isSystem) {
+						h += '<div class="notification-pfp system-avatar"><i class="fa-solid fa-gear"></i></div>';
+					} else {
+						h += '<img src="' + pfp + '" class="notification-pfp" onerror="this.src=\'data/blank.jpg\'">';
+					}
+
+					h += '<i class="fa-solid ' + icon + '" style="position:absolute; bottom:-2px; right:-2px; font-size:0.7rem; color:' + iconColor + '; background:var(--color-surface-card); padding:3px; border-radius:50%;"></i>';
 					h += '</div>';
-					if (n.is_read == 0) h += '<div class="unread-dot"></div>';
+					h += '<div class="notification-info" ' + (clickAction ? 'onclick="' + clickAction + '; markNotificationRead(' + n.notification_id + ');" style="cursor:pointer;"' : '') + '>';
+					h += '<p class="notification-text"><strong>' + actorName + '</strong> ' + msg + '</p>';
+					h += '<span class="notification-time">' + timeAgo + '</span>';
+					h += '</div>';
+					h += '<div class="notification-actions">';
+					if (isUnread) {
+						h += '<button class="notif-action-btn" onclick="markNotificationRead(' + n.notification_id + '); event.stopPropagation();" title="Mark as read"><i class="fa-solid fa-check"></i></button>';
+					}
+					h += '<button class="notif-action-btn" onclick="deleteNotification(' + n.notification_id + '); event.stopPropagation();" title="Delete"><i class="fa-solid fa-trash"></i></button>';
+					h += '</div>';
+					if (isUnread) h += '<div class="unread-dot"></div>';
 					h += '</li>';
 				});
 			}
 			list.innerHTML = h;
-			_notification_count(); // Update counter when list is loaded
 		} else {
 			list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);"><p>Failed to load notifications</p></div>';
 		}
@@ -3161,6 +3378,44 @@ function loadNotifications() {
 		.fail(function () {
 			list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--color-text-dim);"><p>Error connecting to server</p></div>';
 		});
+}
+
+function markNotificationRead(notificationId) {
+	$.get(backend_url + "Notification.php?action=read_single&notification_id=" + notificationId, function (r) {
+		if (r.success === 1) {
+			var item = document.querySelector('.notification-item[data-id="' + notificationId + '"]');
+			if (item) {
+				item.classList.remove('unread');
+				var dot = item.querySelector('.unread-dot');
+				if (dot) dot.remove();
+				var readBtn = item.querySelector('.notif-action-btn[title="Mark as read"]');
+				if (readBtn) readBtn.remove();
+			}
+			_notification_count();
+		}
+	});
+}
+
+function deleteNotification(notificationId) {
+	$.get(backend_url + "Notification.php?action=delete&notification_id=" + notificationId, function (r) {
+		if (r.success === 1) {
+			var item = document.querySelector('.notification-item[data-id="' + notificationId + '"]');
+			if (item) {
+				item.style.transition = 'opacity 0.3s, transform 0.3s';
+				item.style.opacity = '0';
+				item.style.transform = 'translateX(20px)';
+				setTimeout(function () {
+					item.remove();
+					// Check if list is now empty
+					var list = gebi('notification-list');
+					if (list && list.querySelectorAll('.notification-item').length === 0) {
+						list.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:var(--color-text-dim);"><i class="fa-regular fa-bell-slash fa-3x" style="margin-bottom:15px; display:block; opacity:0.5;"></i><p>No notifications yet.</p></div>';
+					}
+				}, 300);
+			}
+			_notification_count();
+		}
+	});
 }
 
 function markAllRead() {
@@ -3173,21 +3428,8 @@ function markAllRead() {
 	});
 }
 
-function _load_hljs() {
-	$.ajax({
-		url: backend_url + "hljs_lang_list.php",
-		type: 'GET',
-		success: function (res) {
-			hljs_lang_list = gebi('hljs_lang_list');
-			for (let i = 0; i < res.length; i++) {
-				ScriptLink = document.createElement("script");
-				ScriptLink.src = "/resources/js/highlight/" + res[i];
-				hljs_lang_list.appendChild(ScriptLink);
-			}
-		}
-	});
-	changeUrlWork();
-}
+
+
 
 
 
@@ -4922,12 +5164,7 @@ function _disable_2fa() {
 }
 
 
-function HighLightHLJS() {
-	if (lsg("load_hightlightjs") == "no")
-		return;
-	_load_hljs();
-	hljs.highlightAll();
-}
+
 document.addEventListener('readystatechange', function (e) {
 	if (document.readyState == "complete") {
 		_load_info();
@@ -4948,8 +5185,16 @@ document.addEventListener('readystatechange', function (e) {
 		changeUrlWork();
 		textAreaRework();
 		initCustomSelects(); // Premium Custom Selects
+		_recoverChatWidget();
 	}
 });
+
+function _recoverChatWidget() {
+	const state = sessionStorage.getItem('dm_widget_open');
+	if (state === 'true') {
+		toggleChatWidget(true);
+	}
+}
 
 function initCustomSelects(force = false) {
 	// Support various select classes
@@ -5134,9 +5379,6 @@ function fetch_post(loc, reset = false) {
 					if (v) load_video(s['share']['post_media'], s['share']['media_hash'], s['share']['media_format'], v);
 				}
 			}
-
-			HighLightHLJS();
-
 			// Advance Page
 			pageInput.value = parseInt(pageInput.value) + 1;
 		}
@@ -5435,4 +5677,32 @@ function _loadFriendListForRelationship(currentPartnerId = 0) {
 			select.innerHTML = h;
 		}
 	});
+}
+
+function toggleChatWidget(forceOpen = null) {
+	const widget = document.getElementById('mini-chat-widget');
+	const iframe = document.getElementById('chat-iframe');
+	if (!widget) return;
+
+	const isClosed = widget.classList.contains('chat-widget-closed');
+	const shouldOpen = (forceOpen !== null) ? forceOpen : isClosed;
+
+	if (shouldOpen) {
+		// Open the widget
+		widget.classList.remove('chat-widget-closed');
+		widget.classList.add('chat-widget-open');
+		sessionStorage.setItem('dm_widget_open', 'true');
+
+		// Load the iframe if it hasn't been loaded yet
+		const currentSrc = iframe.getAttribute('src');
+		if (!currentSrc || currentSrc === '' || currentSrc === 'about:blank') {
+			console.log("Loading chat widget iframe...");
+			iframe.src = "/DarkMessage.php?mode=widget";
+		}
+	} else {
+		// Close the widget
+		widget.classList.remove('chat-widget-open');
+		widget.classList.add('chat-widget-closed');
+		sessionStorage.setItem('dm_widget_open', 'false');
+	}
 }

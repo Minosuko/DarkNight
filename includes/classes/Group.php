@@ -139,5 +139,38 @@ class Group {
         }
         return $posts;
     }
+
+    public function ban($group_id) {
+        global $db_post;
+        $group_id = intval($group_id);
+        $sql = "UPDATE $db_post.groups SET is_banned = 1 WHERE group_id = $group_id";
+        return $this->db->query($sql);
+    }
+
+    public function unban($group_id) {
+        global $db_post;
+        $group_id = intval($group_id);
+        $sql = "UPDATE $db_post.groups SET is_banned = 0 WHERE group_id = $group_id";
+        return $this->db->query($sql);
+    }
+
+    public function isBanned($group_id) {
+        global $db_post;
+        $group_id = intval($group_id);
+        $sql = "SELECT is_banned FROM $db_post.groups WHERE group_id = $group_id";
+        $result = $this->db->query($sql);
+        if ($result && $row = $result->fetch_assoc()) {
+            return (intval($row['is_banned']) === 1);
+        }
+        return false;
+    }
+
+    public function updateVerification($group_id, $status) {
+        global $db_post;
+        $group_id = intval($group_id);
+        $status = intval($status);
+        $sql = "UPDATE $db_post.groups SET verified = $status WHERE group_id = $group_id";
+        return $this->db->query($sql);
+    }
 }
 ?>

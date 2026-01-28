@@ -15,8 +15,6 @@ if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
 ?>
 <script src="resources/js/jquery.js"></script>
 <script src="resources/js/i18n.js"></script>
-<script src="resources/js/highlight.js"></script>
-<div id="hljs_lang_list"></div>
 <nav class="usernav">
     <div id="loading_bar"></div>
     <ul>
@@ -24,6 +22,7 @@ if(substr($_SERVER['REQUEST_URI'],0,10) == '/includes/') die();
         <li><a href="/search.php" onclick="changeUrl('/search.php'); return false;" title="Search"><i class="fa-solid fa-magnifying-glass"></i></a></li>
         <li><a href="/friends.php" onclick="changeUrl('/friends.php'); return false;" title="Friends"><i class="fa-solid fa-user-group"></i></a></li>
         <li><a href="/groups.php" onclick="changeUrl('/groups.php'); return false;" title="Groups"><i class="fa-solid fa-users"></i></a></li>
+        <li><a href="/DarkMessage.php" onclick="changeUrl('/DarkMessage.php'); return false;" title="DarkMessage"><i class="fa-solid fa-comments"></i></a></li>
         <li><a href="/home.php" class="active" onclick="changeUrl('/home.php'); return false;" title="Home"><i class="fa-solid fa-house"></i></a></li>
         <li><a href="/profile.php" onclick="changeUrl('/profile.php'); return false;" title="Profile"><i class="fa-solid fa-user"></i></a></li>
         <li>

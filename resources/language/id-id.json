@@ -99,5 +99,15 @@
     "lang_badge_4": "Penerjemah Darknight Terverifikasi",
     "lang_badge_3": "Pemerintah",
     "lang_badge_2": "Perusahaan Terverifikasi",
-    "lang_badge_1": "Pengguna Terverifikasi"
+    "lang_badge_1": "Pengguna Terverifikasi",
+    "notif_liked_post": "menyukai postingan Anda",
+    "notif_commented": "mengomentari postingan Anda",
+    "notif_shared": "membagikan postingan Anda",
+    "notif_friend_request": "mengirimkan permintaan pertemanan",
+    "notif_friend_accept": "menerima permintaan pertemanan Anda",
+    "notif_mention": "menyebut Anda dalam postingan",
+    "notif_report_resolved": "Laporan Anda telah ditinjau dan tindakan telah diambil",
+    "notif_report_processed": "Laporan Anda telah ditinjau oleh tim kami",
+    "notif_group_invite": "mengundang Anda untuk bergabung ke grup",
+    "notif_group_accepted": "Permintaan Anda untuk bergabung ke grup telah disetujui"
 }

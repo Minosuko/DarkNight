@@ -193,7 +193,8 @@ if(_is_session_valid(false)){
 								$verify = _verify_2FA($_POST['code'], $userId);
 								if($verify){
 									$_SESSION['2fa_verified'] = true;
-									header("Location: home.php");
+									$redirect = (isset($_GET['redirect']) && !empty($_GET['redirect'])) ? $_GET['redirect'] : 'home.php';
+									header("Location: " . $redirect);
 									exit();
 								} else {
 									echo "<div class='error-message'><i class='fa-solid fa-circle-exclamation'></i> Invalid code. Please try again.</div>";
@@ -362,7 +363,9 @@ if(_is_session_valid(false)){
 					const verifyData = await verifyRes.json();
 					
 					if (verifyData.success) {
-						window.location.href = verifyData.redirect || '/home.php';
+						const urlParams = new URLSearchParams(window.location.search);
+						const redirect = urlParams.get('redirect') || verifyData.redirect || '/home.php';
+						window.location.href = redirect;
 					} else {
 						alert('Verification failed: ' + verifyData.error);
 					}

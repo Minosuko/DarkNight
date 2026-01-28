@@ -22,6 +22,7 @@
                 <div style="padding:40px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:var(--color-primary)"></i></div>
             </div>
 		</div>
+		<?php include 'includes/chat_widget.php'; ?>
 	</body>
 	<script>
 	window.onload = function() {

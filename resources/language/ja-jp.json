@@ -99,5 +99,15 @@
     "lang_badge_4": "認証済み Darknight 翻訳者",
     "lang_badge_3": "政府",
     "lang_badge_2": "認証済み企業",
-    "lang_badge_1": "認証済みユーザー"
+    "lang_badge_1": "認証済みユーザー",
+    "notif_liked_post": "があなたの投稿に「いいね」しました",
+    "notif_commented": "があなたの投稿にコメントしました",
+    "notif_shared": "があなたの投稿をシェアしました",
+    "notif_friend_request": "が友達リクエストを送信しました",
+    "notif_friend_accept": "が友達リクエストを承認しました",
+    "notif_mention": "が投稿であなたをメンションしました",
+    "notif_report_resolved": "あなたの報告は審査され、対応が完了しました",
+    "notif_report_processed": "私たちのチームがあなたの報告を審査しました",
+    "notif_group_invite": "があなたをグループに招待しました",
+    "notif_group_accepted": "グループへの参加リクエストが承認されました"
 }

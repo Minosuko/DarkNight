@@ -99,5 +99,15 @@
     "lang_badge_4": "Traducteur Darknight vérifié",
     "lang_badge_3": "Gouvernement",
     "lang_badge_2": "Entreprise vérifiée",
-    "lang_badge_1": "Utilisateur vérifié"
+    "lang_badge_1": "Utilisateur vérifié",
+    "notif_liked_post": "a aimé votre publication",
+    "notif_commented": "a commenté votre publication",
+    "notif_shared": "a partagé votre publication",
+    "notif_friend_request": "vous a envoyé une demande d'ami",
+    "notif_friend_accept": "a accepté votre demande d'ami",
+    "notif_mention": "vous a mentionné dans une publication",
+    "notif_report_resolved": "Votre signalement a été examiné et des mesures ont été prises",
+    "notif_report_processed": "Votre signalement a été examiné par notre équipe",
+    "notif_group_invite": "vous a invité à rejoindre un groupe",
+    "notif_group_accepted": "Votre demande de rejoindre le groupe a été acceptée"
 }

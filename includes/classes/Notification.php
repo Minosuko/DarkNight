@@ -8,13 +8,13 @@ class Notification {
         $this->db = Database::getInstance();
     }
 
-    public function create($user_id, $actor_id, $type, $related_id = 0) {
+    public function create($user_id, $actor_id, $type, $reference_id = 0) {
         $db_user = $this->db->db_user;
         $time = time();
-        $sql = "INSERT INTO $db_user.notifications (user_id, actor_id, type, related_id, created_time) 
+        $sql = "INSERT INTO $db_user.notifications (user_id, actor_id, type, reference_id, created_time) 
                 VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("iisii", $user_id, $actor_id, $type, $related_id, $time);
+        $stmt->bind_param("iisii", $user_id, $actor_id, $type, $reference_id, $time);
         return $stmt->execute();
     }
 
@@ -60,7 +60,7 @@ class Notification {
         $sql = "SELECT n.*, u.user_firstname, u.user_lastname, u.user_nickname, u.user_gender, 
                        u.pfp_media_id, m.media_hash as pfp_media_hash
                 FROM $db_user.notifications n
-                JOIN $db_user.users u ON n.actor_id = u.user_id
+                LEFT JOIN $db_user.users u ON n.actor_id = u.user_id
                 LEFT JOIN $db_media.media m ON u.pfp_media_id = m.media_id
                 WHERE n.user_id = ?
                 ORDER BY n.created_time DESC

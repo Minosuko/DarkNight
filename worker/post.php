@@ -409,6 +409,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             break;
             
+        case 'trending':
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 5;
+            $trending = Post::getTrending($limit);
+            echo json_encode(['success' => 1, 'data' => $trending]);
+            break;
+            
         case 'media':
              $id = isset($_GET['id']) ? $_GET['id'] : 0;
              if(is_numeric($id) && is_post_exists($id)){

@@ -12,6 +12,7 @@
     <h2>3. User Accounts</h2>
     <p>To access certain features of the Service, you must create an account. You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate, current, and complete. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
     <p>Darknight cannot and will not be liable for any loss or damage from your failure to comply with these security obligations. You must notify us immediately of any unauthorized use of your account.</p>
+    <p><strong>Secure Identity & PIN:</strong> For our End-to-End (E2E) encrypted services, you are solely responsible for remembering your Chat PIN. This PIN is the only way to decrypt your identity vault. If you lose your PIN, Darknight cannot recover your encrypted messages or security keys.</p>
     <p>We highly recommend enabling <strong>Two-Factor Authentication (2FA)</strong> within your account settings to provide an extra layer of security.</p>
 </section>
 
@@ -58,7 +59,7 @@
 
 <section>
     <h2>9. Privacy</h2>
-    <p>Your privacy is paramount. Our Privacy Policy describes how we handle the information you provide to us when you use our Service. You understand that through your use of the Service you consent to the collection and use of this information as set forth in the Privacy Policy.</p>
+    <p>Your privacy is paramount. Our <a href="../../pages/privacy/">Privacy Policy</a> describes how we handle the information you provide to us when you use our Service. You understand that through your use of the Service you consent to the collection and use of this information as set forth in the Privacy Policy.</p>
 </section>
 
 <section>
@@ -89,4 +90,14 @@
 <section>
     <h2>15. Changes to Terms</h2>
     <p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will provide notice of any significant changes. By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.</p>
+</section>
+
+<section>
+    <h2>16. Security & E2E Responsibilities</h2>
+    <p>Darknight Social provides an End-to-End (E2E) encrypted environment. By using these features, you acknowledge that:</p>
+    <ul>
+        <li>Encryption keys are generated and stored locally on your device or in a secure binary vault on our server, encrypted with your personal PIN.</li>
+        <li>Darknight employees cannot access your private keys or unencrypted message content.</li>
+        <li>You are responsible for the secrecy of your PIN; loss of this PIN results in permanent loss of access to encrypted message history.</li>
+    </ul>
 </section>

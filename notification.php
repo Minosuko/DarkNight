@@ -14,13 +14,20 @@
         <div class="notification-container">
             <div class="notification-header">
                 <h3>Notifications</h3>
-                <button class="btn-primary" style="padding: 5px 10px; font-size: 0.8rem;" onclick="markAllRead()">
-                    Mark all as read
-                </button>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <div class="notif-tabs">
+                        <div class="notif-tab active" data-filter="all" onclick="switchNotifTab('all')">All</div>
+                        <div class="notif-tab" data-filter="unread" onclick="switchNotifTab('unread')">Unread</div>
+                    </div>
+                    <button class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="markAllRead()">
+                        Mark all as read
+                    </button>
+                </div>
             </div>
             <ul class="notification-list" id="notification-list">
-                <div style="padding:20px; text-align:center; color:var(--color-text-secondary);">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                <div style="padding:40px; text-align:center; color:var(--color-text-secondary);">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top:10px;">Loading notifications...</p>
                 </div>
             </ul>
         </div>
@@ -30,6 +37,15 @@
         document.addEventListener("DOMContentLoaded", function() {
             loadNotifications();
         });
+
+        function switchNotifTab(filter) {
+            document.querySelectorAll('.notif-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.filter === filter) tab.classList.add('active');
+            });
+            loadNotifications(filter);
+        }
     </script>
+    <?php include 'includes/chat_widget.php'; ?>
 </body>
 </html>

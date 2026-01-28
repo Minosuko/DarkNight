@@ -1,6 +1,9 @@
 <?php
 require_once '../includes/functions.php';
 $compressed = true;
+$fdate = time();
+$etag = "";
+$fsize = 0;
 if(isset($_GET['original']))
 	$compressed = false;
 if(isset($_GET['id']) && isset($_GET['h'])){

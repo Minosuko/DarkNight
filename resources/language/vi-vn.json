@@ -99,5 +99,15 @@
 	"lang_badge_4": "Biên dịch viên Darknight đã xác minh",
 	"lang_badge_3": "Chính phủ",
 	"lang_badge_2": "Doanh nghiệp đã xác minh",
-	"lang_badge_1": "Người dùng đã xác minh"
+	"lang_badge_1": "Người dùng đã xác minh",
+	"notif_liked_post": "đã thích bài viết của bạn",
+	"notif_commented": "đã bình luận về bài viết của bạn",
+	"notif_shared": "đã chia sẻ bài viết của bạn",
+	"notif_friend_request": "đã gửi cho bạn một lời mời kết bạn",
+	"notif_friend_accept": "đã chấp nhận lời mời kết bạn của bạn",
+	"notif_mention": "đã nhắc đến bạn trong một bài viết",
+	"notif_report_resolved": "Báo cáo của bạn đã được xem xét và xử lý",
+	"notif_report_processed": "Báo cáo của bạn đã được đội ngũ của chúng tôi xem xét",
+	"notif_group_invite": "đã mời bạn tham gia một nhóm",
+	"notif_group_accepted": "Yêu cầu tham gia nhóm của bạn đã được chấp nhận"
 }

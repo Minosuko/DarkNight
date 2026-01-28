@@ -12,6 +12,7 @@ require_once __DIR__ . "/classes/Friend.php";
 require_once __DIR__ . "/classes/Utils.php";
 require_once __DIR__ . "/classes/QRCode.php";
 require_once __DIR__ . "/classes/Group.php";
+require_once __DIR__ . "/classes/Report.php";
 require_once __DIR__ . "/config/auth.php";
 require_once __DIR__ . "/classes/JWT.php";
 require_once __DIR__ . "/Mailer/Mailer.php";
@@ -755,18 +756,12 @@ function _is_session_valid($checkActive = true, $ignore2FA = false){
         return false; // Session revoked/deleted
     }
 
-    // Checking 'active' status
+    // Checking 'active' status and 'banned' status
     if ($checkActive) {
-        // Optimization: We could store 'active' in JWT. For now, fetch user to be sure.
-        // But the goal is to REDUCE load. 
-        // If we trust the token, we assume they were active when they logged in.
-        // But if they get banned/deactivated, we need to know.
-        // Let's perform a lightweight lookup or cache it.
-        // For strictness + load reduction: simple PK lookup is fast.
          $uid = $payload['user_id'];
-         $res = $conn->query("SELECT active FROM $db_user.users WHERE user_id = $uid LIMIT 1");
+         $res = $conn->query("SELECT active, is_banned FROM $db_user.users WHERE user_id = $uid LIMIT 1");
          if($res && $row = $res->fetch_assoc()) {
-             if ($row['active'] == 0) return false;
+             if ($row['active'] == 0 || $row['is_banned'] == 1) return false;
          } else {
              return false; // User not found
          }

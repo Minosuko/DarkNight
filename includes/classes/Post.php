@@ -320,6 +320,65 @@ class Post {
 
         return $db->query($sql)->fetch_all(MYSQLI_ASSOC);
     }
+
+    public static function getTrending($limit = 5) {
+        $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $limit = intval($limit);
+        
+        // Trending logic: Count hashtags used in the last 7 days
+        $sevenDaysAgo = time() - (7 * 86400);
+        
+        $sql = "
+            SELECT h.tag_name, COUNT(ph.tag_id) as use_count
+            FROM $db_post.post_hashtags ph
+            JOIN $db_post.hashtags h ON ph.tag_id = h.tag_id
+            WHERE ph.created_at >= $sevenDaysAgo
+            GROUP BY h.tag_id
+            ORDER BY use_count DESC
+            LIMIT $limit
+        ";
+        
+        $query = $db->query($sql);
+        return $query->fetch_all(MYSQLI_ASSOC);
+    }
+    
+    public static function getMedia($postId) {
+        $db = Database::getInstance();
+        $db_post = $db->db_post;
+        $db_media = $db->db_media;
+        $postId = intval($postId);
+
+        // Try getting from mapping first (Multiple Media)
+        $sql = "
+            SELECT m.*, m_map.display_order 
+            FROM $db_post.post_media_mapping m_map
+            JOIN $db_media.media m ON m_map.media_id = m.media_id
+            WHERE m_map.post_id = $postId
+            ORDER BY m_map.display_order ASC
+        ";
+        
+        $result = [];
+        $res = $db->query($sql);
+        while ($row = $res->fetch_assoc()) {
+            $result[] = $row;
+        }
+
+        // Fallback: Legacy Single Media
+        if (empty($result)) {
+            $postRes = $db->query("SELECT post_media FROM $db_post.posts WHERE post_id = $postId");
+            if ($postRes && $postRow = $postRes->fetch_assoc()) {
+                if ($postRow['post_media'] > 0) {
+                    $mediaRes = $db->query("SELECT * FROM $db_media.media WHERE media_id = " . $postRow['post_media']);
+                    if ($mediaRes && $mediaRow = $mediaRes->fetch_assoc()) {
+                        $result[] = $mediaRow;
+                    }
+                }
+            }
+        }
+        
+        return $result;
+    }
     
     public static function searchPosts($query, $viewerUserId, $page = 0, $filters = []) {
         $db = Database::getInstance();
@@ -536,6 +595,27 @@ class Post {
         $uploadedMedia = [];
         if ($hasMedia && $lastId) {
             $uploadedMedia = self::handleMediaUpload($lastId, $fileData);
+        }
+
+        // Hashtag Processing
+        if ($lastId) {
+            preg_match_all('/#(\w+)/u', $caption, $matches);
+            if (!empty($matches[1])) {
+                $tags = array_unique($matches[1]);
+                foreach ($tags as $tag) {
+                    $tagName = mb_strtolower($tag, 'UTF-8');
+                    // Insert tag if not exists
+                    $db->query("INSERT IGNORE INTO $db_post.hashtags (tag_name, created_at) VALUES ('$tagName', $timestamp)");
+                    
+                    // Get tag ID
+                    $tagRes = $db->query("SELECT tag_id FROM $db_post.hashtags WHERE tag_name = '$tagName' LIMIT 1");
+                    if ($tagRes && $tagRow = $tagRes->fetch_assoc()) {
+                        $tagId = $tagRow['tag_id'];
+                        // Map tag to post
+                        $db->query("INSERT INTO $db_post.post_hashtags (post_id, tag_id, created_at) VALUES ($lastId, $tagId, $timestamp)");
+                    }
+                }
+            }
         }
 
         return [

@@ -99,5 +99,15 @@
     "lang_badge_4": "인증된 Darknight 번역가",
     "lang_badge_3": "정부",
     "lang_badge_2": "인증된 기업",
-    "lang_badge_1": "인증된 사용자"
+    "lang_badge_1": "인증된 사용자",
+    "notif_liked_post": "님의 게시글을 좋아합니다",
+    "notif_commented": "님이 게시글에 댓글을 남겼습니다",
+    "notif_shared": "님이 게시글을 공유했습니다",
+    "notif_friend_request": "님이 친구 요청을 보냈습니다",
+    "notif_friend_accept": "님이 친구 요청을 수락했습니다",
+    "notif_mention": "님이 게시글에서 당신을 언급했습니다",
+    "notif_report_resolved": "신고가 검토되었으며 조치가 완료되었습니다",
+    "notif_report_processed": "팀에서 신고 내용을 검토했습니다",
+    "notif_group_invite": "님이 그룹에 초대했습니다",
+    "notif_group_accepted": "그룹 가입 요청이 승인되었습니다"
 }

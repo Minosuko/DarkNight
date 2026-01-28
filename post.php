@@ -6,7 +6,6 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" type="text/css" href="resources/css/main.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/font-awesome/all.css">
-		<link rel="stylesheet" type="text/css" href="resources/css/highlight/highlight.css">
 		<link rel="stylesheet" type="text/css" href="resources/css/cropper/cropper.css">
 		<style>
 			body{
@@ -31,5 +30,6 @@
 		<script>
 			_load_post();
 		</script>
+		<?php include 'includes/chat_widget.php'; ?>
 	</body>
 </html>

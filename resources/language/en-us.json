@@ -99,5 +99,15 @@
 	"lang_badge_4": "Verified Darknight Translator",
 	"lang_badge_3": "Government",
 	"lang_badge_2": "Verified Company",
-	"lang_badge_1": "Verified User"
+	"lang_badge_1": "Verified User",
+	"notif_liked_post": "liked your post",
+	"notif_commented": "commented on your post",
+	"notif_shared": "shared your post",
+	"notif_friend_request": "sent you a friend request",
+	"notif_friend_accept": "accepted your friend request",
+	"notif_mention": "mentioned you in a post",
+	"notif_report_resolved": "Your report has been reviewed and action has been taken",
+	"notif_report_processed": "Your report has been reviewed by our team",
+	"notif_group_invite": "invited you to join a group",
+	"notif_group_accepted": "Your request to join the group was accepted"
 }

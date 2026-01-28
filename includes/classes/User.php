@@ -117,4 +117,36 @@ class User {
         $result = $db->query($sql);
         return $result->fetch_assoc();
     }
+
+    public static function ban($id) {
+        $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $sql = sprintf("UPDATE $db_user.users SET is_banned = 1 WHERE user_id = %d", $db->escape($id));
+        return $db->query($sql);
+    }
+
+    public static function unban($id) {
+        $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $sql = sprintf("UPDATE $db_user.users SET is_banned = 0 WHERE user_id = %d", $db->escape($id));
+        return $db->query($sql);
+    }
+
+    public static function isBanned($id) {
+        $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $sql = sprintf("SELECT is_banned FROM $db_user.users WHERE user_id = %d", $db->escape($id));
+        $result = $db->query($sql);
+        if ($result && $row = $result->fetch_assoc()) {
+            return (intval($row['is_banned']) === 1);
+        }
+        return false;
+    }
+
+    public static function updateVerifiedBadge($id, $level) {
+        $db = Database::getInstance();
+        $db_user = $db->db_user;
+        $sql = sprintf("UPDATE $db_user.users SET verified = %d WHERE user_id = %d", intval($level), $db->escape($id));
+        return $db->query($sql);
+    }
 }
